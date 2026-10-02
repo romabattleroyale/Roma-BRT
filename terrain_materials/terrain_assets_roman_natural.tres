@@ -1,0 +1,40 @@
+[gd_resource type="Terrain3DAssets" load_steps=10 format=3]
+
+[ext_resource type="Texture2D" path="res://terrain_materials/grass_roman_albedo.png" id="1"]
+[ext_resource type="Texture2D" path="res://terrain_materials/grass_roman_normal.png" id="2"]
+[ext_resource type="Texture2D" path="res://terrain_materials/soil_roman_albedo.png" id="3"]
+[ext_resource type="Texture2D" path="res://terrain_materials/soil_roman_normal.png" id="4"]
+[ext_resource type="Texture2D" path="res://terrain_materials/rock_roman_albedo.png" id="5"]
+[ext_resource type="Texture2D" path="res://terrain_materials/rock_roman_normal.png" id="6"]
+
+[sub_resource type="Terrain3DTextureAsset" id="Grass"]
+name = "Grass Roman Natural"
+albedo_texture = ExtResource("1")
+normal_texture = ExtResource("2")
+normal_depth = 0.45
+roughness = 0.55
+uv_scale = 0.055
+detiling_rotation = 0.18
+
+[sub_resource type="Terrain3DTextureAsset" id="Soil"]
+name = "Soil Roman Natural"
+id = 1
+albedo_texture = ExtResource("3")
+normal_texture = ExtResource("4")
+normal_depth = 0.55
+roughness = 0.72
+uv_scale = 0.045
+detiling_rotation = 0.11
+
+[sub_resource type="Terrain3DTextureAsset" id="Rock"]
+name = "Rock Roman Natural"
+id = 2
+albedo_texture = ExtResource("5")
+normal_texture = ExtResource("6")
+normal_depth = 0.65
+roughness = 0.728
+uv_scale = 0.035
+detiling_rotation = 0.07
+
+[resource]
+texture_list = Array[Terrain3DTextureAsset]([SubResource("Grass"), SubResource("Soil"), SubResource("Rock")])

@@ -1,0 +1,1 @@
+FIX7: Tevere water level stabilized with local-bed minimum +2.60m, 9-point moving average, no downward crossing below local target, ribbon width 0.98x. Heightmap unchanged; RAW 16-bit BE; Terrain3D 2000x2000m, spacing 1.8518518m, height scale 48m.
