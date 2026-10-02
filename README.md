@@ -24,5 +24,8 @@ The Tevere geometry is the confirmed FIX18 geometry, with the animated direction
 ### Important
 Do not modify the heightmap, terrain/control map, or Tevere geometry unless explicitly authorized.
 
+### Integration policy
+The Roma-Royale V37 systems are being integrated selectively. Terrain creation from the source project is excluded; the existing Terrain3D remains authoritative. Road generation is staged for a later controlled pass. POIs, buildings, foliage, Fire Front, lighting, height sampling, and technical camera systems are adapted to the existing world.
+
 ### GitHub workflow
 Use commits as checkpoints. Never commit `.godot/` or generated exports.
