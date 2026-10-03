@@ -1,0 +1,84 @@
+name: City Library Ingest
+
+on:
+  push:
+    paths:
+      - 'incoming_libraries/*.zip'
+      - '.github/workflows/library-ingest.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  ingest:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Ingest V11 library
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          ARCHIVE="incoming_libraries/RomaRoyale_Architecture_Library_V11_CLEARANCE_AUDIT_FIXED.zip"
+          DEST="city_library/buildings/houses/roma_architecture_library_v11"
+          WORK=".library_ingest"
+
+          test -f "$ARCHIVE"
+          rm -rf "$WORK"
+          mkdir -p "$WORK/unpacked"
+          unzip -q "$ARCHIVE" -d "$WORK/unpacked"
+
+          ROOT="$WORK/unpacked"
+          mapfile -t TOP < <(find "$ROOT" -mindepth 1 -maxdepth 1 -type d -print)
+          FILES_AT_TOP=$(find "$ROOT" -mindepth 1 -maxdepth 1 -type f | wc -l)
+          if [ "${#TOP[@]}" -eq 1 ] && [ "$FILES_AT_TOP" -eq 0 ]; then
+            ROOT="${TOP[0]}"
+          fi
+
+          # A library may arrive as a standalone Godot project. The project
+          # metadata is not part of the City Library and must not be installed.
+          find "$ROOT" -type d -name '.godot' -prune -exec rm -rf {} +
+          find "$ROOT" -type f -name 'project.godot' -delete
+
+          test -f "$ROOT/data/building_catalog.json"
+
+          python3 - "$ROOT/data/building_catalog.json" <<'PY'
+          import json
+          import sys
+          path = sys.argv[1]
+          with open(path, encoding='utf-8') as f:
+              data = json.load(f)
+          if not isinstance(data, list) or not data:
+              raise SystemExit('Building catalog must be a non-empty array')
+          ids = []
+          for item in data:
+              if not isinstance(item, dict) or not item.get('id'):
+                  raise SystemExit('Every building catalog entry needs an id')
+              ids.append(str(item['id']))
+          if len(ids) != len(set(ids)):
+              raise SystemExit('Duplicate building IDs')
+          print(f'Validated house catalog: {len(ids)} archetypes')
+          PY
+
+          if grep -RniE 'Road Generator|road_generator[[:space:]]*:[[:space:]]*true' "$ROOT" \
+            --exclude='*.png' --exclude='*.jpg' --exclude='*.jpeg' \
+            --exclude='*.exr' --exclude='*.hdr' --exclude='*.glb' --exclude='*.gltf' 2>/dev/null; then
+            echo 'Rejected: Road Generator enablement marker found.'
+            exit 1
+          fi
+
+          mkdir -p "$DEST"
+          rsync -a --delete "$ROOT/" "$DEST/"
+          rm -rf "$WORK"
+
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add "$DEST"
+          if git diff --cached --quiet; then
+            echo 'Library already installed; no changes needed.'
+            exit 0
+          fi
+          git commit -m 'library: ingest Roma Architecture Library V11'
+          git push
