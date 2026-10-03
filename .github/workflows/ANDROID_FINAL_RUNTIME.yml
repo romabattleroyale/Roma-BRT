@@ -1,0 +1,121 @@
+name: Android Final Runtime
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/ANDROID_FINAL_RUNTIME.yml'
+      - 'main.tscn'
+      - 'project.godot'
+      - 'export_presets.cfg'
+      - 'terrain_runtime_android_safe.gd'
+      - 'terrain_data/**'
+      - 'baked_city/**'
+      - 'v37_integration/**'
+      - 'viewer.gd'
+      - 'debug_topdown_camera.gd'
+      - 'mobile_controls.gd'
+      - 'hud.gd'
+      - 'addons/terrain_3d/**'
+      - 'terrain_materials/**'
+
+permissions:
+  contents: read
+
+jobs:
+  build-final-android:
+    name: Build final Android runtime APK
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - name: Checkout Roma-BRT
+        uses: actions/checkout@v4
+
+      - name: Set up Java 17
+        uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Set up Android SDK
+        uses: android-actions/setup-android@v4
+        with:
+          packages: ''
+
+      - name: Install Android SDK packages
+        run: |
+          set -euo pipefail
+          yes | sdkmanager --licenses >/dev/null || true
+          sdkmanager 'platform-tools' 'platforms;android-35' 'build-tools;35.0.0'
+
+      - name: Download Godot 4.7.2
+        run: |
+          set -euo pipefail
+          mkdir -p .runtime/godot
+          curl -L --fail --retry 3 -o .runtime/godot/godot.zip \
+            'https://github.com/godotengine/godot/releases/download/4.7.2-stable/Godot_v4.7.2-stable_linux.x86_64.zip'
+          unzip -q .runtime/godot/godot.zip -d .runtime/godot
+          GODOT_BIN=$(find .runtime/godot -maxdepth 2 -type f -name 'Godot_v4.7.2-stable_linux.x86_64' | head -n 1)
+          test -n "$GODOT_BIN"
+          chmod +x "$GODOT_BIN"
+          ln -sf "$(realpath "$GODOT_BIN")" .runtime/godot/godot
+          .runtime/godot/godot --version
+
+      - name: Install Godot Android export templates
+        run: |
+          set -euo pipefail
+          mkdir -p "$HOME/.local/share/godot/export_templates/4.7.2.stable"
+          rm -rf /tmp/godot_templates
+          mkdir -p /tmp/godot_templates
+          curl -L --fail --retry 3 -o /tmp/godot_templates.tpz \
+            'https://github.com/godotengine/godot/releases/download/4.7.2-stable/Godot_v4.7.2-stable_export_templates.tpz'
+          unzip -q /tmp/godot_templates.tpz -d /tmp/godot_templates
+          cp /tmp/godot_templates/templates/android_debug.apk "$HOME/.local/share/godot/export_templates/4.7.2.stable/android_debug.apk"
+          cp /tmp/godot_templates/templates/android_release.apk "$HOME/.local/share/godot/export_templates/4.7.2.stable/android_release.apk"
+
+      - name: Prepare debug keystore
+        run: |
+          mkdir -p "$HOME/.android"
+          if [ ! -f "$HOME/.android/debug.keystore" ]; then
+            keytool -genkeypair -v -keystore "$HOME/.android/debug.keystore" -storepass android -alias androiddebugkey -keypass android -keyalg RSA -keysize 2048 -validity 10000 -dname 'CN=Android Debug,O=Android,C=US'
+          fi
+
+      - name: Import project resources
+        run: |
+          set -euo pipefail
+          .runtime/godot/godot --headless --editor --path . --quit
+
+      - name: Verify final runtime inputs
+        run: |
+          set -euo pipefail
+          test -f main.tscn
+          test -s terrain_data/READY.txt
+          test "$(find terrain_data -maxdepth 1 -name 'terrain3d_*.res' | wc -l)" -eq 25
+          test -s baked_city/roma_city_587.tscn
+          test "$(find baked_city/archetypes_587 -maxdepth 1 -name 'archetype_*.tscn' | wc -l)" -eq 27
+          grep -F 'run/main_scene="res://main.tscn"' project.godot
+          grep -F 'export_filter="all_resources"' export_presets.cfg
+
+      - name: Export actual main scene Android APK
+        run: |
+          set -euo pipefail
+          mkdir -p build
+          .runtime/godot/godot --headless --path . --export-debug Android build/Roma-BRT-Android-Final-Runtime.apk
+          test -s build/Roma-BRT-Android-Final-Runtime.apk
+          ls -lh build/Roma-BRT-Android-Final-Runtime.apk
+
+      - name: Verify persistent Terrain3D data is packaged
+        run: |
+          set -euo pipefail
+          unzip -l build/Roma-BRT-Android-Final-Runtime.apk | grep -F 'terrain_data/terrain3d_00_00.res'
+          unzip -l build/Roma-BRT-Android-Final-Runtime.apk | grep -F 'terrain_data/terrain3d_04_04.res'
+          unzip -l build/Roma-BRT-Android-Final-Runtime.apk | grep -F 'baked_city/roma_city_587.tscn'
+
+      - name: Upload ONE final Android APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: Roma-BRT-Android-Final-Runtime
+          path: build/Roma-BRT-Android-Final-Runtime.apk
+          if-no-files-found: error
+          retention-days: 14
