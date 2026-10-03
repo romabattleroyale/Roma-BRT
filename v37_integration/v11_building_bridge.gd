@@ -26,7 +26,7 @@ var placed_rects := []
 var water_ray: RayCast3D
 
 func _ready() -> void:
-    var adapter_resource = load(ADAPTER_SCRIPT)
+    var adapter_resource: Script = load(ADAPTER_SCRIPT) as Script
     variation_script = load(VARIATION_SCRIPT)
     if adapter_resource == null or variation_script == null:
         push_error("V11 Building Bridge: script libreria/variazione non caricabile")
@@ -52,36 +52,37 @@ func _wait_for_v37() -> void:
 func _build_library(v37: Node) -> void:
     if built or adapter == null or variation_script == null or not adapter.initialize():
         return
-    var city_root = v37.get("city_root") as Node3D
-    var map_data = v37.get("map_data") as Dictionary
-    var source_buildings: Array = map_data.get("city", {}).get("buildings", [])
-    var limit := min(TEST_COUNT, source_buildings.size())
+    var city_root: Node3D = v37.get("city_root") as Node3D
+    var map_data: Dictionary = v37.get("map_data") as Dictionary
+    var city_data: Dictionary = map_data.get("city", {}) as Dictionary
+    var source_buildings: Array = city_data.get("buildings", []) as Array
+    var limit: int = int(min(TEST_COUNT, source_buildings.size()))
     var catalog: Array[Dictionary] = adapter.factory.get_catalog()
-    var library_archetypes := catalog.size()
+    var library_archetypes: int = catalog.size()
     print("PROMPT 4 — V11 ARCHETIPI CARICATI: ", library_archetypes, " (attesi 24)")
 
     var candidates: Array = []
     for i in range(limit):
         var data: Dictionary = source_buildings[i]
         var variation: Dictionary = variation_script.call("variation_for", i, int(i / 4))
-        var archetype_index := posmod(int(variation["archetype_index"]), max(1, library_archetypes))
+        var archetype_index: int = int(posmod(int(variation["archetype_index"]), max(1, library_archetypes)))
         var entry: Dictionary = catalog[archetype_index]
-        var width := maxf(6.0, float(entry.get("w", 10.0)))
-        var depth := maxf(6.0, float(entry.get("d", 10.0)))
-        var catalog_id := str(entry.get("id", ""))
+        var width: float = maxf(6.0, float(entry.get("w", 10.0)))
+        var depth: float = maxf(6.0, float(entry.get("d", 10.0)))
+        var catalog_id: String = str(entry.get("id", ""))
         candidates.append({"index":i, "data":data, "variation":variation, "archetype":archetype_index, "catalog_id":catalog_id, "width":width, "depth":depth})
         print("PROMPT 4 — CANDIDATO #", i + 1, " archetype=", archetype_index, " id=", catalog_id, " footprint=", width, "x", depth, " colore=", variation["facade_color"], " altezza=", variation["height_floors"], " seed=", variation["seed"])
 
-    var blocks := _urban_lot_rects()
-    var block_count := min(blocks.size(), int(ceil(float(limit) / 5.0)))
+    var blocks: Array = _urban_lot_rects()
+    var block_count: int = int(min(blocks.size(), int(ceil(float(limit) / 5.0))))
     print("PROMPT 4 — URBAN_GRID RETTANGOLI: ", blocks.size(), " (attesi 8)")
     print("PROMPT 4 — ISOLATI UTILIZZATI: ", block_count)
 
-    var placed := 0
+    var placed: int = 0
     for block_index in range(block_count):
         var group: Array = []
-        var first := block_index * 5
-        var last := min(first + 5, candidates.size())
+        var first: int = block_index * 5
+        var last: int = int(min(first + 5, candidates.size()))
         for i in range(first, last):
             group.append(candidates[i])
         if group.size() < 5:
@@ -89,22 +90,23 @@ func _build_library(v37: Node) -> void:
                 _reject(int(candidate["index"]), "incomplete_block")
             continue
         var rect: Dictionary = blocks[block_index]
-        var block_id := str(rect.get("id", "BLOCK_%02d" % block_index))
-        var layout := _make_compact_layout(group)
-        var anchor := _direct_anchor(rect, layout, block_index)
-        var valid_group := 0
+        var block_id: String = str(rect.get("id", "BLOCK_%02d" % block_index))
+        var layout: Array = _make_compact_layout(group)
+        var anchor: Vector3 = _direct_anchor(rect, layout, block_index)
+        var valid_group: int = 0
 
         for item in layout:
             await _android_yield()
             var candidate: Dictionary = item["candidate"]
-            var index := int(candidate["index"])
+            var index: int = int(candidate["index"])
             var variation: Dictionary = candidate["variation"]
-            var seed := int(variation["seed"])
-            var width := float(candidate["width"])
-            var depth := float(candidate["depth"])
-            var center := anchor + item["offset"]
+            var seed: int = int(variation["seed"])
+            var width: float = float(candidate["width"])
+            var depth: float = float(candidate["depth"])
+            var item_offset: Vector3 = item["offset"] as Vector3
+            var center: Vector3 = anchor + item_offset
             center.y = 0.0
-            var rotation_y := float(item["rotation"])
+            var rotation_y: float = float(item["rotation"])
             if used_seeds.has(seed):
                 _reject(index, "duplicate_seed")
                 continue
@@ -114,11 +116,11 @@ func _build_library(v37: Node) -> void:
             if not _inside_urban_grid(center, width, depth, rotation_y):
                 _reject(index, "outside_urban_grid_or_on_road_line")
                 continue
-            var validation := _validate_prompt4_candidate(v37, center, width, depth, rotation_y)
+            var validation: Dictionary = _validate_prompt4_candidate(v37, center, width, depth, rotation_y)
             if not validation["valid"]:
                 _reject(index, str(validation["reason"]))
                 continue
-            var base_h := float(validation["base_h"])
+            var base_h: float = float(validation["base_h"])
             var building = adapter.build_by_id(str(candidate["catalog_id"]), Vector3(center.x, 0.0, center.z), base_h, rotation_y, index)
             if building == null:
                 _reject(index, "library_build_failed")
@@ -180,19 +182,19 @@ func _make_compact_layout(group: Array) -> Array:
     var layout: Array = []
     if group.size() < 5:
         return layout
-    var w0 := float(group[0]["width"]); var w1 := float(group[1]["width"]); var w2 := float(group[2]["width"])
-    var d0 := float(group[0]["depth"]); var d1 := float(group[1]["depth"]); var d2 := float(group[2]["depth"])
-    var outer_depth := maxf(d0,maxf(d1,d2))
-    var x0 := -(w0+w1+w2)*0.5+w0*0.5
-    var x1 := x0+w0*0.5+w1*0.5
-    var x2 := x1+w1*0.5+w2*0.5
-    var top_z := -outer_depth*0.5
+    var w0: float = float(group[0]["width"]); var w1: float = float(group[1]["width"]); var w2: float = float(group[2]["width"])
+    var d0: float = float(group[0]["depth"]); var d1: float = float(group[1]["depth"]); var d2: float = float(group[2]["depth"])
+    var outer_depth: float = maxf(d0,maxf(d1,d2))
+    var x0: float = -(w0+w1+w2)*0.5+w0*0.5
+    var x1: float = x0+w0*0.5+w1*0.5
+    var x2: float = x1+w1*0.5+w2*0.5
+    var top_z: float = -outer_depth*0.5
     layout.append({"candidate":group[0],"offset":Vector3(x0,0,top_z+(outer_depth-d0)*0.5),"rotation":0.0,"slot":0})
     layout.append({"candidate":group[1],"offset":Vector3(x1,0,top_z+(outer_depth-d1)*0.5),"rotation":0.0,"slot":1})
     layout.append({"candidate":group[2],"offset":Vector3(x2,0,top_z+(outer_depth-d2)*0.5),"rotation":0.0,"slot":2})
-    var lw := float(group[3]["depth"]); var ld := float(group[3]["width"]); var rw := float(group[4]["depth"]); var rd := float(group[4]["width"])
-    var left_x := x0-w0*0.5-lw*0.5; var right_x := x2+w2*0.5+rw*0.5
-    var side_z := top_z+outer_depth*0.5+maxf(ld,rd)*0.5
+    var lw: float = float(group[3]["depth"]); var ld: float = float(group[3]["width"]); var rw: float = float(group[4]["depth"]); var rd: float = float(group[4]["width"])
+    var left_x: float = x0-w0*0.5-lw*0.5; var right_x: float = x2+w2*0.5+rw*0.5
+    var side_z: float = top_z+outer_depth*0.5+maxf(ld,rd)*0.5
     layout.append({"candidate":group[3],"offset":Vector3(left_x,0,side_z),"rotation":PI*0.5,"slot":3})
     layout.append({"candidate":group[4],"offset":Vector3(right_x,0,side_z),"rotation":-PI*0.5,"slot":4})
     return layout
@@ -203,42 +205,55 @@ func _world_half_extents(width: float,depth: float,rotation_y: float) -> Vector2
     return Vector2(width*0.5,depth*0.5)
 
 func _direct_anchor(rect: Dictionary,layout: Array,block_index: int) -> Vector3:
-    var min_x := float(rect.get("min_x",0.0)); var max_x := float(rect.get("max_x",0.0)); var min_z := float(rect.get("min_z",0.0)); var max_z := float(rect.get("max_z",0.0))
-    var lo_x := INF; var hi_x := -INF; var lo_z := INF; var hi_z := -INF
+    var min_x: float = float(rect.get("min_x",0.0)); var max_x: float = float(rect.get("max_x",0.0)); var min_z: float = float(rect.get("min_z",0.0)); var max_z: float = float(rect.get("max_z",0.0))
+    var lo_x: float = INF; var hi_x: float = -INF; var lo_z: float = INF; var hi_z: float = -INF
     for item in layout:
-        var c: Dictionary = item["candidate"]; var p: Vector3 = item["offset"]
-        var ext := _world_half_extents(float(c["width"]),float(c["depth"]),float(item["rotation"]))
+        var c: Dictionary = item["candidate"]; var p: Vector3 = item["offset"] as Vector3
+        var ext: Vector2 = _world_half_extents(float(c["width"]),float(c["depth"]),float(item["rotation"]))
         lo_x=minf(lo_x,p.x-ext.x); hi_x=maxf(hi_x,p.x+ext.x); lo_z=minf(lo_z,p.z-ext.y); hi_z=maxf(hi_z,p.z+ext.y)
-    var ax0 := min_x+ROAD_SETBACK-lo_x; var ax1 := max_x-ROAD_SETBACK-hi_x; var az0 := min_z+ROAD_SETBACK-lo_z; var az1 := max_z-ROAD_SETBACK-hi_z
+    var ax0: float = min_x+ROAD_SETBACK-lo_x; var ax1: float = max_x-ROAD_SETBACK-hi_x; var az0: float = min_z+ROAD_SETBACK-lo_z; var az1: float = max_z-ROAD_SETBACK-hi_z
     if ax1<ax0 or az1<az0:
         return Vector3(NAN,0,NAN)
-    var target_x := ax1 if block_index%2==0 else ax0
-    var target_z := (az0+az1)*0.5
+    var target_x: float = ax1 if block_index%2==0 else ax0
+    var target_z: float = (az0+az1)*0.5
     return Vector3(target_x,0,target_z)
 
 func _validate_prompt4_candidate(v37: Node,center: Vector3,width: float,depth: float,rotation_y: float) -> Dictionary:
     if not _inside_urban_grid(center,width,depth,rotation_y): return {"valid":false,"reason":"outside_urban_grid_or_on_road_line"}
     if _overlaps_existing(center,width,depth,rotation_y): return {"valid":false,"reason":"footprint_overlap"}
-    var hw:=width*0.5; var hd:=depth*0.5; var corners=[Vector2(-hw,-hd),Vector2(hw,-hd),Vector2(-hw,hd),Vector2(hw,hd)]; var heights=[]; var s:=sin(rotation_y); var c:=cos(rotation_y)
-    for local in corners:
-        var rx:=local.x*c-local.y*s; var rz:=local.x*s+local.y*c; var h:=float(v37.sample_height(center.x+rx,center.z+rz)) if v37.has_method("sample_height") else NAN
+    var hw: float = width*0.5
+    var hd: float = depth*0.5
+    var corners: Array[Vector2] = [Vector2(-hw,-hd),Vector2(hw,-hd),Vector2(-hw,hd),Vector2(hw,hd)]
+    var heights: Array[float] = []
+    var s: float = sin(rotation_y)
+    var c: float = cos(rotation_y)
+    for local: Vector2 in corners:
+        var rx: float = local.x*c-local.y*s
+        var rz: float = local.x*s+local.y*c
+        var h: float = NAN
+        if v37.has_method("sample_height"):
+            h = float(v37.sample_height(center.x+rx,center.z+rz))
         if not is_finite(h): return {"valid":false,"reason":"non_finite_terrain_height"}
         heights.append(h)
-    var min_h=heights.min(); var max_h=heights.max(); var mean_h=(heights[0]+heights[1]+heights[2]+heights[3])*0.25
+    var min_h: float = heights.min()
+    var max_h: float = heights.max()
+    var mean_h: float = (heights[0]+heights[1]+heights[2]+heights[3])*0.25
     if _is_over_water(center,mean_h): return {"valid":false,"reason":"water"}
     if max_h-min_h>MAX_SLOPE_DELTA: return {"valid":false,"reason":"slope_gt_2m"}
     if mean_h<SUBSOIL_LIMIT: return {"valid":false,"reason":"subsoil_below_-5m"}
     return {"valid":true,"base_h":max_h+TERRAIN_CLEARANCE}
 
 func _is_over_water(center: Vector3,mean_h: float) -> bool:
-    var water=get_tree().current_scene.find_child("WaterPlane",true,false); var water_level:=-INF
+    var water = get_tree().current_scene.find_child("WaterPlane",true,false)
+    var water_level: float = -INF
     if water!=null: water_level=float(water.global_position.y)
     water_ray.global_position=Vector3(center.x,maxf(mean_h+100.0,100.0),center.z); water_ray.target_position=Vector3(0.0,minf(mean_h-100.0,-100.0)-water_ray.global_position.y,0.0); water_ray.force_raycast_update()
     if water_ray.is_colliding():
-        var collider=water_ray.get_collider(); var hit=water_ray.get_collision_point()
+        var collider = water_ray.get_collider()
+        var hit: Vector3 = water_ray.get_collision_point()
         if water_level>-INF and hit.y<=water_level: return true
         if collider!=null:
-            var n:=str(collider.name).to_lower()
+            var n: String = str(collider.name).to_lower()
             if n.contains("water") or n.contains("tevere") or n.contains("river"): return true
     return water_level>-INF and mean_h<=water_level
 
@@ -246,7 +261,7 @@ func _inside_urban_grid(center: Vector3,width: float,depth: float,rotation_y: fl
     var grid=get_parent().get_node_or_null("Urban_Grid")
     if grid==null: return false
     var rects:Array=grid.get_meta("lot_rects",[]); if rects.is_empty(): return false
-    var ext:=_world_half_extents(width,depth,rotation_y)
+    var ext: Vector2 = _world_half_extents(width,depth,rotation_y)
     for rv in rects:
         if rv is Dictionary:
             var r:Dictionary=rv; var min_x=float(r.get("min_x",INF)); var max_x=float(r.get("max_x",-INF)); var min_z=float(r.get("min_z",INF)); var max_z=float(r.get("max_z",-INF))
@@ -254,9 +269,11 @@ func _inside_urban_grid(center: Vector3,width: float,depth: float,rotation_y: fl
     return false
 
 func _overlaps_existing(center: Vector3,width: float,depth: float,rotation_y: float) -> bool:
-    var ext:=_world_half_extents(width,depth,rotation_y)
+    var ext: Vector2 = _world_half_extents(width,depth,rotation_y)
     for other in placed_rects:
-        var oc:Vector3=other["center"]; var oe:=_world_half_extents(float(other["width"]),float(other["depth"]),float(other["rotation"])); if absf(center.x-oc.x)<ext.x+oe.x-0.05 and absf(center.z-oc.z)<ext.y+oe.y-0.05: return true
+        var oc:Vector3=other["center"]
+        var oe: Vector2 = _world_half_extents(float(other["width"]),float(other["depth"]),float(other["rotation"]))
+        if absf(center.x-oc.x)<ext.x+oe.x-0.05 and absf(center.z-oc.z)<ext.y+oe.y-0.05: return true
     return false
 
 func _reject(index:int,reason:String)->void:
