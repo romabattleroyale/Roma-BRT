@@ -121,7 +121,7 @@ func _build_grid() -> void:
         line.name = "Guide_%02d_%s_%s" % [index, str(pair[0]), str(pair[1])]
         line.size = Vector3(LINE_THICKNESS, LINE_HEIGHT, length)
         line.position = (a + b) * 0.5 + Vector3.UP * 0.02
-        line.look_at(b, Vector3.UP)
+        line.look_at_from_position(line.position, b, Vector3.UP)
         line.material = material
         line.use_collision = false
         line.editor_description = "Editor-only future road guide; NOT a road mesh"
