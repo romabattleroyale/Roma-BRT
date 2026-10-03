@@ -4,6 +4,7 @@ on:
   push:
     paths:
       - 'incoming_libraries/*.zip'
+      - '.github/workflows/library-ingest.yml'
   workflow_dispatch:
     inputs:
       archive:
