@@ -1,8 +1,11 @@
 extends "res://terrain_runtime.gd"
 ## Android-safe runtime bootstrap.
-## Uses the project RAW directly instead of opening a FileDialog on startup.
-## Terrain geometry, heightmap values, control-map result and Tevere generation
-## remain unchanged; only the control-map implementation is optimized.
+## If the persistent Terrain3D data directory exists, load it directly.
+## RAW import remains only as a first-run/CI fallback; normal Play no longer
+## rebuilds the 1081x1081 control map on every startup.
+
+const TERRAIN_DATA_DIR := "res://terrain_data"
+const TERRAIN_CACHE_MARKER := "res://terrain_data/READY.txt"
 
 func _setup() -> void:
 	if not ClassDB.class_exists("Terrain3D"):
@@ -39,10 +42,50 @@ func _setup() -> void:
 		_set_status("ERRORE: heightmap.raw non trovato")
 		return
 
+	if FileAccess.file_exists(TERRAIN_CACHE_MARKER):
+		_set_status("Caricamento Terrain3D cache…")
+		print("ANDROID SAFE TERRAIN: caricamento dati persistenti ", TERRAIN_DATA_DIR)
+		terrain.data.load_directory(TERRAIN_DATA_DIR)
+		terrain.data.calc_height_range(false)
+		var cached_values := _read_normalized_raw(RAW_PATH)
+		if cached_values.size() > 0:
+			_build_river_water(cached_values, 1081, 1081)
+		_set_status("TERRAIN CACHE OK — dati Terrain3D persistenti caricati")
+		print("ANDROID SAFE TERRAIN: cache Terrain3D caricata senza import/control-map bake")
+		return
+
 	_set_status("Caricamento heightmap RAW…")
 	print("ANDROID SAFE TERRAIN: import automatico ", RAW_PATH)
 	await get_tree().process_frame
 	_import_raw(RAW_PATH)
+
+func _read_normalized_raw(path: String) -> PackedFloat32Array:
+	var f := FileAccess.open(path, FileAccess.READ)
+	if f == null:
+		return PackedFloat32Array()
+	var bytes := f.get_buffer(f.get_length())
+	f.close()
+	if bytes.size() == 0 or bytes.size() % 2 != 0:
+		return PackedFloat32Array()
+	var samples := bytes.size() / 2
+	var side := int(sqrt(float(samples)))
+	if side * side != samples:
+		return PackedFloat32Array()
+	var values := PackedFloat32Array()
+	values.resize(samples)
+	var min_u := 65535
+	var max_u := 0
+	for i in range(samples):
+		var u := (int(bytes[i * 2]) << 8) | int(bytes[i * 2 + 1])
+		if u < min_u:
+			min_u = u
+		if u > max_u:
+			max_u = u
+		values[i] = float(u)
+	var source_range := maxf(1.0, float(max_u - min_u))
+	for i in range(samples):
+		values[i] = clampf((values[i] - float(min_u)) / source_range, 0.0, 1.0)
+	return values
 
 # Exact-result optimization of the inherited control-map algorithm.
 # The original 5x5 bank dilation is separable, so horizontal+vertical sliding
@@ -65,7 +108,6 @@ func _build_manual_control_map(values: PackedFloat32Array, width: int, height: i
 			for x in range(width):
 				bank_flags[z * width + x] = 1 if bank.get_pixel(x, z).r > 0.5 else 0
 
-	# Exact 5-pixel horizontal dilation.
 	var horizontal := PackedByteArray()
 	horizontal.resize(width * height)
 	for z in range(height):
@@ -74,13 +116,12 @@ func _build_manual_control_map(values: PackedFloat32Array, width: int, height: i
 			if x >= 0 and bank_flags[z * width + x] != 0:
 				window += 1
 		for x in range(width):
-			if x + 2 < width and x + 2 >= 0 and x + 2 > 2:
+			if x + 2 < width and x + 2 > 2:
 				window += bank_flags[z * width + x + 2]
 			if x - 3 >= 0:
 				window -= bank_flags[z * width + x - 3]
 			horizontal[z * width + x] = 1 if window > 0 else 0
 
-	# Exact 5-pixel vertical dilation of the horizontal result.
 	var bank_dilated := PackedByteArray()
 	bank_dilated.resize(width * height)
 	for x in range(width):
