@@ -1,0 +1,101 @@
+name: Linux Runtime Scene Check
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  run-full-scene:
+    name: Godot 4.7.2 Full Scene Linux Runtime
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - name: Checkout Roma-BRT
+        uses: actions/checkout@v4
+
+      - name: Install Linux display/runtime tools
+        run: |
+          set -euo pipefail
+          sudo apt-get update
+          sudo apt-get install -y xvfb imagemagick
+
+      - name: Download Godot 4.7.2
+        run: |
+          set -euo pipefail
+          mkdir -p .runtime/godot
+          curl -L --fail --retry 3 -o .runtime/godot/godot.zip \
+            'https://github.com/godotengine/godot/releases/download/4.7.2-stable/Godot_v4.7.2-stable_linux.x86_64.zip'
+          unzip -q .runtime/godot/godot.zip -d .runtime/godot
+          GODOT_BIN=$(find .runtime/godot -maxdepth 2 -type f -name 'Godot_v4.7.2-stable_linux.x86_64' | head -n 1)
+          test -n "$GODOT_BIN"
+          chmod +x "$GODOT_BIN"
+          ln -sf "$(realpath "$GODOT_BIN")" .runtime/godot/godot
+          .runtime/godot/godot --version
+
+      - name: Import project resources
+        run: |
+          set -euo pipefail
+          .runtime/godot/godot --headless --editor --path . --quit
+          test -d .godot/imported
+
+      - name: Verify runtime inputs
+        run: |
+          set -euo pipefail
+          test -s assets/heightmap.raw
+          test -s baked_city/roma_city_587.tscn
+          test -d baked_city/archetypes_587
+          test "$(find baked_city/archetypes_587 -maxdepth 1 -name 'archetype_*.tscn' | wc -l)" -eq 27
+
+      - name: Launch actual main scene under Linux X11
+        run: |
+          set -u
+          mkdir -p build/linux_runtime
+          Xvfb :99 -screen 0 1280x720x24 -ac +extension GLX +render -noreset > build/linux_runtime/xvfb.log 2>&1 &
+          XVFB_PID=$!
+          export DISPLAY=:99
+          sleep 2
+
+          set +e
+          .runtime/godot/godot --path . --display-driver x11 --rendering-method gl_compatibility --audio-driver Dummy > build/linux_runtime/godot.log 2>&1 &
+          GAME_PID=$!
+          sleep 20
+
+          if kill -0 "$GAME_PID" 2>/dev/null; then
+            echo 'FULL SCENE PROCESS STILL RUNNING AFTER 20s'
+            GAME_ALIVE=1
+          else
+            wait "$GAME_PID"
+            GAME_EXIT=$?
+            echo "FULL SCENE PROCESS EXITED WITH CODE $GAME_EXIT"
+            GAME_ALIVE=0
+          fi
+
+          import -window root build/linux_runtime/full_scene_20s.png 2>/dev/null
+          SCREENSHOT_EXIT=$?
+
+          if [ "$GAME_ALIVE" -eq 1 ]; then
+            kill "$GAME_PID" 2>/dev/null || true
+            wait "$GAME_PID" 2>/dev/null || true
+          fi
+          kill "$XVFB_PID" 2>/dev/null || true
+
+          echo '--- GODOT LOG ---'
+          cat build/linux_runtime/godot.log || true
+          echo '--- Xvfb LOG ---'
+          cat build/linux_runtime/xvfb.log || true
+
+          test "$SCREENSHOT_EXIT" -eq 0
+          if [ "$GAME_ALIVE" -eq 0 ]; then
+            exit "$GAME_EXIT"
+          fi
+
+      - name: Upload Linux runtime evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: Roma-BRT-Linux-Full-Scene-Evidence
+          path: build/linux_runtime
+          if-no-files-found: warn
+          retention-days: 7
