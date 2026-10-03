@@ -5,5 +5,22 @@
   "terrain3d_authoritative": true,
   "road_generator": false,
   "approved_assets_only": true,
-  "libraries": []
+  "libraries": [
+    {
+      "library_id": "roma_architecture_library_v11",
+      "name": "Roma Royale Architecture Library V11",
+      "version": "11",
+      "type": "houses",
+      "path": "city_library/buildings/houses/roma_architecture_library_v11",
+      "approved": true,
+      "archetypes": 24,
+      "catalog": "data/building_catalog.json",
+      "registry": "scripts/house_library.gd",
+      "factory": "scripts/modular_house_factory.gd",
+      "building_system": "scripts/library_building_system.gd",
+      "terrain_placement": "Terrain3D height sample + Y correction",
+      "road_generator": false,
+      "main_map_auto_replace": false
+    }
+  ]
 }
