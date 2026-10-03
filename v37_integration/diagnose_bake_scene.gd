@@ -17,8 +17,7 @@ func _run() -> void:
     print("BAKE DIAG - root scene: ", root.scene_file_path)
     print("BAKE DIAG - direct children: ", root.get_child_count())
 
-    var terrain_count := 0
-    _walk(root, "", terrain_count)
+    var terrain_count := _walk(root, "")
     print("BAKE DIAG - Terrain3D count: ", terrain_count)
 
     if terrain_count == 0:
@@ -26,11 +25,12 @@ func _run() -> void:
     else:
         print("BAKE DIAG: Terrain3D exists in editor scene.")
 
-func _walk(node: Node, prefix: String, terrain_count: int) -> void:
+func _walk(node: Node, prefix: String) -> int:
     var class_name_text := node.get_class()
+    var found := 1 if class_name_text == "Terrain3D" else 0
     print("BAKE DIAG NODE: ", prefix, node.name, " [", class_name_text, "]")
     if class_name_text == "Terrain3D":
-        terrain_count += 1
         print("BAKE DIAG TERRAIN: ", node.get_path(), " data=", node.get("data"))
     for child in node.get_children():
-        _walk(child, prefix + "  ", terrain_count)
+        found += _walk(child, prefix + "  ")
+    return found
