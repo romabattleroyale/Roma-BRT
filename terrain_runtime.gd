@@ -29,7 +29,7 @@ func _setup() -> void:
     terrain.name = "Terrain3D_HEIGHTMAP_2000x2000"
     # 512 gives a reasonable region size for a 2000 m beta while still
     # allowing Terrain3D to slice the 1081x1081 source across regions.
-    terrain.region_size = 512
+    terrain.region_size = Terrain3D.SIZE_512
     terrain.vertex_spacing = MAP_SIZE_M / 1080.0
     terrain.mesh_lods = 7
     terrain.show_checkered = false
