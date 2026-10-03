@@ -1,0 +1,40 @@
+name: Fix Terrain3D enum compatibility
+
+on:
+  push:
+    branches: [main]
+
+permissions:
+  contents: write
+
+jobs:
+  fix:
+    if: ${{ !contains(github.event.head_commit.message, 'fix: Terrain3D enum compatibility') }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Patch Terrain3D enum assignment
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          p = Path('terrain_runtime.gd')
+          s = p.read_text()
+          old = 'terrain.region_size = 512'
+          new = 'terrain.region_size = Terrain3D.SIZE_512'
+          if old not in s:
+              print('PATCH_NOT_NEEDED')
+              raise SystemExit(0)
+          p.write_text(s.replace(old, new, 1))
+          print('PATCHED')
+          PY
+      - name: Commit patch
+        run: |
+          if git diff --quiet -- terrain_runtime.gd; then
+            echo 'No change needed.'
+            exit 0
+          fi
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add terrain_runtime.gd
+          git commit -m 'fix: Terrain3D enum compatibility'
+          git push
