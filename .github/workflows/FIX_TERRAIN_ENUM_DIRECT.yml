@@ -1,0 +1,37 @@
+name: Fix Terrain3D enum direct
+
+on:
+  push:
+    branches: [main]
+
+permissions:
+  contents: write
+
+jobs:
+  fix:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Patch enum assignment
+        shell: bash
+        run: |
+          set -e
+          if grep -q 'terrain.region_size = 512' terrain_runtime.gd; then
+            sed -i 's/terrain\.region_size = 512/terrain.region_size = Terrain3D.SIZE_512/' terrain_runtime.gd
+            echo 'PATCHED'
+          else
+            echo 'PATCH_NOT_NEEDED'
+          fi
+      - name: Commit patch when needed
+        shell: bash
+        run: |
+          set -e
+          if git diff --quiet -- terrain_runtime.gd; then
+            echo 'No change to commit.'
+            exit 0
+          fi
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add terrain_runtime.gd
+          git commit -m 'fix: Terrain3D enum compatibility'
+          git push
