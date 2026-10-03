@@ -1,8 +1,8 @@
 extends Control
-## Simple Android touch controls for the heightmap beta.
-## Left thumb: virtual joystick (move)
-## Right thumb: swipe anywhere on right half (camera look)
-## Bottom-right RUN button: hold for speed boost
+## Android controls for the debug top-down camera.
+## Left thumb: virtual joystick = move map.
+## Right half: reserved for debug camera zoom/pitch; this Control does not consume it.
+## Bottom-right RUN button is kept for the existing gameplay UI.
 
 signal move_changed(value: Vector2)
 signal look_delta(value: Vector2)
@@ -11,8 +11,6 @@ signal boost_changed(active: bool)
 var joystick_center := Vector2.ZERO
 var joystick_value := Vector2.ZERO
 var joystick_touch := -1
-var look_touch := -1
-var last_look := Vector2.ZERO
 var boost_rect := Rect2()
 var boost_touch := -1
 
@@ -32,20 +30,16 @@ func _layout() -> void:
 
 func _draw() -> void:
     _layout()
-    # Joystick base and knob.
     draw_circle(joystick_center, 72.0, Color(0.05, 0.08, 0.12, 0.38))
     draw_arc(joystick_center, 72.0, 0.0, TAU, 48, Color(1,1,1,0.42), 3.0)
     var knob: Vector2 = joystick_center + joystick_value * 48.0
     draw_circle(knob, 30.0, Color(1,1,1,0.30))
     draw_arc(knob, 30.0, 0.0, TAU, 32, Color(1,1,1,0.65), 2.0)
 
-    # Run button.
     var c: Color = Color(0.78, 0.15, 0.10, 0.55) if boost_touch != -1 else Color(0.05, 0.08, 0.12, 0.38)
     draw_style_box(_box(c, 14.0, Color(1,1,1,0.45), 2.0), boost_rect)
     draw_string(ThemeDB.fallback_font, boost_rect.position + Vector2(25, 43), "CORRI", HORIZONTAL_ALIGNMENT_LEFT, -1, 20, Color.WHITE)
-
-    # Right-side hint.
-    draw_string(ThemeDB.fallback_font, Vector2(size.x - 285.0, size.y - 28.0), "TRASCINA QUI PER GUARDARTI", HORIZONTAL_ALIGNMENT_LEFT, -1, 14, Color(1,1,1,0.65))
+    draw_string(ThemeDB.fallback_font, Vector2(size.x - 285.0, size.y - 28.0), "DESTRA: ZOOM / PITCH", HORIZONTAL_ALIGNMENT_LEFT, -1, 14, Color(1,1,1,0.65))
 
 func _box(bg: Color, radius: float, border: Color, width: float) -> StyleBoxFlat:
     var b: StyleBoxFlat = StyleBoxFlat.new()
@@ -72,21 +66,23 @@ func _input(event: InputEvent) -> void:
                 queue_redraw()
                 get_viewport().set_input_as_handled()
                 return
-            look_touch = event.index
-            last_look = p
-            get_viewport().set_input_as_handled()
+            # Right half is intentionally NOT consumed: debug_topdown_camera.gd receives it.
+            return
         else:
             if event.index == joystick_touch:
                 joystick_touch = -1
                 joystick_value = Vector2.ZERO
                 move_changed.emit(Vector2.ZERO)
+                queue_redraw()
+                get_viewport().set_input_as_handled()
+                return
             if event.index == boost_touch:
                 boost_touch = -1
                 boost_changed.emit(false)
-            if event.index == look_touch:
-                look_touch = -1
-            queue_redraw()
-            get_viewport().set_input_as_handled()
+                queue_redraw()
+                get_viewport().set_input_as_handled()
+                return
+            # Right-side release is left untouched for the debug camera.
 
     elif event is InputEventScreenDrag:
         if event.index == joystick_touch:
@@ -94,11 +90,8 @@ func _input(event: InputEvent) -> void:
             move_changed.emit(joystick_value)
             queue_redraw()
             get_viewport().set_input_as_handled()
-        elif event.index == look_touch:
-            var d: Vector2 = event.position - last_look
-            last_look = event.position
-            look_delta.emit(d)
-            get_viewport().set_input_as_handled()
+            return
+        # Right-side drag is intentionally NOT consumed.
 
 func _joystick_from(p: Vector2) -> Vector2:
     var v: Vector2 = p - joystick_center
