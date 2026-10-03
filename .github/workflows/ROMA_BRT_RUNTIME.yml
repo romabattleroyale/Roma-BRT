@@ -65,6 +65,12 @@ jobs:
           set -euo pipefail
           .runtime/godot/godot --headless --editor --path . --quit
 
+      - name: Diagnose editor scene before bake
+        shell: bash
+        run: |
+          set -euo pipefail
+          .runtime/godot/godot --headless --editor --path . --script res://v37_integration/diagnose_bake_scene.gd
+
       - name: Runtime smoke launch
         shell: bash
         run: |
