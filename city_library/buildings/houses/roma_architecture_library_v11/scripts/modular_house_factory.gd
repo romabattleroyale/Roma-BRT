@@ -3,7 +3,7 @@ class_name RomaModularHouseFactory
 
 const LIB_ROOT := "res://city_library/buildings/houses/roma_architecture_library_v11/"
 const CATALOG_PATH := LIB_ROOT + "data/building_catalog.json"
-const SYSTEM_SCRIPT := LIB_ROOT + "scripts/library_building_system.gd"
+const SYSTEM_SCRIPT := LIB_ROOT + "scripts/editor_library_building_system.gd"
 const VISUAL_VARIATION_SCRIPT := "res://v37_integration/mobile_visual_variation.gd"
 
 var catalog: Array[Dictionary] = []
@@ -63,10 +63,6 @@ func build_mobile_by_id(id: String, variant: int = 0) -> Node3D:
     var roof_variant: int = int(variant / 10) * 10
     if posmod(variant, 2) == 1:
         roof_variant += 7
-    # Prompt 4 now uses the complete V11 architectural build instead of the
-    # lightweight shell. This preserves the existing placement/validation path
-    # while restoring facade articulation, bugnato, balconies, portico,
-    # commercial frontage, weathering, roof and interior glimpses.
     var root: Node3D = system.build(entry, roof_variant)
     if root == null:
         return null
