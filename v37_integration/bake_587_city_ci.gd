@@ -1,8 +1,9 @@
 extends SceneTree
 ## CI bake validator/finalizer.
-## Builds the authoritative 587 V11 buildings on the real RAW terrain, but
-## stores each catalog archetype once and the city as lightweight scene instances.
-## This avoids embedding 587 copies of procedural Mesh resources in one .tscn.
+## Builds the authoritative 587 V11 buildings using the same authoritative RAW
+## heightmap used by runtime Terrain3D, then stores each catalog archetype once.
+## CI does not instantiate Terrain3D: the native extension is not required to
+## calculate the building Y coordinates and must not block the city bake.
 
 const EDITOR_SYSTEM_SCRIPT := "res://city_library/buildings/houses/roma_architecture_library_v11/scripts/editor_library_building_system.gd"
 const VARIATION_SCRIPT := "res://v37_integration/building_variation.gd"
@@ -13,17 +14,11 @@ const RAW_PATH := "res://assets/heightmap.raw"
 const MAP_SIZE_M := 2000.0
 const HEIGHT_SCALE_M := 48.0
 const BYTES_PER_SAMPLE := 2
-const TERRAIN_NAME := "CI_Terrain3D_Heightmap"
-const TERRAIN_GDEXTENSION := "res://addons/terrain_3d/terrain.gdextension"
 
 func _init() -> void:
     call_deferred("_run")
 
 func _run() -> void:
-    if not await _ensure_terrain3d_extension():
-        quit(1)
-        return
-
     var variation_script: Script = load(VARIATION_SCRIPT) as Script
     var positions_script: Script = load(POSITIONS_SCRIPT) as Script
     var system_script: Script = load(EDITOR_SYSTEM_SCRIPT) as Script
@@ -32,13 +27,14 @@ func _run() -> void:
         quit(1)
         return
 
-    var terrain := await _build_ci_terrain()
-    if terrain == null:
+    var heightmap := _load_raw_heightmap()
+    if heightmap.is_empty():
         quit(1)
         return
-    var terrain_data = terrain.get("data")
-    if terrain_data == null:
-        push_error("CI BAKE 587: Terrain3D data non pronta")
+    var side := int(heightmap.get("side", 0))
+    var values: PackedFloat32Array = heightmap.get("values", PackedFloat32Array())
+    if side < 2 or values.size() != side * side:
+        push_error("CI BAKE 587: heightmap RAW non valida")
         quit(1)
         return
 
@@ -60,7 +56,6 @@ func _run() -> void:
     var archetype_scenes: Array[PackedScene] = []
     archetype_scenes.resize(catalog.size())
 
-    # Build and save each V11 catalog entry exactly once.
     for ai in range(catalog.size()):
         var archetype_path := "%s/archetype_%02d.tscn" % [ARCHETYPE_DIR, ai]
         var building: Node3D = system.build(catalog[ai], ai) as Node3D
@@ -101,7 +96,7 @@ func _run() -> void:
         var d: Dictionary = source[i]
         var x := float(d.get("x", 0.0))
         var z := float(d.get("z", 0.0))
-        var h := _terrain_height(terrain, terrain_data, x, z)
+        var h := _sample_height(values, side, x, z)
         if not is_finite(h):
             missing_height += 1
             push_error("CI BAKE 587: height non valida at index=%d x=%f z=%f" % [i, x, z])
@@ -161,86 +156,26 @@ func _run() -> void:
         quit(1)
         return
 
-    print("CI BAKE 587 OK: source=587 placed=587 terrain=REAL_RAW reusable_archetypes=", catalog.size(), " scene=", OUTPUT_SCENE)
+    print("CI BAKE 587 OK: source=587 placed=587 terrain=REAL_RAW_DIRECT reusable_archetypes=", catalog.size(), " scene=", OUTPUT_SCENE)
     city.queue_free()
-    terrain.queue_free()
     quit(0)
 
-func _ensure_terrain3d_extension() -> bool:
-    # CI must not rely on the editor plugin to register the native extension.
-    # Explicitly load the project's GDExtension before consulting ClassDB.
-    var extension_path := ProjectSettings.globalize_path(TERRAIN_GDEXTENSION)
-    if not FileAccess.file_exists(TERRAIN_GDEXTENSION):
-        push_error("CI BAKE 587: GDExtension Terrain3D mancante: %s" % TERRAIN_GDEXTENSION)
-        return false
-
-    if not ClassDB.class_exists("Terrain3D"):
-        var status = GDExtensionManager.load_extension(extension_path)
-        print("CI TERRAIN3D EXTENSION LOAD STATUS=", status, " path=", extension_path)
-        await process_frame
-    else:
-        print("CI TERRAIN3D EXTENSION ALREADY LOADED")
-
-    if not ClassDB.class_exists("Terrain3D"):
-        push_error("CI BAKE 587: Terrain3D class non disponibile dopo caricamento esplicito")
-        print("CI TERRAIN3D LOADED EXTENSIONS=", GDExtensionManager.get_loaded_extensions())
-        return false
-
-    print("CI TERRAIN3D CLASS OK")
-    return true
-
-func _set_owner_recursive(node: Node, owner: Node) -> void:
-    node.owner = owner
-    for child in node.get_children():
-        _set_owner_recursive(child, owner)
-
-func _build_ci_terrain() -> Node3D:
-    if not ClassDB.class_exists("Terrain3D"):
-        push_error("CI BAKE 587: Terrain3D class non disponibile")
-        return null
-
-    # Instantiate by class name so the GDScript parser does not require a static
-    # Terrain3D identifier before the GDExtension registers its classes.
-    var terrain = ClassDB.instantiate("Terrain3D")
-    if terrain == null:
-        push_error("CI BAKE 587: impossibile istanziare Terrain3D")
-        return null
-    terrain.name = TERRAIN_NAME
-    # Avoid static Terrain3D enum references here. The property accepts the
-    # documented SIZE_512 enum value (512).
-    terrain.region_size = 512
-    terrain.vertex_spacing = MAP_SIZE_M / 1080.0
-    terrain.mesh_lods = 7
-    terrain.show_checkered = false
-    terrain.show_colormap = false
-    terrain.show_grey = false
-    get_root().add_child(terrain, true)
-    await process_frame
-
-    var data = terrain.get("data")
-    if data == null:
-        push_error("CI BAKE 587: Terrain3D Data non inizializzato")
-        terrain.queue_free()
-        return null
-
+func _load_raw_heightmap() -> Dictionary:
     var f := FileAccess.open(RAW_PATH, FileAccess.READ)
     if f == null:
         push_error("CI BAKE 587: RAW non apribile: %s" % RAW_PATH)
-        terrain.queue_free()
-        return null
+        return {}
     var bytes := f.get_buffer(f.get_length())
     f.close()
     if bytes.size() == 0 or bytes.size() % BYTES_PER_SAMPLE != 0:
         push_error("CI BAKE 587: RAW non valido, bytes=%d" % bytes.size())
-        terrain.queue_free()
-        return null
+        return {}
 
     var samples := bytes.size() / BYTES_PER_SAMPLE
     var side := int(sqrt(float(samples)))
     if side * side != samples:
         push_error("CI BAKE 587: RAW non quadrato, samples=%d" % samples)
-        terrain.queue_free()
-        return null
+        return {}
 
     var values := PackedFloat32Array()
     values.resize(samples)
@@ -251,39 +186,36 @@ func _build_ci_terrain() -> Node3D:
         values[i] = float(u)
         min_u = mini(min_u, u)
         max_u = maxi(max_u, u)
+
     var source_range := maxf(1.0, float(max_u - min_u))
     for i in range(samples):
         values[i] = clampf((values[i] - float(min_u)) / source_range, 0.0, 1.0)
 
-    var img := Image.create_from_data(side, side, false, Image.FORMAT_RF, values.to_byte_array())
-    if img == null:
-        push_error("CI BAKE 587: impossibile creare height Image")
-        terrain.queue_free()
-        return null
+    print("CI RAW HEIGHT OK: ", side, "x", side, " min/max=", min_u, "/", max_u, " height_scale=", HEIGHT_SCALE_M)
+    return {"side": side, "values": values}
 
-    # Terrain3DRegion.TYPE_MAX is 3 (HEIGHT, CONTROL, COLOR) and TYPE_HEIGHT is 0.
-    # Use the documented enum values directly so the script remains parse-safe in CI.
-    var maps: Array[Image]
-    maps.resize(3)
-    maps[0] = img
-    data.import_images(maps, Vector3.ZERO, 0.0, HEIGHT_SCALE_M)
-    data.calc_height_range(true)
-    await process_frame
+func _sample_height(values: PackedFloat32Array, side: int, x: float, z: float) -> float:
+    # Same 0..MAP_SIZE_M world domain used by the existing CI Terrain3D import.
+    var fx := clampf(x / MAP_SIZE_M * float(side - 1), 0.0, float(side - 1))
+    var fz := clampf(z / MAP_SIZE_M * float(side - 1), 0.0, float(side - 1))
+    var x0 := int(floor(fx))
+    var z0 := int(floor(fz))
+    var x1 := mini(x0 + 1, side - 1)
+    var z1 := mini(z0 + 1, side - 1)
+    var tx := fx - float(x0)
+    var tz := fz - float(z0)
+    var h00 := values[z0 * side + x0]
+    var h10 := values[z0 * side + x1]
+    var h01 := values[z1 * side + x0]
+    var h11 := values[z1 * side + x1]
+    var hx0 := lerpf(h00, h10, tx)
+    var hx1 := lerpf(h01, h11, tx)
+    return lerpf(hx0, hx1, tz) * HEIGHT_SCALE_M
 
-    print("CI TERRAIN OK: RAW=", side, "x", side, " min/max=", min_u, "/", max_u, " height_scale=", HEIGHT_SCALE_M)
-    return terrain
-
-func _terrain_height(terrain: Node, data, x: float, z: float) -> float:
-    var p := Vector3(x, 0.0, z)
-    if terrain.has_method("get_height"):
-        var h := float(terrain.get_height(p))
-        if is_finite(h):
-            return h
-    if data != null and data.has_method("get_height"):
-        var h2 := float(data.get_height(p))
-        if is_finite(h2):
-            return h2
-    return NAN
+func _set_owner_recursive(node: Node, owner: Node) -> void:
+    node.owner = owner
+    for child in node.get_children():
+        _set_owner_recursive(child, owner)
 
 func _load_catalog() -> Array:
     var f := FileAccess.open("res://city_library/buildings/houses/roma_architecture_library_v11/data/building_catalog.json", FileAccess.READ)
