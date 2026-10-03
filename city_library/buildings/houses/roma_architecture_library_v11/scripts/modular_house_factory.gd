@@ -46,10 +46,28 @@ func build_by_id(id: String, variant: int = 0) -> Node3D:
         return null
     return system.build(by_id[id], variant)
 
+func build_mobile_by_id(id: String, variant: int = 0) -> Node3D:
+    if not initialize() or not by_id.has(id):
+        return null
+    return system.build_mobile(by_id[id], variant)
+
 func build_and_place(id: String, terrain_position: Vector3, terrain_height: float, rotation_y: float = 0.0, variant: int = 0) -> Node3D:
     if not terrain_position.is_finite() or not is_finite(terrain_height):
         return null
     var root := build_by_id(id, variant)
+    if root == null:
+        return null
+    root.position = Vector3(terrain_position.x, terrain_height, terrain_position.z)
+    root.rotation.y = rotation_y
+    if not root.position.is_finite():
+        root.queue_free()
+        return null
+    return root
+
+func build_mobile_and_place(id: String, terrain_position: Vector3, terrain_height: float, rotation_y: float = 0.0, variant: int = 0) -> Node3D:
+    if not terrain_position.is_finite() or not is_finite(terrain_height):
+        return null
+    var root := build_mobile_by_id(id, variant)
     if root == null:
         return null
     root.position = Vector3(terrain_position.x, terrain_height, terrain_position.z)
