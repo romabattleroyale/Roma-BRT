@@ -1,12 +1,14 @@
 extends SceneTree
 ## CI bake validator/finalizer.
-## Builds the authoritative 587 V11 buildings and places their roots on the
-## same Terrain3D heightmap used by the runtime, without opening FileDialog.
+## Builds the authoritative 587 V11 buildings on the real RAW terrain, but
+## stores each catalog archetype once and the city as lightweight scene instances.
+## This avoids embedding 587 copies of procedural Mesh resources in one .tscn.
 
 const EDITOR_SYSTEM_SCRIPT := "res://city_library/buildings/houses/roma_architecture_library_v11/scripts/editor_library_building_system.gd"
 const VARIATION_SCRIPT := "res://v37_integration/building_variation.gd"
 const POSITIONS_SCRIPT := "res://v37_integration/v37_building_positions_blob.gd"
 const OUTPUT_SCENE := "res://baked_city/roma_city_587.tscn"
+const ARCHETYPE_DIR := "res://baked_city/archetypes_587"
 const RAW_PATH := "res://assets/heightmap.raw"
 const MAP_SIZE_M := 2000.0
 const HEIGHT_SCALE_M := 48.0
@@ -49,6 +51,40 @@ func _run() -> void:
         quit(1)
         return
 
+    DirAccess.make_dir_recursive_absolute(ProjectSettings.globalize_path(ARCHETYPE_DIR))
+    var archetype_scenes: Array[PackedScene] = []
+    archetype_scenes.resize(catalog.size())
+
+    # Build and save each V11 catalog entry exactly once.
+    for ai in range(catalog.size()):
+        var archetype_path := "%s/archetype_%02d.tscn" % [ARCHETYPE_DIR, ai]
+        var building: Node3D = system.build(catalog[ai], ai) as Node3D
+        if building == null:
+            push_error("CI BAKE 587: V11 build returned null for archetype %d" % ai)
+            quit(1)
+            return
+        building.name = str(catalog[ai].get("id", "archetype_%02d" % ai))
+        get_root().add_child(building)
+        _set_owner_recursive(building, building)
+        var archetype_packed := PackedScene.new()
+        var archetype_err := archetype_packed.pack(building)
+        if archetype_err != OK:
+            push_error("CI BAKE 587: archetype pack failed %d err=%s" % [ai, archetype_err])
+            building.queue_free()
+            quit(1)
+            return
+        archetype_err = ResourceSaver.save(archetype_packed, archetype_path)
+        building.queue_free()
+        if archetype_err != OK:
+            push_error("CI BAKE 587: archetype save failed %d err=%s" % [ai, archetype_err])
+            quit(1)
+            return
+        archetype_scenes[ai] = load(archetype_path) as PackedScene
+        if archetype_scenes[ai] == null:
+            push_error("CI BAKE 587: archetype reload failed %d" % ai)
+            quit(1)
+            return
+
     var city := Node3D.new()
     city.name = "RomaCity_BAKED_587"
     get_root().add_child(city)
@@ -77,24 +113,26 @@ func _run() -> void:
             return
         var ai := posmod(int(variation.get("archetype_index", i)), catalog.size())
         var entry: Dictionary = catalog[ai]
-        var building: Node3D = system.build(entry, i) as Node3D
-        if building == null:
-            push_error("CI BAKE 587: V11 build returned null at index %d" % i)
+        var building_instance := archetype_scenes[ai].instantiate() as Node3D
+        if building_instance == null:
+            push_error("CI BAKE 587: archetype instance null at index %d" % i)
             city.queue_free()
             quit(1)
             return
 
-        building.name = str(d.get("id", "building_%d" % (i + 1)))
-        building.position = Vector3(x, h, z)
-        building.rotation.y = 0.0
-        building.set_meta("v37_source_id", building.name)
-        building.set_meta("v37_source_position", building.position)
-        building.set_meta("v11_catalog_id", str(entry.get("id", "")))
-        building.set_meta("v11_seed", seed)
-        building.set_meta("v11_variation", variation)
-        building.set_meta("baked_v37", true)
-        city.add_child(building)
-        _set_owner_recursive(building, city)
+        building_instance.name = str(d.get("id", "building_%d" % (i + 1)))
+        building_instance.position = Vector3(x, h, z)
+        building_instance.rotation.y = 0.0
+        building_instance.set_meta("v37_source_id", building_instance.name)
+        building_instance.set_meta("v37_source_position", building_instance.position)
+        building_instance.set_meta("v11_catalog_id", str(entry.get("id", "")))
+        building_instance.set_meta("v11_seed", seed)
+        building_instance.set_meta("v11_variation", variation)
+        building_instance.set_meta("baked_v37", true)
+        city.add_child(building_instance)
+        # Only the scene-instance root belongs to the city. Its geometry remains
+        # owned by the reusable archetype PackedScene and is not duplicated here.
+        building_instance.owner = city
         used[seed] = true
         placed += 1
 
@@ -111,6 +149,7 @@ func _run() -> void:
         city.queue_free()
         quit(1)
         return
+
     DirAccess.make_dir_recursive_absolute(ProjectSettings.globalize_path("res://baked_city"))
     err = ResourceSaver.save(packed, OUTPUT_SCENE)
     if err != OK:
@@ -119,7 +158,7 @@ func _run() -> void:
         quit(1)
         return
 
-    print("CI BAKE 587 OK: source=587 placed=587 terrain=REAL_RAW scene=", OUTPUT_SCENE)
+    print("CI BAKE 587 OK: source=587 placed=587 terrain=REAL_RAW reusable_archetypes=", catalog.size(), " scene=", OUTPUT_SCENE)
     city.queue_free()
     terrain.queue_free()
     quit(0)
