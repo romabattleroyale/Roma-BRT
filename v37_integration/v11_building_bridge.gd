@@ -62,9 +62,9 @@ func _build_library(v37: Node) -> void:
     var limit: int = int(min(TEST_COUNT, source_buildings.size()))
     var catalog: Array[Dictionary] = adapter.factory.get_catalog()
     var library_archetypes: int = catalog.size()
-    print("PROMPT 4 — V11 ARCHETIPI CARICATI: ", library_archetypes, " (attesi 24)")
+    print("PROMPT 4 — V11 ARCHETIPI CARICATI: ", library_archetypes, " (attesi 27)")
     print("PROMPT 4 — ANDROID OPT: start delay=", START_DELAY_FRAMES, " frame, pausa=", BATCH_PAUSE_FRAMES, " + post-build=", POST_BUILD_PAUSE_FRAMES, " frame")
-    print("PROMPT 4 — ANDROID BUILD MODE: LIGHTWEIGHT SHELL + WINDOWS + ROOF")
+    print("PROMPT 4 — BUILD MODE: FULL V11 ARCHITECTURE")
 
     var candidates: Array = []
     for i in range(limit):
@@ -126,7 +126,7 @@ func _build_library(v37: Node) -> void:
                 _reject(index, str(validation["reason"]))
                 continue
             var base_h: float = float(validation["base_h"])
-            var building = adapter.factory.build_mobile_and_place(str(candidate["catalog_id"]), Vector3(center.x, 0.0, center.z), base_h, rotation_y, index)
+            var building = adapter.factory.build_and_place(str(candidate["catalog_id"]), Vector3(center.x, 0.0, center.z), base_h, rotation_y, index)
             if building == null:
                 _reject(index, "library_build_failed")
                 continue
@@ -144,7 +144,8 @@ func _build_library(v37: Node) -> void:
             building.set_meta("prompt4_safety_corridor_m", SAFETY_CORRIDOR)
             building.set_meta("prompt4_courtyard", true)
             building.set_meta("prompt4_terrain_base_h", base_h)
-            building.set_meta("prompt4_android_lightweight", true)
+            building.set_meta("prompt4_android_lightweight", false)
+            building.set_meta("prompt4_full_architecture", true)
             city_root.add_child(building)
             placed_rects.append({"center":center, "width":width, "depth":depth, "rotation":rotation_y, "block":block_index})
             used_seeds[seed] = true
