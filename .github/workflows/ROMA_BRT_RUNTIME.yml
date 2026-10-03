@@ -111,3 +111,5 @@ jobs:
           timeout 20s .runtime/godot/godot --headless --path . --quit-after 10 || code=$?
           if [ "${code:-0}" -ne 0 ] && [ "${code:-0}" -ne 124 ]; then exit "$code"; fi
           echo 'Roma-BRT headless runtime smoke test completed.'
+
+# Runtime verification after the Terrain3D enum compatibility patch.
