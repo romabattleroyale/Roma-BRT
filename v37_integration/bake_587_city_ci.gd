@@ -20,7 +20,7 @@ func _init() -> void:
     call_deferred("_run")
 
 func _run() -> void:
-    if not _ensure_terrain3d_extension():
+    if not await _ensure_terrain3d_extension():
         quit(1)
         return
 
