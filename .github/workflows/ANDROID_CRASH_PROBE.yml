@@ -6,6 +6,8 @@ on:
     paths:
       - 'android_terrain_probe.gd'
       - 'android_terrain_probe.tscn'
+      - 'android_terrain_raw_probe.gd'
+      - 'android_terrain_raw_probe.tscn'
       - '.github/workflows/ANDROID_CRASH_PROBE.yml'
       - 'project.godot'
       - 'export_presets.cfg'
@@ -94,26 +96,26 @@ jobs:
           test -s export_presets.cfg
           grep -F 'include_filter="assets/heightmap.raw"' export_presets.cfg
 
-      - name: Export Terrain3D probe APK only
+      - name: Export Terrain3D RAW probe APK only
         run: |
           set -euo pipefail
           cp project.godot /tmp/project.godot.original
           trap 'cp /tmp/project.godot.original project.godot' EXIT
-          sed -i 's#run/main_scene="res://main.tscn"#run/main_scene="res://android_terrain_probe.tscn"#' project.godot
+          sed -i 's#run/main_scene="res://main.tscn"#run/main_scene="res://android_terrain_raw_probe.tscn"#' project.godot
           mkdir -p build
-          .runtime/godot/godot --headless --path . --export-debug Android build/Roma-BRT-Android-Terrain-Probe.apk
-          test -s build/Roma-BRT-Android-Terrain-Probe.apk
-          ls -lh build/Roma-BRT-Android-Terrain-Probe.apk
+          .runtime/godot/godot --headless --path . --export-debug Android build/Roma-BRT-Android-Terrain-RAW-Probe.apk
+          test -s build/Roma-BRT-Android-Terrain-RAW-Probe.apk
+          ls -lh build/Roma-BRT-Android-Terrain-RAW-Probe.apk
 
       - name: Verify heightmap is packaged in APK
         run: |
           set -euo pipefail
-          unzip -l build/Roma-BRT-Android-Terrain-Probe.apk | grep -F 'assets/heightmap.raw'
+          unzip -l build/Roma-BRT-Android-Terrain-RAW-Probe.apk | grep -F 'assets/heightmap.raw'
 
-      - name: Upload Terrain3D probe APK
+      - name: Upload Terrain3D RAW probe APK
         uses: actions/upload-artifact@v4
         with:
-          name: Roma-BRT-Android-Terrain-Probe
-          path: build/Roma-BRT-Android-Terrain-Probe.apk
+          name: Roma-BRT-Android-Terrain-RAW-Probe
+          path: build/Roma-BRT-Android-Terrain-RAW-Probe.apk
           if-no-files-found: error
           retention-days: 7
