@@ -1,12 +1,7 @@
 extends Node3D
-## Debug camera dall'alto per ispezionare la mappa Roma-BRT.
-## Android + controller:
-## - stick sinistro = sposta la mappa avanti/indietro/sinistra/destra
-## - touch nella META' DESTRA = zoom + pitch
-## - trascina verso l'alto = zoom avanti
-## - trascina verso il basso = zoom indietro
-## - trascina orizzontalmente = pitch/inclinazione
-## - pinch nella meta destra = zoom preciso
+## Debug camera dall'alto per Android + controller.
+## Controller: stick sinistro = sposta la mappa.
+## Touch: META' DESTRA = zoom e pitch; pinch = zoom preciso.
 
 @export var map_size := 2000.0
 @export var target := Vector3(1000.0, 0.0, 1000.0)
@@ -39,31 +34,34 @@ func _process(delta: float) -> void:
     if camera == null:
         return
 
-    # Controller su Android: stick SINISTRO = movimento della mappa.
-    # X = sinistra/destra, Y = avanti/indietro.
-    if Input.get_connected_joypads().size() > 0:
-        var move_x := Input.get_joy_axis(0, JOY_AXIS_LEFT_X)
-        var move_y := Input.get_joy_axis(0, JOY_AXIS_LEFT_Y)
+    # Android controller: cerca il primo controller realmente connesso.
+    var joypads := Input.get_connected_joypads()
+    for joy_id in joypads:
+        var move_x := Input.get_joy_axis(joy_id, JOY_AXIS_LEFT_X)
+        var move_y := Input.get_joy_axis(joy_id, JOY_AXIS_LEFT_Y)
         var move := Vector2(move_x, move_y)
-        if move.length() > 0.12:
-            move = move.normalized() * ((move.length() - 0.12) / 0.88)
+        var magnitude := move.length()
+        if magnitude > 0.12:
+            magnitude = clampf((magnitude - 0.12) / 0.88, 0.0, 1.0)
+            move = move.normalized() * magnitude
             pan_from_controller(move, delta)
+        break
 
 func pan_from_controller(move: Vector2, delta: float) -> void:
-    var basis := Basis(Vector3.UP, 0.0)
-    var right := basis.x
-    var forward := -basis.z
+    # Schermo: sinistra/destra e avanti/indietro.
     var speed := controller_move_speed * maxf(distance / 900.0, 0.45)
-    target += (right * move.x + forward * -move.y) * speed * delta
+    target.x += move.x * speed * delta
+    target.z += -move.y * speed * delta
     target.x = clampf(target.x, 0.0, map_size)
     target.z = clampf(target.z, 0.0, map_size)
     update_camera()
 
-func _unhandled_input(event: InputEvent) -> void:
+func _input(event: InputEvent) -> void:
     if camera == null:
         return
 
-    # Touch Android: usiamo la META' DESTRA dello schermo per la camera.
+    # Usiamo _input, non _unhandled_input, cosi' i controlli funzionano
+    # anche quando un Control/HUD intercetta il touch.
     if event is InputEventScreenTouch:
         var touch := event as InputEventScreenTouch
         if touch.pressed:
@@ -81,7 +79,6 @@ func _unhandled_input(event: InputEvent) -> void:
         var drag := event as InputEventScreenDrag
         touches[drag.index] = drag.position
 
-        # Solo il touch nella parte destra controlla zoom e pitch.
         if not right_touch_indices.has(drag.index):
             return
 
@@ -92,17 +89,13 @@ func _unhandled_input(event: InputEvent) -> void:
             var pinch_distance := p0.distance_to(p1)
             if last_pinch_distance > 0.0:
                 var pinch_delta := pinch_distance - last_pinch_distance
-                distance = clampf(
-                    distance * pow(0.9975, pinch_delta),
-                    min_distance,
-                    max_distance
-                )
+                distance = clampf(distance * pow(0.9975, pinch_delta), min_distance, max_distance)
                 update_camera()
             last_pinch_distance = pinch_distance
             return
 
-        # Un dito a destra:
-        # verticale = zoom, orizzontale = pitch.
+        # Un dito nella meta' destra:
+        # alto/basso = zoom, sinistra/destra = pitch.
         var vertical := drag.relative.y
         var horizontal := drag.relative.x
         if absf(vertical) > 0.01:
@@ -131,7 +124,5 @@ func update_camera() -> void:
     var vertical := -sin(pitch) * distance
     var offset := Vector3(0.0, vertical, horizontal)
     camera.position = target + offset
-
-    # Orthographic zoom: piu' piccola = piu' vicino/ingrandito.
     camera.size = clampf(distance * 0.72, 80.0, 3000.0)
     camera.look_at(target, Vector3.UP)
