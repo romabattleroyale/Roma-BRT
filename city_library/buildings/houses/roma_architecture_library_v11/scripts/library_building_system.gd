@@ -173,8 +173,9 @@ func _v12_narrow_house(root: Node3D, w: float, d: float, floors: int, facade: Ma
     _box(root, Vector3(0, top_y + 0.48, -d * 0.5 - 0.22), Vector3(w + 0.34, 0.12, 0.62), facade, false)
     if floors >= 4:
         var balcony_y: float = FLOOR_H * 2.0 + 2.90
-        _box(root, Vector3(0, balcony_y, -d * 0.5 - 0.52), Vector3(min(w * 0.72, 4.4), 0.16, 0.78), mats["travertine"], false)
-        _v12_rail_front(root, balcony_y + 0.55, min(w * 0.72, 4.4), -d * 0.5 - 0.88)
+        var balcony_width: float = min(w * 0.72, 4.4)
+        _box(root, Vector3(0, balcony_y, -d * 0.5 - 0.52), Vector3(balcony_width, 0.16, 0.78), mats["travertine"], false)
+        _v12_rail_front(root, balcony_y + 0.55, balcony_width, -d * 0.5 - 0.88)
 
 func _v12_residential_palazzina(root: Node3D, w: float, d: float, floors: int) -> void:
     var balcony_w: float = min(w * 0.72, 8.6)
@@ -201,16 +202,20 @@ func _v12_corner_palazzo(root: Node3D, w: float, d: float, floors: int) -> void:
     _v12_rail_side(root, y + 0.55, balcony_w, w * 0.5 + 0.98)
     _box(root, Vector3(0, float(floors) * FLOOR_H + 0.20, -d * 0.5 - 0.20), Vector3(w + 0.78, 0.34, 0.50), mats["travertine"], false)
 
-func _v12_rail_front(root: Node3D, y: float, width: float, z: float) -> void:
-    _box(root, Vector3(0, y, z), Vector3(width, 0.08, 0.08), mats["iron"], false)
+func _v12_rail_front(root: Node3D, top_y: float, width: float, z: float) -> void:
+    var rail_base: float = top_y - 0.55
+    var rail_height: float = 0.55
+    _box(root, Vector3(0, top_y, z), Vector3(width, 0.08, 0.08), mats["iron"], false)
     var count: int = max(3, int(floor(width / 0.75)))
     for i in range(count):
         var x: float = -width * 0.5 + width * float(i) / float(max(1, count - 1))
-        _box(root, Vector3(x, y * 0.5 + (y - 0.45) * 0.5, z), Vector3(0.055, y - 0.45, 0.055), mats["iron"], false)
+        _box(root, Vector3(x, rail_base + rail_height * 0.5, z), Vector3(0.055, rail_height, 0.055), mats["iron"], false)
 
-func _v12_rail_side(root: Node3D, y: float, depth: float, x: float) -> void:
-    _box(root, Vector3(x, y, 0), Vector3(0.08, 0.08, depth), mats["iron"], false)
+func _v12_rail_side(root: Node3D, top_y: float, depth: float, x: float) -> void:
+    var rail_base: float = top_y - 0.55
+    var rail_height: float = 0.55
+    _box(root, Vector3(x, top_y, 0), Vector3(0.08, 0.08, depth), mats["iron"], false)
     var count: int = max(3, int(floor(depth / 0.75)))
     for i in range(count):
         var z: float = -depth * 0.5 + depth * float(i) / float(max(1, count - 1))
-        _box(root, Vector3(x, y * 0.5 + (y - 0.45) * 0.5, z), Vector3(0.055, y - 0.45, 0.055), mats["iron"], false)
+        _box(root, Vector3(x, rail_base + rail_height * 0.5, z), Vector3(0.055, rail_height, 0.055), mats["iron"], false)
