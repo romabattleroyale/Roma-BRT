@@ -1,0 +1,70 @@
+name: ROMA BRT — Linux Real Map Video
+
+on:
+  workflow_dispatch:
+
+jobs:
+  record:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 12
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install runtime/video tools
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y xvfb ffmpeg xdotool
+
+      - name: Download Godot 4.7.2
+        run: |
+          mkdir -p .runtime
+          curl -L -o .runtime/godot.zip https://github.com/godotengine/godot/releases/download/4.7.2-stable/Godot_v4.7.2-stable_linux.x86_64.zip
+          unzip -o .runtime/godot.zip -d .runtime/godot
+          mv .runtime/godot/Godot_v4.7.2-stable_linux.x86_64 .runtime/godot/godot
+          chmod +x .runtime/godot/godot
+
+      - name: Import project
+        run: |
+          .runtime/godot/godot --headless --path . --editor --quit-after 20
+
+      - name: Verify final map inputs
+        run: |
+          test -s terrain_data/READY.txt
+          test -s baked_city/roma_city_587.tscn
+          test "$(find baked_city/archetypes_587 -maxdepth 1 -name 'archetype_*.tscn' | wc -l)" -eq 27
+
+      - name: Start real game scene
+        run: |
+          mkdir -p build/video
+          Xvfb :99 -screen 0 1280x720x24 -ac +extension GLX +render -noreset > build/video/xvfb.log 2>&1 &
+          echo $! > build/video/xvfb.pid
+          export DISPLAY=:99
+          .runtime/godot/godot --path . --display-driver x11 --rendering-method gl_compatibility --audio-driver Dummy > build/video/godot.log 2>&1 &
+          echo $! > build/video/godot.pid
+          sleep 35
+
+      - name: Record real map video
+        run: |
+          export DISPLAY=:99
+          xdotool search --name 'Roma Heightmap Beta' windowactivate --sync || true
+          sleep 2
+          ffmpeg -y -f x11grab -video_size 1280x720 -framerate 30 -i :99.0 -t 30 -c:v libx264 -preset veryfast -pix_fmt yuv420p build/video/Roma-BRT-Map-Real-30s.mp4
+
+      - name: Move camera through the city during recording
+        if: ${{ always() }}
+        run: |
+          true
+
+      - name: Evidence screenshot
+        run: |
+          export DISPLAY=:99
+          import -window root build/video/map.png || true
+          grep -E 'BAKED CITY|ANDROID SAFE TERRAIN|TEVERE WATER RIBBON|cache Terrain3D' build/video/godot.log || true
+
+      - name: Upload real map video
+        uses: actions/upload-artifact@v4
+        with:
+          name: Roma-BRT-Real-Map-Video
+          path: build/video/
+          retention-days: 7
