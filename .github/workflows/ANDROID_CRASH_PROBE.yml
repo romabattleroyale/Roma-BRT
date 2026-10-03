@@ -2,6 +2,15 @@ name: Android Crash Probe
 
 on:
   workflow_dispatch:
+  push:
+    paths:
+      - 'android_terrain_probe.gd'
+      - 'android_terrain_probe.tscn'
+      - '.github/workflows/ANDROID_CRASH_PROBE.yml'
+      - 'project.godot'
+      - 'addons/terrain_3d/**'
+      - 'assets/heightmap.raw'
+      - 'terrain_materials/**'
 
 permissions:
   contents: read
