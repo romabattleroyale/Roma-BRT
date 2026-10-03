@@ -175,6 +175,9 @@ func _build_ci_terrain() -> Node3D:
 
     var terrain = Terrain3D.new()
     terrain.name = TERRAIN_NAME
+    # Avoid static Terrain3D enum references here: the CI script can be parsed
+    # before the GDExtension registers its GDScript classes. The property accepts
+    # the documented SIZE_512 enum value (512).
     terrain.region_size = 512
     terrain.vertex_spacing = MAP_SIZE_M / 1080.0
     terrain.mesh_lods = 7
@@ -228,9 +231,11 @@ func _build_ci_terrain() -> Node3D:
         terrain.queue_free()
         return null
 
+    # Terrain3DRegion.TYPE_MAX is 3 (HEIGHT, CONTROL, COLOR) and TYPE_HEIGHT is 0.
+    # Use the documented enum values directly so the script remains parse-safe in CI.
     var maps: Array[Image]
-    maps.resize(Terrain3DRegion.TYPE_MAX)
-    maps[Terrain3DRegion.TYPE_HEIGHT] = img
+    maps.resize(3)
+    maps[0] = img
     data.import_images(maps, Vector3.ZERO, 0.0, HEIGHT_SCALE_M)
     data.calc_height_range(true)
     await process_frame
