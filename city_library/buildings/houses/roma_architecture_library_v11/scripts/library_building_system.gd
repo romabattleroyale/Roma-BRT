@@ -23,14 +23,12 @@ func setup_materials() -> void:
     mats["shutter_warm"] = _pbr(ASSET_ROOT + "painted_wood.jpg", ASSET_ROOT + "painted_wood_normal.jpg", 0.80, 2.0)
 
     mats["stucco"] = StandardMaterial3D.new()
-    mats["stucco"].albedo_color = Color("#D9C3A1")
-    mats["stucco"].roughness = 0.86
-
+    (mats["stucco"] as StandardMaterial3D).albedo_color = Color("#D9C3A1")
+    (mats["stucco"] as StandardMaterial3D).roughness = 0.86
     mats["weathered_plaster"] = _weathered_pbr(ASSET_ROOT + "roman_plaster_weathered_albedo.jpg", ASSET_ROOT + "roman_plaster_weathered_normal.jpg", ASSET_ROOT + "roman_plaster_weathered_roughness.jpg", 0.94, 3.8)
 
     for key in ["iron", "metal", "stone", "glass", "interior", "warm", "awning", "plant", "dark_stone"]:
         mats[key] = StandardMaterial3D.new()
-
     (mats["iron"] as StandardMaterial3D).albedo_color = Color("#252522")
     (mats["iron"] as StandardMaterial3D).metallic = 0.78
     (mats["iron"] as StandardMaterial3D).roughness = 0.42
@@ -61,6 +59,25 @@ func setup_materials() -> void:
     mats["facade_beige"] = _weathered_facade(Color("#FFF2DA"), ASSET_ROOT + "roman_plaster_weathered_albedo.jpg", ASSET_ROOT + "roman_plaster_weathered_normal.jpg", ASSET_ROOT + "roman_plaster_weathered_roughness.jpg")
     mats["facade_terracotta"] = _weathered_facade(Color("#FFD0B2"), ASSET_ROOT + "roman_plaster_weathered_albedo.jpg", ASSET_ROOT + "roman_plaster_weathered_normal.jpg", ASSET_ROOT + "roman_plaster_weathered_roughness.jpg")
     mats["facade_rose"] = _weathered_facade(Color("#FFE0D4"), ASSET_ROOT + "roman_plaster_weathered_albedo.jpg", ASSET_ROOT + "roman_plaster_weathered_normal.jpg", ASSET_ROOT + "roman_plaster_weathered_roughness.jpg")
+
+func _warm_roof(color: Color, uv_scale: float) -> StandardMaterial3D:
+    var m := StandardMaterial3D.new()
+    m.albedo_color = color
+    var albedo := load(ASSET_ROOT + "coppi_romani_albedo.jpg") as Texture2D
+    if albedo:
+        m.albedo_texture = albedo
+    var normal := load(ASSET_ROOT + "coppi_romani_normal.jpg") as Texture2D
+    if normal:
+        m.normal_enabled = true
+        m.normal_texture = normal
+        m.normal_scale = 0.72
+    var rough := load(ASSET_ROOT + "coppi_romani_roughness.jpg") as Texture2D
+    if rough:
+        m.roughness_texture = rough
+    m.roughness = 0.88
+    m.uv1_scale = Vector3(uv_scale, uv_scale, uv_scale)
+    m.texture_repeat = true
+    return m
 
 func _library_terracotta_terrace() -> StandardMaterial3D:
     var m := StandardMaterial3D.new()
