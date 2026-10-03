@@ -6,7 +6,7 @@
 [ext_resource type="Script" path="res://mobile_controls.gd" id="4_mobile"]
 [ext_resource type="Script" path="res://v37_integration/v37_world.gd" id="5_v37"]
 [ext_resource type="Script" path="res://debug_topdown_camera.gd" id="6_debugcam"]
-[ext_resource type="Script" path="res://v37_integration/v11_building_bridge.gd" id="7_v11bridge"]
+[ext_resource type="Script" path="res://urban_grid.gd" id="7_grid"]
 
 [sub_resource type="Environment" id="Env"]
 background_mode = 1
@@ -38,8 +38,8 @@ enable_fire = true
 enable_roads = false
 enable_technical_camera = false
 
-[node name="V11BuildingBridge" type="Node3D" parent="."]
-script = ExtResource("7_v11bridge")
+[node name="Urban_Grid" type="Node3D" parent="."]
+script = ExtResource("7_grid")
 
 [node name="DebugTopDownCamera" type="Node3D" parent="."]
 script = ExtResource("6_debugcam")
