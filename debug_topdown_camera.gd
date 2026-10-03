@@ -27,7 +27,6 @@ func _ready() -> void:
     camera.name = "DebugTopDownCamera"
     camera.current = true
     camera.projection = Camera3D.PROJECTION_ORTHOGONAL
-    camera.size = 1800.0
     camera.near = 0.1
     camera.far = 6000.0
     add_child(camera)
@@ -118,4 +117,5 @@ func update_camera() -> void:
     var vertical := -sin(pitch) * distance
     var offset := Vector3(sin(yaw) * horizontal, vertical, cos(yaw) * horizontal)
     camera.position = target + offset
+    camera.size = clampf(distance * 1.2, 120.0, 3200.0)
     camera.look_at(target, Vector3.UP)
