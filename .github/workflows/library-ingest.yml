@@ -28,7 +28,6 @@ jobs:
           test -f "$ARCHIVE"
           rm -rf "$WORK"
           mkdir -p "$WORK/unpacked"
-
           unzip -q "$ARCHIVE" -d "$WORK/unpacked"
 
           ROOT="$WORK/unpacked"
@@ -38,14 +37,10 @@ jobs:
             ROOT="${TOP[0]}"
           fi
 
-          if find "$ROOT" -type d -name '.godot' -print -quit | grep -q .; then
-            echo 'Rejected: .godot directory found.'
-            exit 1
-          fi
-          if find "$ROOT" -type f -name 'project.godot' -print -quit | grep -q .; then
-            echo 'Rejected: project.godot found.'
-            exit 1
-          fi
+          # A library may arrive as a standalone Godot project. The project
+          # metadata is not part of the City Library and must not be installed.
+          find "$ROOT" -type d -name '.godot' -prune -exec rm -rf {} +
+          find "$ROOT" -type f -name 'project.godot' -delete
 
           test -f "$ROOT/data/building_catalog.json"
 
@@ -53,7 +48,8 @@ jobs:
           import json
           import sys
           path = sys.argv[1]
-          data = json.load(open(path, encoding='utf-8'))
+          with open(path, encoding='utf-8') as f:
+              data = json.load(f)
           if not isinstance(data, list) or not data:
               raise SystemExit('Building catalog must be a non-empty array')
           ids = []
