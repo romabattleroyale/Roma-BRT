@@ -65,6 +65,16 @@ jobs:
           set -euo pipefail
           .runtime/godot/godot --headless --editor --path . --quit
 
+      - name: Bake 587 city in headless editor
+        shell: bash
+        run: |
+          set -euo pipefail
+          rm -f res://baked_city/roma_city_587.tscn
+          .runtime/godot/godot --headless --editor --path . --script res://v37_integration/bake_587_city_editor_fixed.gd
+          test -f res://baked_city/roma_city_587.tscn
+          test "$(stat -c%s res://baked_city/roma_city_587.tscn)" -gt 1000
+          echo 'BAKE ARTIFACT OK: res://baked_city/roma_city_587.tscn'
+
       - name: Diagnose Terrain3D after main scene initialization
         shell: bash
         run: |
