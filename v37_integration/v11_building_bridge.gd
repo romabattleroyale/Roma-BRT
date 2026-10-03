@@ -3,6 +3,7 @@ extends Node3D
 ## Validation remains mandatory before instantiation. No roads, interiors or terrain edits.
 ## Buildings form perimeter U-blocks with outward-facing doors and an open courtyard.
 ## Android optimization: deterministic anchors and frame-yielded construction avoid startup spikes.
+## DIAGNOSTICS ONLY: this revision adds console reporting; it does not change placement rules.
 
 const ADAPTER_SCRIPT = "res://city_library/buildings/house_library_adapter.gd"
 const VARIATION_SCRIPT = "res://v37_integration/building_variation.gd"
@@ -19,7 +20,10 @@ var variation_script = null
 var built = false
 var used_seeds = {}
 var used_archetypes = {}
+var used_colors = {}
+var used_heights = {}
 var rejection_counts = {}
+var block_counts = {}
 var placed_rects = []
 var water_ray: RayCast3D
 
@@ -56,19 +60,29 @@ func _build_library(v37: Node) -> void:
     if not adapter.initialize():
         push_warning("V11 Building Bridge: City Library V11 non inizializzabile")
         return
+
     var city_root = v37.get("city_root") as Node3D
     var map_data = v37.get("map_data") as Dictionary
     var buildings: Array = map_data.get("city", {}).get("buildings", [])
     var limit = min(TEST_COUNT, buildings.size())
     var candidates: Array = []
+
+    var library_archetypes = adapter.catalog_size()
+    print("PROMPT 4 DIAGNOSTICA — V11 ARCHETIPI CARICATI DALLA LIBRERIA: ", library_archetypes, " (attesi: 24)")
+
     for i in range(limit):
         var data: Dictionary = buildings[i]
         var size: Dictionary = data.get("size", {})
-        candidates.append({"index": i, "data": data, "width": maxf(6.0, float(size.get("x", 10.0))), "depth": maxf(6.0, float(size.get("z", 10.0))), "variation": variation_script.call("variation_for", i, int(i / 4))})
+        var variation: Dictionary = variation_script.call("variation_for", i, int(i / 4))
+        candidates.append({"index": i, "data": data, "width": maxf(6.0, float(size.get("x", 10.0))), "depth": maxf(6.0, float(size.get("z", 10.0))), "variation": variation})
+        print("PROMPT 4 DIAGNOSTICA — CANDIDATO #", i + 1, " archetype=", variation["archetype_index"], " colore=", variation["facade_color"], " altezza=", variation["height_floors"], " seed=", variation["seed"])
 
     var placed = 0
     var blocks = _urban_lot_rects()
     var block_count = min(blocks.size(), int(ceil(float(limit) / 5.0)))
+    print("PROMPT 4 DIAGNOSTICA — URBAN_GRID RETTANGOLI: ", blocks.size(), " (attesi: 8)")
+    print("PROMPT 4 DIAGNOSTICA — ISOLATI UTILIZZATI: ", block_count)
+
     for block_index in range(block_count):
         var group: Array = []
         var first = block_index * 5
@@ -78,9 +92,11 @@ func _build_library(v37: Node) -> void:
         if group.is_empty():
             continue
         var rect: Dictionary = blocks[block_index]
+        var block_id = str(rect.get("id", "BLOCK_%02d" % block_index))
         var layout = _make_compact_layout(group)
         var anchor = _direct_anchor(rect, layout, block_index)
         var valid_group = 0
+
         for item in layout:
             await _android_yield()
             var candidate: Dictionary = item["candidate"]
@@ -93,6 +109,7 @@ func _build_library(v37: Node) -> void:
             var center: Vector3 = anchor + item["offset"]
             center.y = 0.0
             var rotation_y: float = float(item["rotation"])
+
             if used_seeds.has(seed):
                 _reject(index, "duplicate_seed")
                 continue
@@ -106,6 +123,7 @@ func _build_library(v37: Node) -> void:
             if not validation["valid"]:
                 _reject(index, str(validation["reason"]))
                 continue
+
             var base_h: float = float(validation["base_h"])
             var style = str(data.get("style", ""))
             var building = adapter.build_for_footprint(width, depth, Vector3(center.x, 0.0, center.z), base_h, style, index, rotation_y)
@@ -118,12 +136,13 @@ func _build_library(v37: Node) -> void:
                 building.queue_free()
                 _reject(index, "non_finite_building_transform")
                 continue
+
             building.name = str(data.get("id", "V11Building_%03d" % index))
             building.set_meta("v11_seed", seed)
             building.set_meta("v11_variation", variation)
             building.set_meta("v11_source_position", data.get("position", {}))
             building.set_meta("v11_source_id", data.get("id", ""))
-            building.set_meta("prompt4_block", str(rect.get("id", "BLOCK_%02d" % block_index)))
+            building.set_meta("prompt4_block", block_id)
             building.set_meta("prompt4_slot", int(item["slot"]))
             building.set_meta("prompt4_compact", true)
             building.set_meta("prompt4_safety_corridor_m", SAFETY_CORRIDOR)
@@ -132,25 +151,37 @@ func _build_library(v37: Node) -> void:
             building.position.y = base_h
             building.rotation.y = rotation_y
             city_root.add_child(building)
+
             placed_rects.append({"center": center, "width": width, "depth": depth, "rotation": rotation_y, "block": block_index})
             used_seeds[seed] = true
             used_archetypes[int(variation["archetype_index"])] = true
+            used_colors[str(variation["facade_color"])] = true
+            used_heights[int(variation["height_floors"])] = true
             valid_group += 1
             placed += 1
-            print("PROMPT 4 — piazzato #", index + 1, " id=", building.name, " block=", rect.get("id", ""), " slot=", item["slot"], " seed=", seed, " archetype=", variation["archetype_index"], " pos=", center, " base_y=", base_h)
+            block_counts[block_id] = int(block_counts.get(block_id, 0)) + 1
+            print("PROMPT 4 DIAGNOSTICA — PIAZZATO #", index + 1, " block=", block_id, " slot=", item["slot"], " archetype=", variation["archetype_index"], " colore=", variation["facade_color"], " altezza=", variation["height_floors"], " seed=", seed, " base_y=", base_h)
             await _android_yield()
-        print("PROMPT 4 — ", rect.get("id", "BLOCK_%02d" % block_index), " edifici compatti: ", valid_group, " / ", group.size())
+
+        print("PROMPT 4 DIAGNOSTICA — ISOLATO ", block_id, ": ", valid_group, " / ", group.size(), " edifici piazzati")
 
     built = true
-    print("PROMPT 4 — PIAZZATI: ", placed, " / ", limit)
-    print("PROMPT 4 — SCARTATI: ", limit - placed)
-    print("PROMPT 4 — ARCHETIPI DIVERSI: ", used_archetypes.size())
-    print("PROMPT 4 — ISOLATI TARGET: ", block_count)
-    print("PROMPT 4 — SAFETY CORRIDOR: ", SAFETY_CORRIDOR, "m")
-    print("PROMPT 4 — ROAD SETBACK: ", ROAD_SETBACK, "m")
-    print("PROMPT 4 — BATCH PAUSE FRAMES: ", BATCH_PAUSE_FRAMES)
-    print("PROMPT 4 — TERRAIN CLEARANCE: ", TERRAIN_CLEARANCE, "m")
-    print("PROMPT 4 — MOTIVI SCARTO: ", rejection_counts)
+    print("PROMPT 4 DIAGNOSTICA — ===== RIEPILOGO =====")
+    print("PROMPT 4 DIAGNOSTICA — CANDIDATI TOTALI: ", limit)
+    print("PROMPT 4 DIAGNOSTICA — PIAZZATI TOTALI: ", placed)
+    print("PROMPT 4 DIAGNOSTICA — SCARTATI TOTALI: ", limit - placed)
+    print("PROMPT 4 DIAGNOSTICA — ARCHETIPI V11 LIBRERIA: ", library_archetypes)
+    print("PROMPT 4 DIAGNOSTICA — ARCHETIPI USATI: ", used_archetypes.size())
+    print("PROMPT 4 DIAGNOSTICA — COLORI USATI: ", used_colors.size(), " -> ", used_colors.keys())
+    print("PROMPT 4 DIAGNOSTICA — ALTEZZE USATE: ", used_heights.size(), " -> ", used_heights.keys())
+    print("PROMPT 4 DIAGNOSTICA — ISOLATI CREATI: ", block_counts.size(), " / target ", block_count)
+    for block_id in block_counts.keys():
+        print("PROMPT 4 DIAGNOSTICA — ", block_id, " = ", block_counts[block_id], " edifici")
+    print("PROMPT 4 DIAGNOSTICA — MOTIVI SCARTO: ", rejection_counts)
+    print("PROMPT 4 DIAGNOSTICA — SAFETY CORRIDOR: ", SAFETY_CORRIDOR, "m")
+    print("PROMPT 4 DIAGNOSTICA — ROAD SETBACK: ", ROAD_SETBACK, "m")
+    print("PROMPT 4 DIAGNOSTICA — BATCH PAUSE FRAMES: ", BATCH_PAUSE_FRAMES)
+    print("PROMPT 4 DIAGNOSTICA — TERRAIN CLEARANCE: ", TERRAIN_CLEARANCE, "m")
 
 func _android_yield() -> void:
     for _i in range(BATCH_PAUSE_FRAMES):
@@ -311,4 +342,4 @@ func _overlaps_existing(center: Vector3, width: float, depth: float, rotation_y:
 
 func _reject(index: int, reason: String) -> void:
     rejection_counts[reason] = int(rejection_counts.get(reason, 0)) + 1
-    print("PROMPT 4 — scarto #", index + 1, " motivo=", reason)
+    print("PROMPT 4 DIAGNOSTICA — SCARTATO #", index + 1, " motivo=", reason)
