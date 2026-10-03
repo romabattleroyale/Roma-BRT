@@ -23,9 +23,12 @@ func _run() -> void:
         push_error("BAKE 587 FINAL: aprire main.tscn prima di eseguire File > Run")
         return
 
-    var terrain := root.find_child(TERRAIN_NAME, true, false)
+    # The runtime creates Terrain3D dynamically, while the editor scene may
+    # already contain it under a different node name (for example "Terrain").
+    # Never require one hard-coded node name: identify the actual Terrain3D node.
+    var terrain := _find_terrain3d(root)
     if terrain == null:
-        push_error("BAKE 587 FINAL: Terrain3D non trovato: " + TERRAIN_NAME)
+        push_error("BAKE 587 FINAL: Terrain3D non trovato nella scena aperta")
         return
 
     var terrain_data = terrain.get("data")
@@ -52,6 +55,7 @@ func _run() -> void:
 
     var catalog: Array = _load_catalog()
     var source: Array = positions_script.get_buildings()
+    print("BAKE 587 FINAL - Terrain3D: ", terrain.name)
     print("BAKE 587 FINAL - sorgente: ", source.size(), " | catalogo V11: ", catalog.size())
     if source.size() != 587:
         push_error("BAKE 587 FINAL: sorgente V37 attesa 587, trovata %d" % source.size())
@@ -171,6 +175,21 @@ func _run() -> void:
     print("BAKE 587 FINAL - piazzati: ", placed)
     print("BAKE 587 FINAL - scartati: ", rejected)
     print("BAKE 587 FINAL - scena: ", OUTPUT_SCENE)
+
+func _find_terrain3d(root: Node) -> Node:
+    var named := root.find_child(TERRAIN_NAME, true, false)
+    if named != null and named.get_class() == "Terrain3D":
+        return named
+    return _find_terrain3d_recursive(root)
+
+func _find_terrain3d_recursive(node: Node) -> Node:
+    for child in node.get_children():
+        if child.get_class() == "Terrain3D":
+            return child
+        var nested := _find_terrain3d_recursive(child)
+        if nested != null:
+            return nested
+    return null
 
 func _load_catalog() -> Array:
     const path := "res://city_library/buildings/houses/roma_architecture_library_v11/data/building_catalog.json"
