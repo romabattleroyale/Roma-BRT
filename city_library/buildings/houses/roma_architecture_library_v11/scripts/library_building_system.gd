@@ -48,3 +48,32 @@ func setup_materials() -> void:
     glass.roughness = 0.18
     glass.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
     glass.cull_mode = BaseMaterial3D.CULL_DISABLED
+    mats["glass"] = glass
+
+    var interior := StandardMaterial3D.new()
+    interior.albedo_color = Color("#A37A5B")
+    interior.roughness = 0.88
+    mats["interior"] = interior
+
+    var warm := StandardMaterial3D.new()
+    warm.albedo_color = Color(1.0, 0.64, 0.28)
+    warm.emission_enabled = true
+    warm.emission = Color(1.0, 0.38, 0.10)
+    warm.emission_energy_multiplier = 1.2
+    mats["warm"] = warm
+
+    var awning := StandardMaterial3D.new()
+    awning.albedo_color = Color("#8A3E32")
+    awning.roughness = 0.88
+    mats["awning"] = awning
+
+    var plant := StandardMaterial3D.new()
+    plant.albedo_color = Color("#4D6D3F")
+    plant.roughness = 0.96
+    mats["plant"] = plant
+
+    mats["facade_ochre"] = _weathered_facade(Color("#FFF0C9"), TEX_ROOT + "roman_plaster_weathered_albedo.jpg", TEX_ROOT + "roman_plaster_weathered_normal.jpg", TEX_ROOT + "roman_plaster_weathered_roughness.jpg")
+    mats["facade_yellow"] = _weathered_facade(Color("#FFF2B8"), TEX_ROOT + "roman_plaster_weathered_albedo.jpg", TEX_ROOT + "roman_plaster_weathered_normal.jpg", TEX_ROOT + "roman_plaster_weathered_roughness.jpg")
+    mats["facade_beige"] = _weathered_facade(Color("#FFF2DA"), TEX_ROOT + "roman_plaster_weathered_albedo.jpg", TEX_ROOT + "roman_plaster_weathered_normal.jpg", TEX_ROOT + "roman_plaster_weathered_roughness.jpg")
+    mats["facade_terracotta"] = _weathered_facade(Color("#FFD0B2"), TEX_ROOT + "roman_plaster_weathered_albedo.jpg", TEX_ROOT + "roman_plaster_weathered_normal.jpg", TEX_ROOT + "roman_plaster_weathered_roughness.jpg")
+    mats["facade_rose"] = _weathered_facade(Color("#FFE0D4"), TEX_ROOT + "roman_plaster_weathered_albedo.jpg", TEX_ROOT + "roman_plaster_weathered_normal.jpg", TEX_ROOT + "roman_plaster_weathered_roughness.jpg")
