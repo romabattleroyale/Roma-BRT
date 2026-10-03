@@ -1,14 +1,16 @@
 extends Node3D
-## PROMPT 3: actually instantiate the first 40 V11 buildings.
-## Validation happens before instantiation. No roads, interiors or terrain edits.
-## Generation is intentionally staggered across frames to avoid blocking the runtime.
+## PROMPT 4: compact Roman-style urban blocks from the first 40 V11 candidates.
+## Validation remains mandatory before instantiation. No roads, interiors or terrain edits.
+## Buildings are arranged in compact open-courtyard clusters inside Urban_Grid lots.
 
 const ADAPTER_SCRIPT = "res://city_library/buildings/house_library_adapter.gd"
 const VARIATION_SCRIPT = "res://v37_integration/building_variation.gd"
 const TEST_COUNT = 40
 const MAX_SLOPE_DELTA = 2.0
 const SUBSOIL_LIMIT = -5.0
-const LOT_MARGIN = 15.0
+const ROAD_SETBACK = 10.0
+const SAFETY_CORRIDOR = 2.0
+const SEARCH_STEPS = 5
 
 var adapter = null
 var variation_script = null
@@ -16,7 +18,7 @@ var built = false
 var used_seeds = {}
 var used_archetypes = {}
 var rejection_counts = {}
-var placed_centers = []
+var placed_rects = []
 var water_ray: RayCast3D
 
 func _ready() -> void:
@@ -60,119 +62,253 @@ func _build_library(v37: Node) -> void:
     var map_data = v37.get("map_data") as Dictionary
     var buildings: Array = map_data.get("city", {}).get("buildings", [])
     var limit = min(TEST_COUNT, buildings.size())
-    var placed = 0
 
+    var candidates: Array = []
     for i in range(limit):
-        await get_tree().process_frame
         var data: Dictionary = buildings[i]
         var size: Dictionary = data.get("size", {})
-        var width = maxf(6.0, float(size.get("x", 10.0)))
-        var depth = maxf(6.0, float(size.get("z", 10.0)))
-        var seed_variation = variation_script.call("variation_for", i, int(i / 4))
-        var seed = int(seed_variation["seed"])
+        candidates.append({
+            "index": i,
+            "data": data,
+            "width": maxf(6.0, float(size.get("x", 10.0))),
+            "depth": maxf(6.0, float(size.get("z", 10.0))),
+            "variation": variation_script.call("variation_for", i, int(i / 4))
+        })
 
-        if used_seeds.has(seed):
-            _reject(i, "duplicate_seed")
-            continue
+    var placed = 0
+    var blocks = _urban_lot_rects()
+    var block_count = min(blocks.size(), int(ceil(float(limit) / 5.0)))
 
-        var center = _grid_test_position(i, width, depth)
-        if not center.is_finite():
-            _reject(i, "non_finite_position")
-            continue
-        if not _inside_urban_grid(center, width, depth):
-            _reject(i, "outside_urban_grid_or_on_road_line")
-            continue
-
-        var half_w = width * 0.5
-        var half_d = depth * 0.5
-        var corners = [
-            Vector3(center.x - half_w, 0.0, center.z - half_d),
-            Vector3(center.x + half_w, 0.0, center.z - half_d),
-            Vector3(center.x - half_w, 0.0, center.z + half_d),
-            Vector3(center.x + half_w, 0.0, center.z + half_d)
-        ]
-        var heights = []
-        var valid_corners = true
-        for corner in corners:
-            var h = float(v37.sample_height(corner.x, corner.z)) if v37.has_method("sample_height") else NAN
-            if not is_finite(h):
-                valid_corners = false
-                break
-            heights.append(h)
-        if not valid_corners:
-            _reject(i, "non_finite_terrain_height")
+    for block_index in range(block_count):
+        var group: Array = []
+        var first = block_index * 5
+        var last = min(first + 5, candidates.size())
+        for i in range(first, last):
+            group.append(candidates[i])
+        if group.is_empty():
             continue
 
-        var min_h = heights.min()
-        var max_h = heights.max()
-        var mean_h = (heights[0] + heights[1] + heights[2] + heights[3]) * 0.25
+        var rect: Dictionary = blocks[block_index]
+        var layout = _make_compact_layout(group)
+        var anchor = _find_best_anchor(v37, rect, layout, block_index)
+        var valid_group = 0
 
-        if _is_over_water(center, mean_h):
-            _reject(i, "water")
-            continue
-        if max_h - min_h > MAX_SLOPE_DELTA:
-            _reject(i, "slope_gt_2m")
-            continue
-        if mean_h < SUBSOIL_LIMIT:
-            _reject(i, "subsoil_below_-5m")
-            continue
-        if _overlaps_existing(center, width, depth):
-            _reject(i, "footprint_overlap")
-            continue
+        for item in layout:
+            var candidate: Dictionary = item["candidate"]
+            var index: int = int(candidate["index"])
+            var data: Dictionary = candidate["data"]
+            var width: float = float(candidate["width"])
+            var depth: float = float(candidate["depth"])
+            var variation: Dictionary = candidate["variation"]
+            var seed: int = int(variation["seed"])
+            var center: Vector3 = anchor + item["offset"]
+            center.y = 0.0
+            var rotation_y: float = float(item["rotation"])
 
-        var rotation_y = _facade_rotation(center)
-        var style = str(data.get("style", ""))
-        var building = adapter.build_for_footprint(width, depth, Vector3(center.x, 0.0, center.z), mean_h, style, i, rotation_y)
-        if building == null:
-            building = adapter.build_for_footprint(width, depth, Vector3(center.x, 0.0, center.z), mean_h, "", i, rotation_y)
-        if building == null:
-            _reject(i, "library_build_failed")
-            continue
+            if used_seeds.has(seed):
+                _reject(index, "duplicate_seed")
+                continue
+            if not center.is_finite():
+                _reject(index, "non_finite_position")
+                continue
+            if not _inside_urban_grid(center, width, depth):
+                _reject(index, "outside_urban_grid_or_on_road_line")
+                continue
 
-        if not building.position.is_finite():
-            building.queue_free()
-            _reject(i, "non_finite_building_transform")
-            continue
+            var validation = _validate_prompt4_candidate(v37, center, width, depth, rotation_y, rect)
+            if not validation["valid"]:
+                _reject(index, str(validation["reason"]))
+                continue
 
-        building.name = str(data.get("id", "V11Building_%03d" % i))
-        building.set_meta("v11_seed", seed)
-        building.set_meta("v11_variation", seed_variation)
-        building.set_meta("v11_source_position", data.get("position", {}))
-        building.set_meta("v11_source_id", data.get("id", ""))
-        building.position.y = mean_h
-        building.rotation.y = rotation_y
-        city_root.add_child(building)
-        placed_centers.append(center)
-        used_seeds[seed] = true
-        used_archetypes[int(seed_variation["archetype_index"])] = true
-        placed += 1
-        print("V11 TEST 40 — piazzato #", i + 1, " id=", building.name, " seed=", seed, " archetype=", seed_variation["archetype_index"], " pos=", center)
-        await get_tree().process_frame
+            var mean_h: float = float(validation["mean_h"])
+            var style = str(data.get("style", ""))
+            var building = adapter.build_for_footprint(width, depth, Vector3(center.x, 0.0, center.z), mean_h, style, index, rotation_y)
+            if building == null:
+                building = adapter.build_for_footprint(width, depth, Vector3(center.x, 0.0, center.z), mean_h, "", index, rotation_y)
+            if building == null:
+                _reject(index, "library_build_failed")
+                continue
+
+            if not building.position.is_finite():
+                building.queue_free()
+                _reject(index, "non_finite_building_transform")
+                continue
+
+            building.name = str(data.get("id", "V11Building_%03d" % index))
+            building.set_meta("v11_seed", seed)
+            building.set_meta("v11_variation", variation)
+            building.set_meta("v11_source_position", data.get("position", {}))
+            building.set_meta("v11_source_id", data.get("id", ""))
+            building.set_meta("prompt4_block", str(rect.get("id", "BLOCK_%02d" % block_index)))
+            building.set_meta("prompt4_slot", int(item["slot"]))
+            building.set_meta("prompt4_compact", true)
+            building.set_meta("prompt4_safety_corridor_m", SAFETY_CORRIDOR)
+            building.set_meta("prompt4_courtyard", true)
+            building.position.y = mean_h
+            building.rotation.y = rotation_y
+            city_root.add_child(building)
+
+            placed_rects.append({
+                "center": center,
+                "width": width,
+                "depth": depth,
+                "block": block_index
+            })
+            used_seeds[seed] = true
+            used_archetypes[int(variation["archetype_index"])] = true
+            valid_group += 1
+            placed += 1
+            print("PROMPT 4 — piazzato #", index + 1, " id=", building.name, " block=", rect.get("id", ""), " slot=", item["slot"], " seed=", seed, " archetype=", variation["archetype_index"], " pos=", center)
+            await get_tree().process_frame
+
+        print("PROMPT 4 — ", rect.get("id", "BLOCK_%02d" % block_index), " edifici compatti: ", valid_group, " / ", group.size())
 
     built = true
-    print("V11 TEST 40 — PIAZZATI: ", placed, " / ", limit)
-    print("V11 TEST 40 — SCARTATI: ", limit - placed)
-    print("V11 TEST 40 — ARCHETIPI DIVERSI: ", used_archetypes.size())
-    print("V11 TEST 40 — MOTIVI SCARTO: ", rejection_counts)
+    print("PROMPT 4 — PIAZZATI: ", placed, " / ", limit)
+    print("PROMPT 4 — SCARTATI: ", limit - placed)
+    print("PROMPT 4 — ARCHETIPI DIVERSI: ", used_archetypes.size())
+    print("PROMPT 4 — ISOLATI TARGET: ", block_count)
+    print("PROMPT 4 — SAFETY CORRIDOR: ", SAFETY_CORRIDOR, "m")
+    print("PROMPT 4 — ROAD SETBACK: ", ROAD_SETBACK, "m")
+    print("PROMPT 4 — MOTIVI SCARTO: ", rejection_counts)
 
-func _grid_test_position(index: int, width: float, depth: float) -> Vector3:
-    var block_index = 0 if index < 20 else 1
-    var slot = index if index < 20 else index - 20
-    var row = int(slot / 10)
-    var col = slot % 10
-    var x_min = 520.0 if block_index == 0 else 900.0
-    var x_max = 900.0 if block_index == 0 else 1390.0
-    var z_min = 420.0
-    var z_max = 760.0
-    var usable_x_min = x_min + LOT_MARGIN + width * 0.5
-    var usable_x_max = x_max - LOT_MARGIN - width * 0.5
-    var usable_z_min = z_min + LOT_MARGIN + depth * 0.5
-    var usable_z_max = z_max - LOT_MARGIN - depth * 0.5
-    if usable_x_max < usable_x_min or usable_z_max < usable_z_min:
-        return Vector3(NAN, NAN, NAN)
-    var x = lerpf(usable_x_min, usable_x_max, float(col) / 9.0)
-    var z = lerpf(usable_z_min, usable_z_max, float(row))
-    return Vector3(x, 0.0, z)
+func _urban_lot_rects() -> Array:
+    var grid = get_parent().get_node_or_null("Urban_Grid")
+    if grid != null:
+        var rects: Array = grid.get_meta("lot_rects", [])
+        if not rects.is_empty():
+            return rects
+    return [
+        {"id":"BLOCK_NW", "min_x":520.0, "max_x":900.0, "min_z":420.0, "max_z":760.0},
+        {"id":"BLOCK_NE", "min_x":900.0, "max_x":1390.0, "min_z":420.0, "max_z":760.0},
+        {"id":"BLOCK_W1", "min_x":520.0, "max_x":900.0, "min_z":760.0, "max_z":1080.0},
+        {"id":"BLOCK_E1", "min_x":900.0, "max_x":1390.0, "min_z":760.0, "max_z":1080.0},
+        {"id":"BLOCK_W2", "min_x":520.0, "max_x":900.0, "min_z":1080.0, "max_z":1400.0},
+        {"id":"BLOCK_E2", "min_x":900.0, "max_x":1390.0, "min_z":1080.0, "max_z":1400.0},
+        {"id":"BLOCK_W3", "min_x":520.0, "max_x":900.0, "min_z":1400.0, "max_z":1660.0},
+        {"id":"BLOCK_E3", "min_x":900.0, "max_x":1390.0, "min_z":1400.0, "max_z":1660.0}
+    ]
+
+func _make_compact_layout(group: Array) -> Array:
+    # Five attached buildings form a compact open-courtyard U:
+    # three continuous buildings on the outer side and two on the opposite corners.
+    # The center remains empty as the courtyard/entrance. Doors face outward.
+    var layout: Array = []
+    var top_widths = [float(group[0]["width"]), float(group[1]["width"]), float(group[2]["width"])]
+    var top_depths = [float(group[0]["depth"]), float(group[1]["depth"]), float(group[2]["depth"])]
+    var x0 = -(top_widths[0] + top_widths[1] + top_widths[2]) * 0.5 + top_widths[0] * 0.5
+    var x1 = x0 + top_widths[0] * 0.5 + top_widths[1] * 0.5
+    var x2 = x1 + top_widths[1] * 0.5 + top_widths[2] * 0.5
+    var top_outer_depth = maxf(top_depths[0], maxf(top_depths[1], top_depths[2]))
+
+    var top_z = -top_outer_depth * 0.5
+    layout.append({"candidate":group[0], "offset":Vector3(x0, 0.0, top_z + (top_outer_depth - top_depths[0]) * 0.5), "rotation":0.0, "slot":0})
+    layout.append({"candidate":group[1], "offset":Vector3(x1, 0.0, top_z + (top_outer_depth - top_depths[1]) * 0.5), "rotation":0.0, "slot":1})
+    layout.append({"candidate":group[2], "offset":Vector3(x2, 0.0, top_z + (top_outer_depth - top_depths[2]) * 0.5), "rotation":0.0, "slot":2})
+
+    var bottom0_w = float(group[3]["width"])
+    var bottom0_d = float(group[3]["depth"])
+    var bottom1_w = float(group[4]["width"])
+    var bottom1_d = float(group[4]["depth"])
+    var bottom_left_x = x0
+    var bottom_right_x = x2
+    var bottom0_z = top_z + top_depths[0] * 0.5 + bottom0_d * 0.5
+    var bottom1_z = top_z + top_depths[2] * 0.5 + bottom1_d * 0.5
+    layout.append({"candidate":group[3], "offset":Vector3(bottom_left_x, 0.0, bottom0_z), "rotation":PI, "slot":3})
+    layout.append({"candidate":group[4], "offset":Vector3(bottom_right_x, 0.0, bottom1_z), "rotation":PI, "slot":4})
+    return layout
+
+func _find_best_anchor(v37: Node, rect: Dictionary, layout: Array, block_index: int) -> Vector3:
+    var min_x = float(rect.get("min_x", 0.0))
+    var max_x = float(rect.get("max_x", 0.0))
+    var min_z = float(rect.get("min_z", 0.0))
+    var max_z = float(rect.get("max_z", 0.0))
+
+    var local_min_x = INF
+    var local_max_x = -INF
+    var local_min_z = INF
+    var local_max_z = -INF
+    for item in layout:
+        var c: Dictionary = item["candidate"]
+        var p: Vector3 = item["offset"]
+        var hw = float(c["width"]) * 0.5
+        var hd = float(c["depth"]) * 0.5
+        local_min_x = minf(local_min_x, p.x - hw)
+        local_max_x = maxf(local_max_x, p.x + hw)
+        local_min_z = minf(local_min_z, p.z - hd)
+        local_max_z = maxf(local_max_z, p.z + hd)
+
+    var anchor_min_x = min_x + ROAD_SETBACK - local_min_x
+    var anchor_max_x = max_x - ROAD_SETBACK - local_max_x
+    var anchor_min_z = min_z + ROAD_SETBACK - local_min_z
+    var anchor_max_z = max_z - ROAD_SETBACK - local_max_z
+    if anchor_max_x < anchor_min_x or anchor_max_z < anchor_min_z:
+        return Vector3(NAN, 0.0, NAN)
+
+    # West/east pairs stay close to their common future road line,
+    # while still allowing a small search for a flatter terrain patch.
+    var target_x = anchor_max_x if block_index % 2 == 0 else anchor_min_x
+    var target_z = (anchor_min_z + anchor_max_z) * 0.5
+    var best = Vector3(target_x, 0.0, target_z)
+    var best_score = -INF
+
+    for ix in range(SEARCH_STEPS):
+        var tx = float(ix) / float(max(1, SEARCH_STEPS - 1))
+        var x = lerpf(anchor_min_x, anchor_max_x, tx)
+        for iz in range(SEARCH_STEPS):
+            var tz = float(iz) / float(max(1, SEARCH_STEPS - 1))
+            var z = lerpf(anchor_min_z, anchor_max_z, tz)
+            var anchor = Vector3(x, 0.0, z)
+            var valid_count = 0
+            for item in layout:
+                var c: Dictionary = item["candidate"]
+                var p: Vector3 = anchor + item["offset"]
+                var result = _validate_prompt4_candidate(v37, p, float(c["width"]), float(c["depth"]), float(item["rotation"]), rect, false)
+                if bool(result["valid"]):
+                    valid_count += 1
+            var distance_penalty = anchor.distance_to(Vector3(target_x, 0.0, target_z)) * 0.01
+            var score = float(valid_count) * 100.0 - distance_penalty
+            if score > best_score:
+                best_score = score
+                best = anchor
+            if valid_count == layout.size():
+                return anchor
+    return best
+
+func _validate_prompt4_candidate(v37: Node, center: Vector3, width: float, depth: float, rotation_y: float, rect: Dictionary, check_overlap: bool = true) -> Dictionary:
+    if not center.is_finite():
+        return {"valid":false, "reason":"non_finite_position"}
+    if not _inside_urban_grid(center, width, depth):
+        return {"valid":false, "reason":"outside_urban_grid_or_on_road_line"}
+    if check_overlap and _overlaps_existing(center, width, depth):
+        return {"valid":false, "reason":"footprint_overlap"}
+
+    var half_w = width * 0.5
+    var half_d = depth * 0.5
+    var corners = [
+        Vector3(center.x - half_w, 0.0, center.z - half_d),
+        Vector3(center.x + half_w, 0.0, center.z - half_d),
+        Vector3(center.x - half_w, 0.0, center.z + half_d),
+        Vector3(center.x + half_w, 0.0, center.z + half_d)
+    ]
+    var heights = []
+    for corner in corners:
+        var h = float(v37.sample_height(corner.x, corner.z)) if v37.has_method("sample_height") else NAN
+        if not is_finite(h):
+            return {"valid":false, "reason":"non_finite_terrain_height"}
+        heights.append(h)
+
+    var min_h = heights.min()
+    var max_h = heights.max()
+    var mean_h = (heights[0] + heights[1] + heights[2] + heights[3]) * 0.25
+    if _is_over_water(center, mean_h):
+        return {"valid":false, "reason":"water"}
+    if max_h - min_h > MAX_SLOPE_DELTA:
+        return {"valid":false, "reason":"slope_gt_2m"}
+    if mean_h < SUBSOIL_LIMIT:
+        return {"valid":false, "reason":"subsoil_below_-5m"}
+
+    return {"valid":true, "reason":"", "mean_h":mean_h}
 
 func _is_over_water(center: Vector3, mean_h: float) -> bool:
     var water = get_tree().current_scene.find_child("WaterPlane", true, false)
@@ -213,37 +349,15 @@ func _inside_urban_grid(center: Vector3, width: float, depth: float) -> bool:
             return true
     return false
 
-func _facade_rotation(center: Vector3) -> float:
-    var grid = get_parent().get_node_or_null("Urban_Grid")
-    if grid == null:
-        return 0.0
-    var sides: Array = grid.get_meta("lot_sides", [])
-    var best_distance = INF
-    var best_angle = 0.0
-    for side_variant in sides:
-        if not (side_variant is Dictionary):
-            continue
-        var side: Dictionary = side_variant
-        var a = Vector3(float(side.get("ax", 0.0)), 0.0, float(side.get("az", 0.0)))
-        var b = Vector3(float(side.get("bx", 0.0)), 0.0, float(side.get("bz", 0.0)))
-        var ab = b - a
-        var len_sq = ab.length_squared()
-        if len_sq <= 0.0001:
-            continue
-        var t = clampf((center - a).dot(ab) / len_sq, 0.0, 1.0)
-        var closest = a + ab * t
-        var distance = center.distance_to(closest)
-        if distance < best_distance:
-            best_distance = distance
-            best_angle = atan2(ab.x, ab.z)
-    return best_angle
-
 func _overlaps_existing(center: Vector3, width: float, depth: float) -> bool:
-    for other in placed_centers:
-        if absf(center.x - other.x) < width + 1.0 and absf(center.z - other.z) < depth + 1.0:
+    for other in placed_rects:
+        var oc: Vector3 = other["center"]
+        var ow: float = float(other["width"])
+        var od: float = float(other["depth"])
+        if absf(center.x - oc.x) < (width + ow) * 0.5 - 0.01 and absf(center.z - oc.z) < (depth + od) * 0.5 - 0.01:
             return true
     return false
 
 func _reject(index: int, reason: String) -> void:
     rejection_counts[reason] = int(rejection_counts.get(reason, 0)) + 1
-    print("V11 TEST 40 — scarto #", index, " motivo=", reason)
+    print("PROMPT 4 — scarto #", index + 1, " motivo=", reason)
