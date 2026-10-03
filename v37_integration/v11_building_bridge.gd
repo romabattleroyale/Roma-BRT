@@ -2,6 +2,7 @@ extends Node3D
 ## PROMPT 4: compact Roman-style urban blocks from the first 40 V11 candidates.
 ## Validation remains mandatory before instantiation. No roads, interiors or terrain edits.
 ## Buildings are arranged in compact open-courtyard clusters inside Urban_Grid lots.
+## Android optimization: deterministic anchors and frame-yielded construction avoid startup spikes.
 
 const ADAPTER_SCRIPT = "res://city_library/buildings/house_library_adapter.gd"
 const VARIATION_SCRIPT = "res://v37_integration/building_variation.gd"
@@ -10,7 +11,7 @@ const MAX_SLOPE_DELTA = 2.0
 const SUBSOIL_LIMIT = -5.0
 const ROAD_SETBACK = 10.0
 const SAFETY_CORRIDOR = 2.0
-const SEARCH_STEPS = 5
+const BATCH_PAUSE_FRAMES = 2
 
 var adapter = null
 var variation_script = null
@@ -79,6 +80,7 @@ func _build_library(v37: Node) -> void:
     var blocks = _urban_lot_rects()
     var block_count = min(blocks.size(), int(ceil(float(limit) / 5.0)))
 
+    # Keep each block deterministic and cheap: no 5x5 anchor search at startup.
     for block_index in range(block_count):
         var group: Array = []
         var first = block_index * 5
@@ -90,10 +92,13 @@ func _build_library(v37: Node) -> void:
 
         var rect: Dictionary = blocks[block_index]
         var layout = _make_compact_layout(group)
-        var anchor = _find_best_anchor(v37, rect, layout, block_index)
+        var anchor = _direct_anchor(rect, layout, block_index)
         var valid_group = 0
 
         for item in layout:
+            # Give Android a frame before every expensive library build.
+            await _android_yield()
+
             var candidate: Dictionary = item["candidate"]
             var index: int = int(candidate["index"])
             var data: Dictionary = candidate["data"]
@@ -159,7 +164,7 @@ func _build_library(v37: Node) -> void:
             valid_group += 1
             placed += 1
             print("PROMPT 4 — piazzato #", index + 1, " id=", building.name, " block=", rect.get("id", ""), " slot=", item["slot"], " seed=", seed, " archetype=", variation["archetype_index"], " pos=", center)
-            await get_tree().process_frame
+            await _android_yield()
 
         print("PROMPT 4 — ", rect.get("id", "BLOCK_%02d" % block_index), " edifici compatti: ", valid_group, " / ", group.size())
 
@@ -170,7 +175,12 @@ func _build_library(v37: Node) -> void:
     print("PROMPT 4 — ISOLATI TARGET: ", block_count)
     print("PROMPT 4 — SAFETY CORRIDOR: ", SAFETY_CORRIDOR, "m")
     print("PROMPT 4 — ROAD SETBACK: ", ROAD_SETBACK, "m")
+    print("PROMPT 4 — BATCH PAUSE FRAMES: ", BATCH_PAUSE_FRAMES)
     print("PROMPT 4 — MOTIVI SCARTO: ", rejection_counts)
+
+func _android_yield() -> void:
+    for _i in range(BATCH_PAUSE_FRAMES):
+        await get_tree().process_frame
 
 func _urban_lot_rects() -> Array:
     var grid = get_parent().get_node_or_null("Urban_Grid")
@@ -206,9 +216,7 @@ func _make_compact_layout(group: Array) -> Array:
     layout.append({"candidate":group[1], "offset":Vector3(x1, 0.0, top_z + (top_outer_depth - top_depths[1]) * 0.5), "rotation":0.0, "slot":1})
     layout.append({"candidate":group[2], "offset":Vector3(x2, 0.0, top_z + (top_outer_depth - top_depths[2]) * 0.5), "rotation":0.0, "slot":2})
 
-    var bottom0_w = float(group[3]["width"])
     var bottom0_d = float(group[3]["depth"])
-    var bottom1_w = float(group[4]["width"])
     var bottom1_d = float(group[4]["depth"])
     var bottom_left_x = x0
     var bottom_right_x = x2
@@ -218,7 +226,7 @@ func _make_compact_layout(group: Array) -> Array:
     layout.append({"candidate":group[4], "offset":Vector3(bottom_right_x, 0.0, bottom1_z), "rotation":PI, "slot":4})
     return layout
 
-func _find_best_anchor(v37: Node, rect: Dictionary, layout: Array, block_index: int) -> Vector3:
+func _direct_anchor(rect: Dictionary, layout: Array, block_index: int) -> Vector3:
     var min_x = float(rect.get("min_x", 0.0))
     var max_x = float(rect.get("max_x", 0.0))
     var min_z = float(rect.get("min_z", 0.0))
@@ -245,35 +253,9 @@ func _find_best_anchor(v37: Node, rect: Dictionary, layout: Array, block_index: 
     if anchor_max_x < anchor_min_x or anchor_max_z < anchor_min_z:
         return Vector3(NAN, 0.0, NAN)
 
-    # West/east pairs stay close to their common future road line,
-    # while still allowing a small search for a flatter terrain patch.
     var target_x = anchor_max_x if block_index % 2 == 0 else anchor_min_x
     var target_z = (anchor_min_z + anchor_max_z) * 0.5
-    var best = Vector3(target_x, 0.0, target_z)
-    var best_score = -INF
-
-    for ix in range(SEARCH_STEPS):
-        var tx = float(ix) / float(max(1, SEARCH_STEPS - 1))
-        var x = lerpf(anchor_min_x, anchor_max_x, tx)
-        for iz in range(SEARCH_STEPS):
-            var tz = float(iz) / float(max(1, SEARCH_STEPS - 1))
-            var z = lerpf(anchor_min_z, anchor_max_z, tz)
-            var anchor = Vector3(x, 0.0, z)
-            var valid_count = 0
-            for item in layout:
-                var c: Dictionary = item["candidate"]
-                var p: Vector3 = anchor + item["offset"]
-                var result = _validate_prompt4_candidate(v37, p, float(c["width"]), float(c["depth"]), float(item["rotation"]), rect, false)
-                if bool(result["valid"]):
-                    valid_count += 1
-            var distance_penalty = anchor.distance_to(Vector3(target_x, 0.0, target_z)) * 0.01
-            var score = float(valid_count) * 100.0 - distance_penalty
-            if score > best_score:
-                best_score = score
-                best = anchor
-            if valid_count == layout.size():
-                return anchor
-    return best
+    return Vector3(target_x, 0.0, target_z)
 
 func _validate_prompt4_candidate(v37: Node, center: Vector3, width: float, depth: float, rotation_y: float, rect: Dictionary, check_overlap: bool = true) -> Dictionary:
     if not center.is_finite():
