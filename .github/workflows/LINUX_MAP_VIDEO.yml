@@ -42,24 +42,27 @@ jobs:
           export DISPLAY=:99
           .runtime/godot/godot --path . --display-driver x11 --rendering-method gl_compatibility --audio-driver Dummy > build/video/godot.log 2>&1 &
           echo $! > build/video/godot.pid
-          sleep 35
+          sleep 40
 
-      - name: Record real map video
+      - name: Record real map video and move through it
         run: |
           export DISPLAY=:99
           xdotool search --name 'Roma Heightmap Beta' windowactivate --sync || true
           sleep 2
-          ffmpeg -y -f x11grab -video_size 1280x720 -framerate 30 -i :99.0 -t 30 -c:v libx264 -preset veryfast -pix_fmt yuv420p build/video/Roma-BRT-Map-Real-30s.mp4
-
-      - name: Move camera through the city during recording
-        if: ${{ always() }}
-        run: |
-          true
+          ffmpeg -y -f x11grab -video_size 1280x720 -framerate 30 -i :99.0 -t 35 -c:v libx264 -preset veryfast -pix_fmt yuv420p build/video/Roma-BRT-Map-Real-35s.mp4 > build/video/ffmpeg.log 2>&1 &
+          REC=$!
+          sleep 2
+          xdotool keydown w; sleep 7; xdotool keyup w
+          xdotool keydown d; sleep 4; xdotool keyup d
+          xdotool keydown w; sleep 7; xdotool keyup w
+          xdotool keydown a; sleep 5; xdotool keyup a
+          xdotool keydown w; sleep 7; xdotool keyup w
+          wait $REC
 
       - name: Evidence screenshot
         run: |
           export DISPLAY=:99
-          import -window root build/video/map.png || true
+          ffmpeg -y -f x11grab -video_size 1280x720 -frames:v 1 -i :99.0 build/video/map-final.png > /dev/null 2>&1 || true
           grep -E 'BAKED CITY|ANDROID SAFE TERRAIN|TEVERE WATER RIBBON|cache Terrain3D' build/video/godot.log || true
 
       - name: Upload real map video
