@@ -74,7 +74,7 @@ jobs:
         run: |
           set -euo pipefail
           rm -f baked_city/roma_city_587.tscn
-          .runtime/godot/godot --headless --path . --script res://v37_integration/bake_587_city_editor.gd
+          .runtime/godot/godot --headless --path . --script res://v37_integration/bake_587_city_ci.gd
           test -f baked_city/roma_city_587.tscn
           test "$(stat -c%s baked_city/roma_city_587.tscn)" -gt 1000
           echo 'BAKE ARTIFACT OK: res://baked_city/roma_city_587.tscn'
