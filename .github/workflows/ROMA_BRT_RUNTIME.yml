@@ -65,11 +65,11 @@ jobs:
           set -euo pipefail
           .runtime/godot/godot --headless --editor --path . --quit
 
-      - name: Diagnose editor scene before bake
+      - name: Diagnose Terrain3D after main scene initialization
         shell: bash
         run: |
           set -euo pipefail
-          .runtime/godot/godot --headless --editor --path . --script res://v37_integration/diagnose_bake_scene.gd
+          .runtime/godot/godot --headless --path . --script res://v37_integration/diagnose_bake_runtime.gd
 
       - name: Runtime smoke launch
         shell: bash
