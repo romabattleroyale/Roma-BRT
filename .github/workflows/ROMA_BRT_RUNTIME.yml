@@ -17,7 +17,7 @@ on:
       - '.github/workflows/ROMA_BRT_RUNTIME.yml'
 
 permissions:
-  contents: read
+  contents: write
 
 concurrency:
   group: roma-brt-runtime
@@ -84,6 +84,21 @@ jobs:
         run: |
           set -euo pipefail
           .runtime/godot/godot --headless --path . --script res://v37_integration/diagnose_bake_runtime.gd
+
+      - name: Persist baked 587 scene to main branch
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add baked_city/roma_city_587.tscn
+          if git diff --cached --quiet; then
+            echo 'BAKED CITY: no changes to persist.'
+          else
+            git commit -m 'chore: persist baked 587 city [skip ci]'
+            git push origin HEAD:main
+            echo 'BAKED CITY: persisted to main.'
+          fi
 
       - name: Runtime smoke launch
         shell: bash
