@@ -64,6 +64,7 @@ func _build_library(v37: Node) -> void:
     var library_archetypes: int = catalog.size()
     print("PROMPT 4 — V11 ARCHETIPI CARICATI: ", library_archetypes, " (attesi 24)")
     print("PROMPT 4 — ANDROID OPT: start delay=", START_DELAY_FRAMES, " frame, pausa=", BATCH_PAUSE_FRAMES, " + post-build=", POST_BUILD_PAUSE_FRAMES, " frame")
+    print("PROMPT 4 — ANDROID BUILD MODE: LIGHTWEIGHT SHELL + WINDOWS + ROOF")
 
     var candidates: Array = []
     for i in range(limit):
@@ -125,7 +126,7 @@ func _build_library(v37: Node) -> void:
                 _reject(index, str(validation["reason"]))
                 continue
             var base_h: float = float(validation["base_h"])
-            var building = adapter.build_by_id(str(candidate["catalog_id"]), Vector3(center.x, 0.0, center.z), base_h, rotation_y, index)
+            var building = adapter.factory.build_mobile_and_place(str(candidate["catalog_id"]), Vector3(center.x, 0.0, center.z), base_h, rotation_y, index)
             if building == null:
                 _reject(index, "library_build_failed")
                 continue
@@ -143,6 +144,7 @@ func _build_library(v37: Node) -> void:
             building.set_meta("prompt4_safety_corridor_m", SAFETY_CORRIDOR)
             building.set_meta("prompt4_courtyard", true)
             building.set_meta("prompt4_terrain_base_h", base_h)
+            building.set_meta("prompt4_android_lightweight", true)
             city_root.add_child(building)
             placed_rects.append({"center":center, "width":width, "depth":depth, "rotation":rotation_y, "block":block_index})
             used_seeds[seed] = true
@@ -248,11 +250,13 @@ func _validate_prompt4_candidate(v37: Node,center: Vector3,width: float,depth: f
     if mean_h<SUBSOIL_LIMIT: return {"valid":false,"reason":"subsoil_below_-5m"}
     return {"valid":true,"base_h":max_h+TERRAIN_CLEARANCE}
 
-func _is_over_water(center: Vector3,mean_h: float) -> bool:
+func _is_over_water(center: Vector3,mean_h:float) -> bool:
     var water = get_tree().current_scene.find_child("WaterPlane",true,false)
     var water_level: float = -INF
     if water!=null: water_level=float(water.global_position.y)
-    water_ray.global_position=Vector3(center.x,maxf(mean_h+100.0,100.0),center.z); water_ray.target_position=Vector3(0.0,minf(mean_h-100.0,-100.0)-water_ray.global_position.y,0.0); water_ray.force_raycast_update()
+    water_ray.global_position=Vector3(center.x,maxf(mean_h+100.0,100.0),center.z)
+    water_ray.target_position=Vector3(0.0,minf(mean_h-100.0,-100.0)-water_ray.global_position.y,0.0)
+    water_ray.force_raycast_update()
     if water_ray.is_colliding():
         var collider = water_ray.get_collider()
         var hit: Vector3 = water_ray.get_collision_point()
@@ -262,22 +266,24 @@ func _is_over_water(center: Vector3,mean_h: float) -> bool:
             if n.contains("water") or n.contains("tevere") or n.contains("river"): return true
     return water_level>-INF and mean_h<=water_level
 
-func _inside_urban_grid(center: Vector3,width: float,depth: float,rotation_y: float) -> bool:
+func _inside_urban_grid(center: Vector3,width:float,depth:float,rotation_y:float) -> bool:
     var grid=get_parent().get_node_or_null("Urban_Grid")
     if grid==null: return false
-    var rects:Array=grid.get_meta("lot_rects",[]); if rects.is_empty(): return false
+    var rects:Array=grid.get_meta("lot_rects",[])
+    if rects.is_empty(): return false
     var ext: Vector2 = _world_half_extents(width,depth,rotation_y)
     for rv in rects:
         if rv is Dictionary:
-            var r:Dictionary=rv; var min_x=float(r.get("min_x",INF)); var max_x=float(r.get("max_x",-INF)); var min_z=float(r.get("min_z",INF)); var max_z=float(r.get("max_z",-INF))
+            var r:Dictionary=rv
+            var min_x:float=float(r.get("min_x",INF)); var max_x:float=float(r.get("max_x",-INF)); var min_z:float=float(r.get("min_z",INF)); var max_z:float=float(r.get("max_z",-INF))
             if center.x-ext.x>min_x+0.5 and center.x+ext.x<max_x-0.5 and center.z-ext.y>min_z+0.5 and center.z+ext.y<max_z-0.5: return true
     return false
 
-func _overlaps_existing(center: Vector3,width: float,depth: float,rotation_y: float) -> bool:
-    var ext: Vector2 = _world_half_extents(width,depth,rotation_y)
+func _overlaps_existing(center:Vector3,width:float,depth:float,rotation_y:float) -> bool:
+    var ext:Vector2=_world_half_extents(width,depth,rotation_y)
     for other in placed_rects:
         var oc:Vector3=other["center"]
-        var oe: Vector2 = _world_half_extents(float(other["width"]),float(other["depth"]),float(other["rotation"]))
+        var oe:Vector2=_world_half_extents(float(other["width"]),float(other["depth"]),float(other["rotation"]))
         if absf(center.x-oc.x)<ext.x+oe.x-0.05 and absf(center.z-oc.z)<ext.y+oe.y-0.05: return true
     return false
 
