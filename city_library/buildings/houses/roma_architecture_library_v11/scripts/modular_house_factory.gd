@@ -4,10 +4,12 @@ class_name RomaModularHouseFactory
 const LIB_ROOT := "res://city_library/buildings/houses/roma_architecture_library_v11/"
 const CATALOG_PATH := LIB_ROOT + "data/building_catalog.json"
 const SYSTEM_SCRIPT := LIB_ROOT + "scripts/library_building_system.gd"
+const VISUAL_VARIATION_SCRIPT := "res://v37_integration/mobile_visual_variation.gd"
 
 var catalog: Array[Dictionary] = []
 var by_id: Dictionary = {}
 var system: RomaLibraryBuildingSystem
+var visual_variation = null
 
 func initialize() -> bool:
     if system == null:
@@ -15,6 +17,10 @@ func initialize() -> bool:
         if system == null:
             return false
         system.setup_materials()
+    if visual_variation == null:
+        var visual_script: Script = load(VISUAL_VARIATION_SCRIPT) as Script
+        if visual_script != null:
+            visual_variation = visual_script.new()
     if not catalog.is_empty():
         return true
     if not FileAccess.file_exists(CATALOG_PATH):
@@ -49,7 +55,20 @@ func build_by_id(id: String, variant: int = 0) -> Node3D:
 func build_mobile_by_id(id: String, variant: int = 0) -> Node3D:
     if not initialize() or not by_id.has(id):
         return null
-    return system.build_mobile(by_id[id], variant)
+    var entry: Dictionary = by_id[id].duplicate(true)
+    var height_pattern: Array[int] = [3, 4, 5, 4, 3, 5]
+    var floors: int = height_pattern[posmod(variant, height_pattern.size())]
+    entry["floors"] = floors
+    entry["id"] = "__mobile_variant_%d" % variant
+    var roof_variant: int = int(variant / 10) * 10
+    if posmod(variant, 2) == 1:
+        roof_variant += 7
+    var root: Node3D = system.build_mobile(entry, roof_variant)
+    if root == null:
+        return null
+    if visual_variation != null:
+        visual_variation.apply(root, variant, floors)
+    return root
 
 func build_and_place(id: String, terrain_position: Vector3, terrain_height: float, rotation_y: float = 0.0, variant: int = 0) -> Node3D:
     if not terrain_position.is_finite() or not is_finite(terrain_height):
