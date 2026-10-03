@@ -14,11 +14,16 @@ const MAP_SIZE_M := 2000.0
 const HEIGHT_SCALE_M := 48.0
 const BYTES_PER_SAMPLE := 2
 const TERRAIN_NAME := "CI_Terrain3D_Heightmap"
+const TERRAIN_GDEXTENSION := "res://addons/terrain_3d/terrain.gdextension"
 
 func _init() -> void:
     call_deferred("_run")
 
 func _run() -> void:
+    if not _ensure_terrain3d_extension():
+        quit(1)
+        return
+
     var variation_script: Script = load(VARIATION_SCRIPT) as Script
     var positions_script: Script = load(POSITIONS_SCRIPT) as Script
     var system_script: Script = load(EDITOR_SYSTEM_SCRIPT) as Script
@@ -160,6 +165,29 @@ func _run() -> void:
     city.queue_free()
     terrain.queue_free()
     quit(0)
+
+func _ensure_terrain3d_extension() -> bool:
+    # CI must not rely on the editor plugin to register the native extension.
+    # Explicitly load the project's GDExtension before consulting ClassDB.
+    var extension_path := ProjectSettings.globalize_path(TERRAIN_GDEXTENSION)
+    if not FileAccess.file_exists(TERRAIN_GDEXTENSION):
+        push_error("CI BAKE 587: GDExtension Terrain3D mancante: %s" % TERRAIN_GDEXTENSION)
+        return false
+
+    if not ClassDB.class_exists("Terrain3D"):
+        var status = GDExtensionManager.load_extension(extension_path)
+        print("CI TERRAIN3D EXTENSION LOAD STATUS=", status, " path=", extension_path)
+        await process_frame
+    else:
+        print("CI TERRAIN3D EXTENSION ALREADY LOADED")
+
+    if not ClassDB.class_exists("Terrain3D"):
+        push_error("CI BAKE 587: Terrain3D class non disponibile dopo caricamento esplicito")
+        print("CI TERRAIN3D LOADED EXTENSIONS=", GDExtensionManager.get_loaded_extensions())
+        return false
+
+    print("CI TERRAIN3D CLASS OK")
+    return true
 
 func _set_owner_recursive(node: Node, owner: Node) -> void:
     node.owner = owner
