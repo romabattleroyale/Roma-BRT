@@ -1,4 +1,19 @@
-AUDIT — DOOR CLEARANCE
-Source: Roma Royale Architecture Library
+ROMA ROYALE — V7 DOOR CLEARANCE STATIC AUDIT
 
-The source library includes protected opening logic and door anchors. Keep these rules intact when the building system is reused by the city generator.
+This is a geometry/code audit, not a runtime Godot test.
+
+Rules checked:
+- Main entrance centered on the front facade.
+- Noble palaces: wall opening 2.25 m, door 2.05 m.
+- Standard/commercial entrances: wall opening 1.45–1.55 m, door 1.25 m.
+- Front bugnato skips the entrance corridor.
+- Noble/portico columns leave the center bay clear.
+- Ground-floor header is raised to 2.60 m so tall doors are not cut by the wall.
+- Small commercial buildings use a centered entrance opening.
+
+Audited archetypes: 24.
+Minimum lateral opening clearance: 0.20 m.
+Portico center bay: clear of columns for Palazzetto Romano, Palazzo Nobile and Palazzo con Portico.
+
+Runtime note:
+Godot 4.7 was not available in this tool environment, so the project was not launched here. Please verify visually on the phone.

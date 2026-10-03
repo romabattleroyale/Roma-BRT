@@ -1,3 +1,11 @@
-AUDIT V11 — PROTECTED OPENINGS
+ROMA ROYALE V11 — PROTECTED OPENING AUDIT
 
-V11 clearance audit retained with the imported houses library. Do not remove this audit when adapting the generator.
+Static code/geometry audit only; Godot runtime not executed in this environment.
+
+Fixed findings from V10:
+1. Commercial signs/awnings were moved beyond the 1 m protected front approach depth.
+2. Noble/portico columns and arch depth were moved beyond the 1 m protected front approach depth.
+3. Door/window protected volumes remain non-colliding Area3D markers (layer/mask 0).
+
+Architectural note:
+Balcony slabs/rails intentionally remain attached to upper windows as architectural balconies. Their relationship to the window opening is not treated as a blocking ground-level access obstruction; the protected volume remains an approach/clearance envelope for doors/windows.

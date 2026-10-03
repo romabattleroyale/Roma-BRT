@@ -1,3 +1,35 @@
-AUDIT — WINDOW CLEARANCE
+ROMA ROYALE V8 — WINDOW / DOOR CLEARANCE STATIC AUDIT
+Scope: generated geometry rules only; no Godot runtime execution in this environment.
 
-Window openings are kept clear of facade weathering, planters, bugnato and other blocking details according to the source library rules.
+casa_trastevere: front_pilaster_gap=0.83m; side_decor_gap=0.01m; OK=True
+casa_vicolo: front_pilaster_gap=0.41m; side_decor_gap=0.01m; OK=True
+casa_mercante: front_pilaster_gap=0.58m; side_decor_gap=0.01m; OK=True
+palazzetto: front_pilaster_gap=0.55m; side_decor_gap=0.01m; OK=True
+palazzo_nobile: front_pilaster_gap=0.48m; side_decor_gap=0.01m; OK=True
+palazzo_angolo: front_pilaster_gap=0.95m; side_decor_gap=0.01m; OK=True
+palazzo_portico: front_pilaster_gap=0.87m; side_decor_gap=0.01m; OK=True
+palazzo_lungo: front_pilaster_gap=1.27m; side_decor_gap=0.01m; OK=True
+palazzo_cortile: front_pilaster_gap=1.34m; side_decor_gap=0.01m; OK=True
+villa_urbana: front_pilaster_gap=0.51m; side_decor_gap=0.01m; OK=True
+villa_angolo: front_pilaster_gap=1.38m; side_decor_gap=0.01m; OK=True
+casa_cortile: front_pilaster_gap=1.41m; side_decor_gap=0.01m; OK=True
+edificio_commerciale: front_pilaster_gap=0.98m; side_decor_gap=0.01m; OK=True
+bar_roma: front_pilaster_gap=0.16m; side_decor_gap=0.01m; OK=True
+ristorante: front_pilaster_gap=1.45m; side_decor_gap=0.01m; OK=True
+trattoria: front_pilaster_gap=1.02m; side_decor_gap=0.01m; OK=True
+pasticceria: front_pilaster_gap=1.05m; side_decor_gap=0.01m; OK=True
+gelateria: front_pilaster_gap=0.83m; side_decor_gap=0.01m; OK=True
+alimentari: front_pilaster_gap=0.58m; side_decor_gap=0.01m; OK=True
+farmacia: front_pilaster_gap=0.16m; side_decor_gap=0.01m; OK=True
+bottega: front_pilaster_gap=1.27m; side_decor_gap=0.01m; OK=True
+libreria: front_pilaster_gap=1.02m; side_decor_gap=0.01m; OK=True
+piccolo_hotel: front_pilaster_gap=0.95m; side_decor_gap=0.01m; OK=True
+palazzo_hotel: front_pilaster_gap=0.87m; side_decor_gap=0.01m; OK=True
+
+Explicit V8 keepouts:
+- Front weathering chips are disabled; chips/stains are rear/side only.
+- Front planters moved to rear/side elevations.
+- Front bugnato disabled on commercial storefronts and Palazzo con Portico.
+- Casa Mercante and Palazzetto ground floors use storefront assemblies.
+- Upper residential windows retain semi-open wooden shutters.
+Issues detected by this static rule audit: 0
