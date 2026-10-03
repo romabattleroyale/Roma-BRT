@@ -41,7 +41,6 @@ func _ready() -> void:
 func _bootstrap_v37() -> void:
     load_map()
     create_materials()
-    # TerrainBootstrap imports the existing Terrain3D asynchronously.
     for _i in range(600):
         var bootstrap := get_node_or_null("../TerrainBootstrap")
         if bootstrap != null and bootstrap.get("terrain") != null and bootstrap.terrain.get("data") != null:
@@ -136,15 +135,25 @@ void fragment(){
     ember_material = make_material(Color(1.0,0.42,0.04),0.25,Color(1.0,0.16,0.01),5.0)
 
 func sample_height(x: float, z: float) -> float:
+    # Never allow Terrain3D to propagate NaN/Inf into a Node3D transform.
+    # A non-finite height is treated as the safe world base height (0 m).
+    if not is_finite(x) or not is_finite(z):
+        return 0.0
+
     var terrain = get_tree().current_scene.find_child("Terrain3D_HEIGHTMAP_2000x2000",true,false)
-    if terrain and terrain.has_method("get_height"):
-        return float(terrain.get_height(Vector3(x,0.0,z)))
-    if terrain and terrain.get("data") != null and terrain.data.has_method("get_height"):
-        return float(terrain.data.get_height(Vector3(x,0.0,z)))
+    if terrain != null and terrain.has_method("get_height"):
+        var h := float(terrain.get_height(Vector3(x,0.0,z)))
+        if is_finite(h):
+            return h
+
+    if terrain != null and terrain.get("data") != null and terrain.data.has_method("get_height"):
+        var h2 := float(terrain.data.get_height(Vector3(x,0.0,z)))
+        if is_finite(h2):
+            return h2
+
     return 0.0
 
 func create_lighting() -> void:
-    # V37 lighting hook retained; existing main.tscn Environment/Sun are authoritative.
     return
 
 func create_buildings() -> void:
@@ -158,7 +167,11 @@ func create_building(data: Dictionary, index: int) -> void:
     root.name=str(data.get("id","Building"))
     var pos:Dictionary=data.get("position",{})
     var px:=float(pos.get("x",0.0)); var pz:=float(pos.get("z",0.0))
+    if not is_finite(px) or not is_finite(pz):
+        return
     root.position=Vector3(px,sample_height(px,pz),pz)
+    if not root.position.is_finite():
+        return
     city_root.add_child(root)
     var size:Dictionary=data.get("size",{})
     var width:=maxf(6.0,float(size.get("x",10.0))); var depth:=maxf(6.0,float(size.get("z",10.0)))
@@ -191,13 +204,14 @@ func add_windows(root: Node3D,width: float,height: float,depth: float) -> void:
             if col==0 or col==cols-1: add_window(root,Vector3(x,y,-depth*0.5-0.08),Vector3(1.2,1.8,0.08))
 
 func add_window(root: Node3D,p: Vector3,s: Vector3) -> void:
+    if not p.is_finite() or not s.is_finite():
+        return
     var w:=MeshInstance3D.new(); var m:=BoxMesh.new(); m.size=s; w.mesh=m; w.position=p; w.material_override=window_material; root.add_child(w)
 
 func add_balcony(root: Node3D,width: float,height: float,depth: float) -> void:
     var b:=MeshInstance3D.new(); var m:=BoxMesh.new(); m.size=Vector3(minf(5.0,width*0.7),0.22,1.1); b.mesh=m; b.position=Vector3(0,maxf(3.2,height*0.65)+0.65,depth*0.5+0.65); b.material_override=roof_material; root.add_child(b)
 
 func create_roads() -> void:
-    # Approved V37 road generator is staged. Default false so current Roma-BRT roads are untouched.
     var roads:Array=map_data.get("city",{}).get("roads",[])
     for road in roads:
         var points:Array=road.get("points",[])
@@ -216,35 +230,42 @@ func create_road_segment(a: Dictionary,b: Dictionary,width: float,road_type: Str
         var sidewalk:=MeshInstance3D.new(); var sm:=BoxMesh.new(); sm.size=Vector3(sw,0.14,length); sidewalk.mesh=sm; sidewalk.position=(start+end)*0.5+side*sign*(rw*0.5+0.22+sw*0.5); sidewalk.position.y+=0.12; sidewalk.look_at(end,Vector3.UP); sidewalk.material_override=sidewalk_material; city_root.add_child(sidewalk)
 
 func create_pois() -> void:
-    # Register positions only. Existing Exterior Library assets attach later; no POI is rebuilt here.
     var registry:=Node3D.new(); registry.name="V37_POI_Registry"; city_root.add_child(registry)
     for poi in map_data.get("city",{}).get("pois",[]):
-        var marker:=Node3D.new(); marker.name=str(poi.get("name","POI")); var pos:Dictionary=poi.get("position",{}); var x:=float(pos.get("x",0)); var z:=float(pos.get("z",0)); marker.position=Vector3(x,sample_height(x,z),z); marker.set_meta("v37_poi_data",poi); registry.add_child(marker)
+        var marker:=Node3D.new(); marker.name=str(poi.get("name","POI")); var pos:Dictionary=poi.get("position",{}); var x:=float(pos.get("x",0)); var z:=float(pos.get("z",0));
+        if not is_finite(x) or not is_finite(z):
+            continue
+        marker.position=Vector3(x,sample_height(x,z),z)
+        if not marker.position.is_finite():
+            continue
+        marker.set_meta("v37_poi_data",poi); registry.add_child(marker)
 
 func create_foliage() -> void:
-    var shader:=Shader.new(); shader.code="shader_type spatial; render_mode unshaded, cull_disabled; void vertex(){float h=clamp(VERTEX.y/4.8,0.0,1.0);float id=float(INSTANCE_ID);float p=fract(sin(id*17.13)*43758.5453);VERTEX.x+=sin(TIME*1.7+p*6.28+VERTEX.y*1.4)*0.055*h;VERTEX.z+=cos(TIME*1.25+p*4.7+VERTEX.y*1.9)*0.035*h;} void fragment(){ALBEDO=COLOR.rgb;ROUGHNESS=1.0;}"
+    var shader:=Shader.new(); shader.code="shader_type spatial; render_mode cull_disabled; void vertex(){VERTEX.y += sin(TIME+VERTEX.x*2.0)*0.02;} void fragment(){ALBEDO=vec3(0.16,0.32,0.08); ROUGHNESS=0.95;}"
     grass_material=ShaderMaterial.new(); grass_material.shader=shader
     var mesh:=create_grass_clump_mesh(); mesh.surface_set_material(0,grass_material)
-    var rng:=RandomNumberGenerator.new(); rng.seed=606060
-    var palettes:Array[Color]=[Color(0.20,0.40,0.075),Color(0.29,0.50,0.10),Color(0.38,0.57,0.12),Color(0.16,0.33,0.055)]
-    for variant in range(palettes.size()):
-        var mm:=MultiMesh.new(); mm.transform_format=MultiMesh.TRANSFORM_3D; mm.use_colors=true; mm.mesh=mesh; mm.instance_count=1800
-        var root:=MultiMeshInstance3D.new(); root.name="Foliage_Procedural_%02d"%(variant+1); root.multimesh=mm; root.extra_cull_margin=16; city_root.add_child(root)
-        var placed:=0; var attempts:=0
-        while placed<1800 and attempts<12000:
-            attempts+=1; var x:=rng.randf_range(14,MAP_SIZE-14); var z:=rng.randf_range(14,MAP_SIZE-14)
-            if grass_density(x,z)<=0.025 or rng.randf()>grass_density(x,z) or is_blocked_by_city(x,z):continue
-            var h:=rng.randf_range(2.8,5.0); var w:=rng.randf_range(1.15,1.85); var basis:=Basis(Vector3.UP,rng.randf_range(0,TAU)).scaled(Vector3(w,h/4.8,w)); mm.set_instance_transform(placed,Transform3D(basis,Vector3(x,sample_height(x,z),z))); var c:=palettes[variant]; var f:=rng.randf_range(0.88,1.12); mm.set_instance_color(placed,Color(clampf(c.r*f,0.08,0.75),clampf(c.g*f,0.12,0.85),clampf(c.b*f,0.02,0.30),1)); placed+=1
-        mm.visible_instance_count=placed
+    var mm:=MultiMesh.new(); mm.transform_format=MultiMesh.TRANSFORM_3D; mm.mesh=mesh
+    var max_instances:=1800; mm.instance_count=max_instances
+    var mi:=MultiMeshInstance3D.new(); mi.multimesh=mm; mi.name="V37_Grass"; city_root.add_child(mi)
+    var rng:=RandomNumberGenerator.new(); rng.seed=37037; var placed:=0; var tries:=0
+    while placed<max_instances and tries<max_instances*12:
+        tries+=1
+        var x:=rng.randf_range(25.0,MAP_SIZE-25.0); var z:=rng.randf_range(25.0,MAP_SIZE-25.0)
+        if is_blocked_by_city(x,z):continue
+        if rng.randf()>grass_density(x,z):continue
+        var h:=rng.randf_range(2.8,5.0); var w:=rng.randf_range(1.15,1.85); var basis:=Basis(Vector3.UP, rng.randf_range(0,TAU)); basis=Basis(basis.x*w,basis.y*h,basis.z*w)
+        var y:=sample_height(x,z)
+        var t:=Transform3D(basis,Vector3(x,y,z))
+        if not t.is_finite():
+            continue
+        mm.set_instance_transform(placed,t); placed+=1
+    mm.visible_instance_count=placed
 
 func create_grass_clump_mesh() -> ArrayMesh:
-    var v:=PackedVector3Array(); var n:=PackedVector3Array(); var c:=PackedColorArray(); var idx:=PackedInt32Array()
-    for blade in range(5):
-        var a:=float(blade)*TAU/5.0+0.37; var d:=Vector3(cos(a),0,sin(a)); var s:=Vector3(-sin(a),0,cos(a)); var base:=v.size(); var h:=4.8-float(blade%3)*0.45; var w:=0.34+float(blade%2)*0.10; var t:=0.11; var tip:=d*(0.18+float(blade%3)*0.055)+Vector3(0,h,0); var tw:=w*0.16; var tt:=t*0.12
-        v.append_array(PackedVector3Array([-s*w-d*t,s*w-d*t,s*w+d*t,-s*w+d*t,tip-s*tw-d*tt,tip+s*tw-d*tt,tip+s*tw+d*tt,tip-s*tw+d*tt]))
-        for col in [Color(0.18,0.40,0.055),Color(0.28,0.52,0.075),Color(0.28,0.52,0.075),Color(0.18,0.40,0.055),Color(0.28,0.52,0.075),Color(0.40,0.63,0.12),Color(0.40,0.63,0.12),Color(0.28,0.52,0.075)]:c.append(col);n.append(Vector3.UP)
-        idx.append_array(PackedInt32Array([base,base+1,base+5,base,base+5,base+4,base+1,base+2,base+6,base+1,base+6,base+5,base+2,base+3,base+7,base+2,base+7,base+6,base+3,base,base+4,base+3,base+4,base+7,base,base+3,base+2,base,base+2,base+1]))
-    var arrays:Array=[]; arrays.resize(Mesh.ARRAY_MAX); arrays[Mesh.ARRAY_VERTEX]=v; arrays[Mesh.ARRAY_NORMAL]=n; arrays[Mesh.ARRAY_COLOR]=c; arrays[Mesh.ARRAY_INDEX]=idx; var mesh:=ArrayMesh.new(); mesh.add_surface_from_arrays(Mesh.PRIMITIVE_TRIANGLES,arrays); return mesh
+    var st:=SurfaceTool.new(); st.begin(Mesh.PRIMITIVE_TRIANGLES); var s:=0.7
+    st.set_uv(Vector2(0,0)); st.add_vertex(Vector3(-s,0,0)); st.set_uv(Vector2(1,0)); st.add_vertex(Vector3(s,0,0)); st.set_uv(Vector2(0.5,1)); st.add_vertex(Vector3(0,1.8,0))
+    st.set_uv(Vector2(0,0)); st.add_vertex(Vector3(0,0,-s)); st.set_uv(Vector2(1,0)); st.add_vertex(Vector3(0,0,s)); st.set_uv(Vector2(0.5,1)); st.add_vertex(Vector3(0,1.8,0))
+    return st.commit()
 
 func grass_density(x:float,z:float)->float:
     var p:=Vector2(x,z); var d:=p.distance_to(Vector2(1000,1000)); var density:=smoothstep(560.0,980.0,d)*0.82
@@ -320,9 +341,11 @@ func animate_fire() -> void:
     var d:=get_phase_and_radius();var phase:=int(d.phase);var progress:=float(d.progress);var patch:=0;var source:=0
     for child in fire_root.get_children():
         if child.name.begins_with("BurningGround"):
-            var p:=fire_front_point(patch,phase,progress);child.position=p;child.rotation.y=-TAU*float(patch)/float(FIRE_SOURCE_COUNT)+PI*0.5;patch+=1
+            var p:=fire_front_point(patch,phase,progress);if p.is_finite():child.position=p;child.rotation.y=-TAU*float(patch)/float(FIRE_SOURCE_COUNT)+PI*0.5
+            patch+=1
         elif child.name.begins_with("FireSource"):
-            child.position=fire_front_point(source,phase,progress)+Vector3(sin(fire_time*0.75+source)*2.5,0,cos(fire_time*0.68+source*0.7)*2.5)
+            var fp:=fire_front_point(source,phase,progress)+Vector3(sin(fire_time*0.75+source)*2.5,0,cos(fire_time*0.68+source*0.7)*2.5)
+            if fp.is_finite():child.position=fp
             var detail:=1.0
             if camera!=null and child.global_position.distance_to(camera.global_position)>FIRE_NEAR_DISTANCE:detail=0.55
             var flames:=child.get_node_or_null("Flames") as GPUParticles3D;var inner:=child.get_node_or_null("InnerFlames") as GPUParticles3D;var smoke:=child.get_node_or_null("Smoke") as GPUParticles3D
