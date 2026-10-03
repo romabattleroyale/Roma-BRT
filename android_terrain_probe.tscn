@@ -1,0 +1,32 @@
+[gd_scene load_steps=4 format=3]
+
+[ext_resource type="Script" path="res://android_terrain_probe.gd" id="1_probe"]
+
+[sub_resource type="Environment" id="Environment_probe"]
+background_mode = 1
+background_color = Color(0.035, 0.055, 0.09, 1)
+ambient_light_source = 3
+ambient_light_color = Color(0.8, 0.85, 1, 1)
+ambient_light_energy = 1.0
+
+[sub_resource type="LabelSettings" id="LabelSettings_probe"]
+font_size = 30
+outline_size = 8
+
+[node name="AndroidTerrainProbe" type="Node3D"]
+script = ExtResource("1_probe")
+
+[node name="Environment" type="WorldEnvironment" parent="."]
+environment = SubResource("Environment_probe")
+
+[node name="Camera3D" type="Camera3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 1000, 120, 1000)
+current = true
+
+[node name="Status" type="Label" parent="."]
+offset_left = 32.0
+offset_top = 32.0
+offset_right = 1100.0
+offset_bottom = 100.0
+text = "Terrain3D probe: starting…"
+label_settings = SubResource("LabelSettings_probe")
