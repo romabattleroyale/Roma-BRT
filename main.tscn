@@ -32,7 +32,7 @@ script = ExtResource("1_rt")
 script = ExtResource("5_v37")
 enable_buildings = true
 enable_pois = true
-enable_foliage = true
+enable_foliage = false
 enable_fire = true
 enable_roads = false
 enable_technical_camera = false
@@ -73,7 +73,7 @@ offset_right = 500.0
 offset_bottom = 205.0
 
 [node name="Label" type="Label" parent="HUD/Panel"]
-text = "ROMA HEIGHTMAP BETA — DEBUG TOP-DOWN\n\nRAW 1081×1081 • 16-bit BIG-ENDIAN\nWORLD 2000×2000 m • spacing 1.85185 m\nHEIGHT SCALE 48 m\n\nANDROID: 1 dito = ruota • 2 dita = pan + pinch zoom\nPC: tasto destro = ruota • centrale = pan • rotella = zoom"
+text = "ROMA HEIGHTMAP BETA — DEBUG TOP-DOWN\n\nRAW 1081×1081 • 16-bit BIG-ENDIAN\nWORLD 2000×2000 m • spacing 1.85185 m\nHEIGHT SCALE 48 m\n\nANDROID + CONTROLLER:\nStick sinistro = sposta mappa • touch meta destra = zoom/pitch • pinch = zoom"
 theme_override_font_sizes/font_size = 15
 
 [node name="Status" type="Label" parent="HUD"]
