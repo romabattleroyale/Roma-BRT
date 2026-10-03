@@ -124,3 +124,35 @@ func _pbr(color_path: String, normal_path: String, rough: float, uv_scale: float
     m.uv1_scale = Vector3(uv_scale, uv_scale, uv_scale)
     m.texture_repeat = true
     return m
+
+## Lightweight construction path for Android block-generation tests.
+## Keeps the visible shell, windows, roof and door while skipping the expensive
+## interior/stair/detail passes. Full build() remains unchanged for final POIs.
+func build_mobile(data: Dictionary, variant: int) -> Node3D:
+    var root: Node3D = Node3D.new()
+    root.name = str(data["id"])
+    var w: float = float(data["w"])
+    var d: float = float(data["d"])
+    var floors: int = int(data["floors"])
+    var style: String = str(data["style"])
+    var style_mat: Material = mats["facade_beige"] as Material
+    if style == "plaster_cream" or style == "brick":
+        style_mat = mats["facade_ochre"] as Material
+    elif style == "plaster_pale" or style == "travertine":
+        style_mat = mats["facade_beige"] as Material
+    elif style == "plaster_terracotta":
+        style_mat = mats["facade_terracotta"] as Material
+    if root.name == "palazzetto" or root.name == "palazzo_nobile":
+        style_mat = mats["facade_yellow"] as Material
+    elif root.name == "casa_mercante":
+        style_mat = mats["facade_rose"] as Material
+    var ground_function: String = str(data["function"])
+    if root.name == "casa_mercante":
+        ground_function += " / BOTTEGA"
+    elif root.name == "palazzetto":
+        ground_function += " / BAR / NEGOZI"
+    _build_shell(root, w, d, floors, style_mat, variant, ground_function)
+    _build_windows_and_shutters(root, w, d, floors, ground_function, variant)
+    _build_roof(root, w, d, floors, style, variant)
+    _build_door_anchor(root, w, d, ground_function)
+    return root
