@@ -155,4 +155,62 @@ func build_mobile(data: Dictionary, variant: int) -> Node3D:
     _build_windows_and_shutters(root, w, d, floors, ground_function, variant)
     _build_roof(root, w, d, floors, style, variant)
     _build_door_anchor(root, w, d, ground_function)
+    if bool(data.get("v12", false)):
+        _build_v12_signature(root, root.name, w, d, floors, variant, style_mat)
     return root
+
+func _build_v12_signature(root: Node3D, archetype_id: String, w: float, d: float, floors: int, variant: int, facade: Material) -> void:
+    if archetype_id == "v12_casa_romana_stretta":
+        _v12_narrow_house(root, w, d, floors, facade)
+    elif archetype_id == "v12_palazzina_residenziale":
+        _v12_residential_palazzina(root, w, d, floors)
+    elif archetype_id == "v12_palazzo_angolare":
+        _v12_corner_palazzo(root, w, d, floors)
+
+func _v12_narrow_house(root: Node3D, w: float, d: float, floors: int, facade: Material) -> void:
+    var top_y: float = float(floors) * FLOOR_H
+    _box(root, Vector3(0, top_y + 0.26, -d * 0.5 - 0.22), Vector3(w + 0.55, 0.34, 0.55), mats["travertine"], false)
+    _box(root, Vector3(0, top_y + 0.48, -d * 0.5 - 0.22), Vector3(w + 0.34, 0.12, 0.62), facade, false)
+    if floors >= 4:
+        var balcony_y: float = FLOOR_H * 2.0 + 2.90
+        _box(root, Vector3(0, balcony_y, -d * 0.5 - 0.52), Vector3(min(w * 0.72, 4.4), 0.16, 0.78), mats["travertine"], false)
+        _v12_rail_front(root, balcony_y + 0.55, min(w * 0.72, 4.4), -d * 0.5 - 0.88)
+
+func _v12_residential_palazzina(root: Node3D, w: float, d: float, floors: int) -> void:
+    var balcony_w: float = min(w * 0.72, 8.6)
+    var balcony_d: float = 1.05
+    for floor_index in range(1, floors):
+        if floor_index % 2 == 0 or floor_index == floors - 1:
+            var y: float = float(floor_index) * FLOOR_H - 0.18
+            _box(root, Vector3(0, y, -d * 0.5 - balcony_d * 0.48), Vector3(balcony_w, 0.18, balcony_d), mats["travertine"], false)
+            _v12_rail_front(root, y + 0.55, balcony_w, -d * 0.5 - balcony_d)
+    var top_y: float = float(floors) * FLOOR_H
+    _box(root, Vector3(0, top_y + 0.22, -d * 0.5 - 0.18), Vector3(w + 0.70, 0.32, 0.44), mats["travertine"], false)
+
+func _v12_corner_palazzo(root: Node3D, w: float, d: float, floors: int) -> void:
+    var corner_h: float = float(floors) * FLOOR_H + 0.40
+    var corner_x: float = w * 0.5 - 0.18
+    var corner_z: float = -d * 0.5 - 0.18
+    _box(root, Vector3(corner_x, corner_h * 0.5, corner_z), Vector3(0.52, corner_h, 0.52), mats["travertine"], false)
+    _box(root, Vector3(-corner_x, corner_h * 0.5, corner_z), Vector3(0.52, corner_h, 0.52), mats["travertine"], false)
+    var y: float = FLOOR_H * 2.0 - 0.12
+    var balcony_w: float = min(w * 0.58, 8.2)
+    _box(root, Vector3(0, y, -d * 0.5 - 0.54), Vector3(balcony_w, 0.18, 0.86), mats["travertine"], false)
+    _v12_rail_front(root, y + 0.55, balcony_w, -d * 0.5 - 0.98)
+    _box(root, Vector3(w * 0.5 + 0.54, y, 0), Vector3(0.86, 0.18, balcony_w), mats["travertine"], false)
+    _v12_rail_side(root, y + 0.55, balcony_w, w * 0.5 + 0.98)
+    _box(root, Vector3(0, float(floors) * FLOOR_H + 0.20, -d * 0.5 - 0.20), Vector3(w + 0.78, 0.34, 0.50), mats["travertine"], false)
+
+func _v12_rail_front(root: Node3D, y: float, width: float, z: float) -> void:
+    _box(root, Vector3(0, y, z), Vector3(width, 0.08, 0.08), mats["iron"], false)
+    var count: int = max(3, int(floor(width / 0.75)))
+    for i in range(count):
+        var x: float = -width * 0.5 + width * float(i) / float(max(1, count - 1))
+        _box(root, Vector3(x, y * 0.5 + (y - 0.45) * 0.5, z), Vector3(0.055, y - 0.45, 0.055), mats["iron"], false)
+
+func _v12_rail_side(root: Node3D, y: float, depth: float, x: float) -> void:
+    _box(root, Vector3(x, y, 0), Vector3(0.08, 0.08, depth), mats["iron"], false)
+    var count: int = max(3, int(floor(depth / 0.75)))
+    for i in range(count):
+        var z: float = -depth * 0.5 + depth * float(i) / float(max(1, count - 1))
+        _box(root, Vector3(x, y * 0.5 + (y - 0.45) * 0.5, z), Vector3(0.055, y - 0.45, 0.055), mats["iron"], false)
