@@ -36,10 +36,6 @@ jobs:
           mv .runtime/godot/Godot_v4.7.2-stable_linux.x86_64 .runtime/godot/godot
           chmod +x .runtime/godot/godot
 
-      - name: Import project
-        run: |
-          .runtime/godot/godot --headless --path . --editor --quit-after 20
-
       - name: Verify final map inputs
         run: |
           test -s terrain_data/READY.txt
@@ -54,7 +50,7 @@ jobs:
           export DISPLAY=:99
           .runtime/godot/godot --path . --display-driver x11 --rendering-method gl_compatibility --audio-driver Dummy > build/video/godot.log 2>&1 &
           echo $! > build/video/godot.pid
-          sleep 40
+          sleep 45
 
       - name: Record real map video and move through it
         run: |
