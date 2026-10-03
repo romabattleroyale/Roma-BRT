@@ -4,13 +4,11 @@ on:
   push:
     paths:
       - 'incoming_libraries/*.zip'
-      - '.github/workflows/library-ingest.yml'
   workflow_dispatch:
     inputs:
       archive:
         description: 'ZIP in incoming_libraries/'
-        required: false
-        default: ''
+        required: true
         type: string
       destination:
         description: 'Optional destination inside city_library/'
@@ -18,7 +16,7 @@ on:
         default: ''
         type: string
       dry_run:
-        description: 'Validate only; do not modify the repository'
+        description: 'Validate only; do not modify repository'
         required: false
         default: false
         type: boolean
@@ -42,16 +40,15 @@ jobs:
 
       - name: Select archive
         id: select
-        shell: bash
         env:
           INPUT_ARCHIVE: ${{ inputs.archive }}
         run: |
           set -euo pipefail
-          if [[ -n "$INPUT_ARCHIVE" ]]; then
+          if [ -n "$INPUT_ARCHIVE" ]; then
             ARCHIVE="$INPUT_ARCHIVE"
           else
             mapfile -t ZIPS < <(find incoming_libraries -maxdepth 1 -type f -name '*.zip' -print | sort)
-            if [[ ${#ZIPS[@]} -ne 1 ]]; then
+            if [ "${#ZIPS[@]}" -ne 1 ]; then
               echo "Expected exactly one ZIP in incoming_libraries/. Found ${#ZIPS[@]}"
               printf ' - %s\n' "${ZIPS[@]}"
               exit 1
@@ -72,79 +69,48 @@ jobs:
 
       - name: Validate package
         id: validate
-        shell: bash
         env:
           ARCHIVE: ${{ steps.select.outputs.archive }}
           REQUESTED_DESTINATION: ${{ inputs.destination }}
         run: |
           set -euo pipefail
-          ROOT='.library_ingest/unpacked'
+          ROOT=".library_ingest/unpacked"
 
-          python3 - "$ARCHIVE" <<'PY'
-          import sys, zipfile
-          with zipfile.ZipFile(sys.argv[1]) as z:
-              for info in z.infolist():
-                  name = info.filename.replace('\\', '/')
-                  if name.startswith('/') or '..' in name.split('/'):
-                      raise SystemExit(f'Unsafe ZIP path: {name}')
-                  if not info.is_dir() and info.file_size > 90 * 1024 * 1024:
-                      raise SystemExit(f'File exceeds 90 MiB: {name}')
-          PY
+          python3 -c 'import os, zipfile; p=os.environ["ARCHIVE"]; z=zipfile.ZipFile(p); bad=[i.filename for i in z.infolist() if i.filename.replace(chr(92), "/").startswith("/") or ".." in i.filename.replace(chr(92), "/").split("/") or (not i.is_dir() and i.file_size > 90*1024*1024)]; z.close(); raise SystemExit("Unsafe or oversized ZIP entry: "+bad[0]) if bad else None'
 
           mapfile -t TOP < <(find "$ROOT" -mindepth 1 -maxdepth 1 -type d -print)
           FILES_AT_TOP=$(find "$ROOT" -mindepth 1 -maxdepth 1 -type f | wc -l)
-          if [[ ${#TOP[@]} -eq 1 && "$FILES_AT_TOP" -eq 0 ]]; then
+          if [ "${#TOP[@]}" -eq 1 ] && [ "$FILES_AT_TOP" -eq 0 ]; then
             ROOT="${TOP[0]}"
           fi
 
-          if find "$ROOT" -type d -name '.godot' -print -quit | grep -q .; then
-            echo 'Rejected: package contains .godot.'
-            exit 1
-          fi
-          if find "$ROOT" -type f -name 'project.godot' -print -quit | grep -q .; then
-            echo 'Rejected: package contains project.godot.'
+          if find "$ROOT" -type d -name '.godot' -print -quit | grep -q . || find "$ROOT" -type f -name 'project.godot' -print -quit | grep -q .; then
+            echo "Rejected: package contains a complete Godot project."
             exit 1
           fi
 
           DEST="$REQUESTED_DESTINATION"
-          if [[ -z "$DEST" && -f "$ROOT/library_manifest.json" ]]; then
-            DEST=$(python3 - "$ROOT/library_manifest.json" <<'PY'
-          import json, sys
-          data = json.load(open(sys.argv[1], encoding='utf-8'))
-          print(data.get('destination', ''))
-          PY
-            )
+          if [ -z "$DEST" ] && [ -f "$ROOT/library_manifest.json" ]; then
+            DEST=$(python3 -c 'import json,sys; print(json.load(open(sys.argv[1], encoding="utf-8")).get("destination",""))' "$ROOT/library_manifest.json")
           fi
 
           ARCHIVE_NAME=$(basename "$ARCHIVE")
-          if [[ -z "$DEST" && "$ARCHIVE_NAME" == RomaRoyale_Architecture_Library_V11* ]]; then
-            DEST='city_library/buildings/houses/roma_architecture_library_v11'
+          if [ -z "$DEST" ] && [[ "$ARCHIVE_NAME" == RomaRoyale_Architecture_Library_V11* ]]; then
+            DEST="city_library/buildings/houses/roma_architecture_library_v11"
           fi
 
-          if [[ "$DEST" != city_library/* ]]; then
-            echo "Destination must be inside city_library/: $DEST"
-            exit 1
-          fi
+          case "$DEST" in
+            city_library/*) ;;
+            *) echo "Destination must be inside city_library/: $DEST"; exit 1 ;;
+          esac
 
           if [[ "$DEST" == city_library/buildings/houses/* ]]; then
-            test -f "$ROOT/data/building_catalog.json" || {
-              echo 'Missing data/building_catalog.json'
-              exit 1
-            }
-            python3 - "$ROOT/data/building_catalog.json" <<'PY'
-          import json, sys
-          data = json.load(open(sys.argv[1], encoding='utf-8'))
-          if not isinstance(data, list) or not data:
-              raise SystemExit('building catalog must be a non-empty array')
-          ids = [str(x.get('id', '')) for x in data if isinstance(x, dict)]
-          if len(ids) != len(set(ids)):
-              raise SystemExit('Duplicate building IDs')
-          print(f'Validated house catalog: {len(ids)} archetypes')
-          PY
+            test -f "$ROOT/data/building_catalog.json" || { echo "Missing data/building_catalog.json"; exit 1; }
+            python3 -c 'import json,sys; d=json.load(open(sys.argv[1], encoding="utf-8")); ids=[str(x.get("id","")) for x in d if isinstance(x,dict)]; raise SystemExit("Building catalog must be a non-empty array") if not isinstance(d,list) or not d else None; raise SystemExit("Duplicate building IDs") if len(ids)!=len(set(ids)) else print(f"Validated house catalog: {len(ids)} archetypes")' "$ROOT/data/building_catalog.json"
           fi
 
           if grep -RniE 'Road Generator|road_generator[[:space:]]*:[[:space:]]*true' "$ROOT" --exclude='*.png' --exclude='*.jpg' --exclude='*.jpeg' --exclude='*.exr' --exclude='*.hdr' --exclude='*.glb' --exclude='*.gltf' 2>/dev/null; then
-            echo 'Rejected: Road Generator enablement marker found.'
+            echo "Rejected: Road Generator enablement marker found."
             exit 1
           fi
 
@@ -159,7 +125,6 @@ jobs:
           echo "Destination: $DEST"
           echo "Files: $(find "$ROOT" -type f | wc -l)"
           echo "Size: $(du -sh "$ROOT" | cut -f1)"
-          find "$ROOT" -maxdepth 2 -type f | sort | head -80
 
       - name: Install and commit
         env:
@@ -168,20 +133,18 @@ jobs:
           DRY_RUN: ${{ inputs.dry_run }}
         run: |
           set -euo pipefail
-          if [[ "$DRY_RUN" == 'true' ]]; then
-            echo 'DRY RUN: package validated; repository will not be modified.'
+          if [ "$DRY_RUN" = "true" ]; then
+            echo "DRY RUN: package validated; repository will not be modified."
             exit 0
           fi
-
           mkdir -p "$DEST"
           rsync -a --delete "$ROOT/" "$DEST/"
           rm -rf .library_ingest
-
-          git config user.name 'github-actions[bot]'
-          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add "$DEST"
           if git diff --cached --quiet; then
-            echo 'No changes.'
+            echo "No changes."
             exit 0
           fi
           git commit -m "library: ingest $(basename "$DEST")"
