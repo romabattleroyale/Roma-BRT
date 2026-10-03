@@ -49,9 +49,7 @@ jobs:
         run: |
           set -euo pipefail
           mkdir -p .runtime/godot
-          curl -L --fail --retry 3 \
-            -o .runtime/godot/godot.zip \
-            'https://github.com/godotengine/godot/releases/download/4.7.2-stable/Godot_v4.7.2-stable_linux.x86_64.zip'
+          curl -L --fail --retry 3 -o .runtime/godot/godot.zip 'https://github.com/godotengine/godot/releases/download/4.7.2-stable/Godot_v4.7.2-stable_linux.x86_64.zip'
           unzip -q .runtime/godot/godot.zip -d .runtime/godot
           GODOT_BIN=$(find .runtime/godot -maxdepth 2 -type f -name 'Godot_v4.7.2-stable_linux.x86_64' | head -n 1)
           test -n "$GODOT_BIN"
@@ -65,14 +63,14 @@ jobs:
           set -euo pipefail
           .runtime/godot/godot --headless --editor --path . --quit
 
-      - name: Bake 587 city in headless editor
+      - name: Bake 587 city in headless runtime
         shell: bash
         run: |
           set -euo pipefail
-          rm -f res://baked_city/roma_city_587.tscn
-          .runtime/godot/godot --headless --editor --path . --script res://v37_integration/bake_587_city_editor_fixed.gd
-          test -f res://baked_city/roma_city_587.tscn
-          test "$(stat -c%s res://baked_city/roma_city_587.tscn)" -gt 1000
+          rm -f baked_city/roma_city_587.tscn
+          .runtime/godot/godot --headless --path . --script res://v37_integration/bake_587_city_editor.gd
+          test -f baked_city/roma_city_587.tscn
+          test "$(stat -c%s baked_city/roma_city_587.tscn)" -gt 1000
           echo 'BAKE ARTIFACT OK: res://baked_city/roma_city_587.tscn'
 
       - name: Diagnose Terrain3D after main scene initialization
@@ -86,7 +84,5 @@ jobs:
         run: |
           set -euo pipefail
           timeout 20s .runtime/godot/godot --headless --path . --quit-after 10 || code=$?
-          if [ "${code:-0}" -ne 0 ] && [ "${code:-0}" -ne 124 ]; then
-            exit "$code"
-          fi
+          if [ "${code:-0}" -ne 0 ] && [ "${code:-0}" -ne 124 ]; then exit "$code"; fi
           echo 'Roma-BRT headless runtime smoke test completed.'
