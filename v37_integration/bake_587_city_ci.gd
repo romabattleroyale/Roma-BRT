@@ -94,7 +94,7 @@ func _run() -> void:
         building.set_meta("v11_variation", variation)
         building.set_meta("baked_v37", true)
         city.add_child(building)
-        building.owner = city
+        _set_owner_recursive(building, city)
         used[seed] = true
         placed += 1
 
@@ -123,6 +123,11 @@ func _run() -> void:
     city.queue_free()
     terrain.queue_free()
     quit(0)
+
+func _set_owner_recursive(node: Node, owner: Node) -> void:
+    node.owner = owner
+    for child in node.get_children():
+        _set_owner_recursive(child, owner)
 
 func _build_ci_terrain() -> Node3D:
     if not ClassDB.class_exists("Terrain3D"):
