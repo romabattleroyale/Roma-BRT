@@ -12,7 +12,7 @@ var grabbed_handle: int = 0 # -1 left, 0 none, 1 right
 var min_value: float = 0.0
 var max_value: float = 100.0
 var step: float = 1.0
-var range := Vector2(0, 100) 
+var range := Vector2(0, 100)
 var display_scale: float = 1.
 var position_x: float = 0.
 var minimum_x: float = 60.
@@ -22,11 +22,16 @@ func _ready() -> void:
 	# Setup Display Scale
 	# 0 auto, 1 75%, 2 100%, 3 125%, 4 150%, 5 175%, 6 200%, 7 custom
 	var es: EditorSettings = EditorInterface.get_editor_settings()
-	var ds: int = es.get_setting("interface/editor/display_scale")
+	var ds_value = es.get_setting("interface/editor/display_scale")
+	var ds: int = 2
+	if ds_value != null:
+		ds = int(ds_value)
 	if ds == 0:
 		ds = 2
 	elif ds == 7:
-		display_scale = es.get_setting("interface/editor/custom_display_scale")
+		var custom_scale = es.get_setting("interface/editor/custom_display_scale")
+		if custom_scale != null:
+			display_scale = float(custom_scale)
 	else:
 		display_scale = float(ds + 2) * .25
 
@@ -43,8 +48,8 @@ func set_min(p_value: float) -> void:
 
 func get_min() -> float:
 	return min_value
-	
-	
+
+
 func set_max(p_value: float) -> void:
 	max_value = p_value
 	if range.y == 0 or range.y >= max_value:
@@ -55,15 +60,15 @@ func set_max(p_value: float) -> void:
 
 func get_max() -> float:
 	return max_value
-	
-	
+
+
 func set_step(p_step: float) -> void:
 	step = p_step
-	
+
 
 func get_step() -> float:
 	return step
-	
+
 
 func set_value(p_range: Vector2) -> void:
 	range.x = clamp(p_range.x, min_value, max_value)
@@ -116,12 +121,12 @@ func _gui_input(p_event: InputEvent) -> void:
 						set_slider(1., true)
 			else:
 				grabbed_handle = 0
-			
+	
 	if p_event is InputEventMouseMotion:
 		if grabbed_handle != 0:
 			set_slider(p_event.get_position().x)
-	
-	
+
+
 func set_slider(p_xpos: float, p_relative: bool = false) -> void:
 	if grabbed_handle == 0:
 		return
@@ -135,7 +140,7 @@ func set_slider(p_xpos: float, p_relative: bool = false) -> void:
 		if p_relative:
 			range.y += p_xpos
 		else:
-			range.y = xpos_step	
+			range.y = xpos_step
 	set_value(range)
 
 
