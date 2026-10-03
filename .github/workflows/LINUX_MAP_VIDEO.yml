@@ -36,6 +36,11 @@ jobs:
           mv .runtime/godot/Godot_v4.7.2-stable_linux.x86_64 .runtime/godot/godot
           chmod +x .runtime/godot/godot
 
+      - name: Import project resources without editor UI
+        run: |
+          .runtime/godot/godot --headless --path . --import --quit-after 30 > build_import.log 2>&1 || true
+          tail -n 80 build_import.log
+
       - name: Verify final map inputs
         run: |
           test -s terrain_data/READY.txt
