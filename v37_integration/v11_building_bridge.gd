@@ -1,7 +1,7 @@
 extends Node3D
 ## PROMPT 4: compact Roman-style urban blocks from the first 40 V11 candidates.
 ## Validation remains mandatory before instantiation. No roads, interiors or terrain edits.
-## Buildings are arranged in compact open-courtyard clusters inside Urban_Grid lots.
+## Buildings form perimeter U-blocks with outward-facing doors and an open courtyard.
 ## Android optimization: deterministic anchors and frame-yielded construction avoid startup spikes.
 
 const ADAPTER_SCRIPT = "res://city_library/buildings/house_library_adapter.gd"
@@ -12,6 +12,7 @@ const SUBSOIL_LIMIT = -5.0
 const ROAD_SETBACK = 10.0
 const SAFETY_CORRIDOR = 2.0
 const BATCH_PAUSE_FRAMES = 2
+const TERRAIN_CLEARANCE = 0.10
 
 var adapter = null
 var variation_script = null
@@ -80,7 +81,6 @@ func _build_library(v37: Node) -> void:
     var blocks = _urban_lot_rects()
     var block_count = min(blocks.size(), int(ceil(float(limit) / 5.0)))
 
-    # Keep each block deterministic and cheap: no 5x5 anchor search at startup.
     for block_index in range(block_count):
         var group: Array = []
         var first = block_index * 5
@@ -96,7 +96,6 @@ func _build_library(v37: Node) -> void:
         var valid_group = 0
 
         for item in layout:
-            # Give Android a frame before every expensive library build.
             await _android_yield()
 
             var candidate: Dictionary = item["candidate"]
@@ -116,7 +115,7 @@ func _build_library(v37: Node) -> void:
             if not center.is_finite():
                 _reject(index, "non_finite_position")
                 continue
-            if not _inside_urban_grid(center, width, depth):
+            if not _inside_urban_grid(center, width, depth, rotation_y):
                 _reject(index, "outside_urban_grid_or_on_road_line")
                 continue
 
@@ -125,11 +124,13 @@ func _build_library(v37: Node) -> void:
                 _reject(index, str(validation["reason"]))
                 continue
 
-            var mean_h: float = float(validation["mean_h"])
+            # Use the highest footprint corner as the base plane. This prevents the
+            # lower side of a building from being buried when the terrain slopes.
+            var base_h: float = float(validation["base_h"])
             var style = str(data.get("style", ""))
-            var building = adapter.build_for_footprint(width, depth, Vector3(center.x, 0.0, center.z), mean_h, style, index, rotation_y)
+            var building = adapter.build_for_footprint(width, depth, Vector3(center.x, 0.0, center.z), base_h, style, index, rotation_y)
             if building == null:
-                building = adapter.build_for_footprint(width, depth, Vector3(center.x, 0.0, center.z), mean_h, "", index, rotation_y)
+                building = adapter.build_for_footprint(width, depth, Vector3(center.x, 0.0, center.z), base_h, "", index, rotation_y)
             if building == null:
                 _reject(index, "library_build_failed")
                 continue
@@ -149,7 +150,8 @@ func _build_library(v37: Node) -> void:
             building.set_meta("prompt4_compact", true)
             building.set_meta("prompt4_safety_corridor_m", SAFETY_CORRIDOR)
             building.set_meta("prompt4_courtyard", true)
-            building.position.y = mean_h
+            building.set_meta("prompt4_terrain_base_h", base_h)
+            building.position.y = base_h
             building.rotation.y = rotation_y
             city_root.add_child(building)
 
@@ -157,13 +159,14 @@ func _build_library(v37: Node) -> void:
                 "center": center,
                 "width": width,
                 "depth": depth,
+                "rotation": rotation_y,
                 "block": block_index
             })
             used_seeds[seed] = true
             used_archetypes[int(variation["archetype_index"])] = true
             valid_group += 1
             placed += 1
-            print("PROMPT 4 — piazzato #", index + 1, " id=", building.name, " block=", rect.get("id", ""), " slot=", item["slot"], " seed=", seed, " archetype=", variation["archetype_index"], " pos=", center)
+            print("PROMPT 4 — piazzato #", index + 1, " id=", building.name, " block=", rect.get("id", ""), " slot=", item["slot"], " seed=", seed, " archetype=", variation["archetype_index"], " pos=", center, " base_y=", base_h)
             await _android_yield()
 
         print("PROMPT 4 — ", rect.get("id", "BLOCK_%02d" % block_index), " edifici compatti: ", valid_group, " / ", group.size())
@@ -176,6 +179,7 @@ func _build_library(v37: Node) -> void:
     print("PROMPT 4 — SAFETY CORRIDOR: ", SAFETY_CORRIDOR, "m")
     print("PROMPT 4 — ROAD SETBACK: ", ROAD_SETBACK, "m")
     print("PROMPT 4 — BATCH PAUSE FRAMES: ", BATCH_PAUSE_FRAMES)
+    print("PROMPT 4 — TERRAIN CLEARANCE: ", TERRAIN_CLEARANCE, "m")
     print("PROMPT 4 — MOTIVI SCARTO: ", rejection_counts)
 
 func _android_yield() -> void:
@@ -200,31 +204,47 @@ func _urban_lot_rects() -> Array:
     ]
 
 func _make_compact_layout(group: Array) -> Array:
-    # Five attached buildings form a compact open-courtyard U:
-    # three continuous buildings on the outer side and two on the opposite corners.
-    # The center remains empty as the courtyard/entrance. Doors face outward.
+    # Five buildings form a perimeter U: three continuous on the rear edge,
+    # one on each side. Side doors face outward; the courtyard remains open.
     var layout: Array = []
-    var top_widths = [float(group[0]["width"]), float(group[1]["width"]), float(group[2]["width"])]
-    var top_depths = [float(group[0]["depth"]), float(group[1]["depth"]), float(group[2]["depth"])]
-    var x0 = -(top_widths[0] + top_widths[1] + top_widths[2]) * 0.5 + top_widths[0] * 0.5
-    var x1 = x0 + top_widths[0] * 0.5 + top_widths[1] * 0.5
-    var x2 = x1 + top_widths[1] * 0.5 + top_widths[2] * 0.5
-    var top_outer_depth = maxf(top_depths[0], maxf(top_depths[1], top_depths[2]))
+    if group.size() < 5:
+        return layout
 
-    var top_z = -top_outer_depth * 0.5
-    layout.append({"candidate":group[0], "offset":Vector3(x0, 0.0, top_z + (top_outer_depth - top_depths[0]) * 0.5), "rotation":0.0, "slot":0})
-    layout.append({"candidate":group[1], "offset":Vector3(x1, 0.0, top_z + (top_outer_depth - top_depths[1]) * 0.5), "rotation":0.0, "slot":1})
-    layout.append({"candidate":group[2], "offset":Vector3(x2, 0.0, top_z + (top_outer_depth - top_depths[2]) * 0.5), "rotation":0.0, "slot":2})
+    var w0 = float(group[0]["width"])
+    var w1 = float(group[1]["width"])
+    var w2 = float(group[2]["width"])
+    var d0 = float(group[0]["depth"])
+    var d1 = float(group[1]["depth"])
+    var d2 = float(group[2]["depth"])
+    var outer_depth = maxf(d0, maxf(d1, d2))
 
-    var bottom0_d = float(group[3]["depth"])
-    var bottom1_d = float(group[4]["depth"])
-    var bottom_left_x = x0
-    var bottom_right_x = x2
-    var bottom0_z = top_z + top_depths[0] * 0.5 + bottom0_d * 0.5
-    var bottom1_z = top_z + top_depths[2] * 0.5 + bottom1_d * 0.5
-    layout.append({"candidate":group[3], "offset":Vector3(bottom_left_x, 0.0, bottom0_z), "rotation":PI, "slot":3})
-    layout.append({"candidate":group[4], "offset":Vector3(bottom_right_x, 0.0, bottom1_z), "rotation":PI, "slot":4})
+    var x0 = -(w0 + w1 + w2) * 0.5 + w0 * 0.5
+    var x1 = x0 + w0 * 0.5 + w1 * 0.5
+    var x2 = x1 + w1 * 0.5 + w2 * 0.5
+    var top_z = -outer_depth * 0.5
+
+    layout.append({"candidate":group[0], "offset":Vector3(x0, 0.0, top_z + (outer_depth - d0) * 0.5), "rotation":0.0, "slot":0})
+    layout.append({"candidate":group[1], "offset":Vector3(x1, 0.0, top_z + (outer_depth - d1) * 0.5), "rotation":0.0, "slot":1})
+    layout.append({"candidate":group[2], "offset":Vector3(x2, 0.0, top_z + (outer_depth - d2) * 0.5), "rotation":0.0, "slot":2})
+
+    # At 90 degrees the source width/depth swap in world space.
+    var left_world_w = float(group[3]["depth"])
+    var left_world_d = float(group[3]["width"])
+    var right_world_w = float(group[4]["depth"])
+    var right_world_d = float(group[4]["width"])
+    var left_x = x0 - w0 * 0.5 - left_world_w * 0.5
+    var right_x = x2 + w2 * 0.5 + right_world_w * 0.5
+    var side_z = top_z + outer_depth * 0.5 + maxf(left_world_d, right_world_d) * 0.5
+
+    layout.append({"candidate":group[3], "offset":Vector3(left_x, 0.0, side_z), "rotation":PI * 0.5, "slot":3})
+    layout.append({"candidate":group[4], "offset":Vector3(right_x, 0.0, side_z), "rotation":-PI * 0.5, "slot":4})
     return layout
+
+func _world_half_extents(width: float, depth: float, rotation_y: float) -> Vector2:
+    var quarter = fmod(absf(rotation_y), PI)
+    if absf(quarter - PI * 0.5) < 0.01:
+        return Vector2(depth * 0.5, width * 0.5)
+    return Vector2(width * 0.5, depth * 0.5)
 
 func _direct_anchor(rect: Dictionary, layout: Array, block_index: int) -> Vector3:
     var min_x = float(rect.get("min_x", 0.0))
@@ -239,12 +259,11 @@ func _direct_anchor(rect: Dictionary, layout: Array, block_index: int) -> Vector
     for item in layout:
         var c: Dictionary = item["candidate"]
         var p: Vector3 = item["offset"]
-        var hw = float(c["width"]) * 0.5
-        var hd = float(c["depth"]) * 0.5
-        local_min_x = minf(local_min_x, p.x - hw)
-        local_max_x = maxf(local_max_x, p.x + hw)
-        local_min_z = minf(local_min_z, p.z - hd)
-        local_max_z = maxf(local_max_z, p.z + hd)
+        var ext = _world_half_extents(float(c["width"]), float(c["depth"]), float(item["rotation"]))
+        local_min_x = minf(local_min_x, p.x - ext.x)
+        local_max_x = maxf(local_max_x, p.x + ext.x)
+        local_min_z = minf(local_min_z, p.y - ext.y)
+        local_max_z = maxf(local_max_z, p.y + ext.y)
 
     var anchor_min_x = min_x + ROAD_SETBACK - local_min_x
     var anchor_max_x = max_x - ROAD_SETBACK - local_max_x
@@ -260,19 +279,22 @@ func _direct_anchor(rect: Dictionary, layout: Array, block_index: int) -> Vector
 func _validate_prompt4_candidate(v37: Node, center: Vector3, width: float, depth: float, rotation_y: float, rect: Dictionary, check_overlap: bool = true) -> Dictionary:
     if not center.is_finite():
         return {"valid":false, "reason":"non_finite_position"}
-    if not _inside_urban_grid(center, width, depth):
+    if not _inside_urban_grid(center, width, depth, rotation_y):
         return {"valid":false, "reason":"outside_urban_grid_or_on_road_line"}
-    if check_overlap and _overlaps_existing(center, width, depth):
+    if check_overlap and _overlaps_existing(center, width, depth, rotation_y):
         return {"valid":false, "reason":"footprint_overlap"}
 
     var half_w = width * 0.5
     var half_d = depth * 0.5
-    var corners = [
-        Vector3(center.x - half_w, 0.0, center.z - half_d),
-        Vector3(center.x + half_w, 0.0, center.z - half_d),
-        Vector3(center.x - half_w, 0.0, center.z + half_d),
-        Vector3(center.x + half_w, 0.0, center.z + half_d)
-    ]
+    var corners = []
+    var local_corners = [Vector2(-half_w, -half_d), Vector2(half_w, -half_d), Vector2(-half_w, half_d), Vector2(half_w, half_d)]
+    var sin_r = sin(rotation_y)
+    var cos_r = cos(rotation_y)
+    for local in local_corners:
+        var rx = local.x * cos_r - local.y * sin_r
+        var rz = local.x * sin_r + local.y * cos_r
+        corners.append(Vector3(center.x + rx, 0.0, center.z + rz))
+
     var heights = []
     for corner in corners:
         var h = float(v37.sample_height(corner.x, corner.z)) if v37.has_method("sample_height") else NAN
@@ -290,7 +312,10 @@ func _validate_prompt4_candidate(v37: Node, center: Vector3, width: float, depth
     if mean_h < SUBSOIL_LIMIT:
         return {"valid":false, "reason":"subsoil_below_-5m"}
 
-    return {"valid":true, "reason":"", "mean_h":mean_h}
+    # Critical fix: the whole building footprint starts at the highest terrain
+    # corner, so no facade/door/floor can be buried by a sloping Terrain3D cell.
+    var base_h = max_h + TERRAIN_CLEARANCE
+    return {"valid":true, "reason":"", "mean_h":mean_h, "base_h":base_h, "min_h":min_h, "max_h":max_h}
 
 func _is_over_water(center: Vector3, mean_h: float) -> bool:
     var water = get_tree().current_scene.find_child("WaterPlane", true, false)
@@ -312,13 +337,14 @@ func _is_over_water(center: Vector3, mean_h: float) -> bool:
                 return true
     return water_level > -INF and mean_h <= water_level
 
-func _inside_urban_grid(center: Vector3, width: float, depth: float) -> bool:
+func _inside_urban_grid(center: Vector3, width: float, depth: float, rotation_y: float = 0.0) -> bool:
     var grid = get_parent().get_node_or_null("Urban_Grid")
     if grid == null:
         return false
     var rects: Array = grid.get_meta("lot_rects", [])
     if rects.is_empty():
         return false
+    var ext = _world_half_extents(width, depth, rotation_y)
     for rect_variant in rects:
         if not (rect_variant is Dictionary):
             continue
@@ -327,16 +353,16 @@ func _inside_urban_grid(center: Vector3, width: float, depth: float) -> bool:
         var max_x = float(rect.get("max_x", -INF))
         var min_z = float(rect.get("min_z", INF))
         var max_z = float(rect.get("max_z", -INF))
-        if center.x - width * 0.5 > min_x + 0.5 and center.x + width * 0.5 < max_x - 0.5 and center.z - depth * 0.5 > min_z + 0.5 and center.z + depth * 0.5 < max_z - 0.5:
+        if center.x - ext.x > min_x + 0.5 and center.x + ext.x < max_x - 0.5 and center.z - ext.y > min_z + 0.5 and center.z + ext.y < max_z - 0.5:
             return true
     return false
 
-func _overlaps_existing(center: Vector3, width: float, depth: float) -> bool:
+func _overlaps_existing(center: Vector3, width: float, depth: float, rotation_y: float = 0.0) -> bool:
+    var ext = _world_half_extents(width, depth, rotation_y)
     for other in placed_rects:
         var oc: Vector3 = other["center"]
-        var ow: float = float(other["width"])
-        var od: float = float(other["depth"])
-        if absf(center.x - oc.x) < (width + ow) * 0.5 - 0.01 and absf(center.z - oc.z) < (depth + od) * 0.5 - 0.01:
+        var oext = _world_half_extents(float(other["width"]), float(other["depth"]), float(other.get("rotation", 0.0)))
+        if absf(center.x - oc.x) < (ext.x + oext.x) - 0.01 and absf(center.z - oc.z) < (ext.y + oext.y) - 0.01:
             return true
     return false
 
