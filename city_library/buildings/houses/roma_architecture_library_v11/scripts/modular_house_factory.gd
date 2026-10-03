@@ -63,7 +63,11 @@ func build_mobile_by_id(id: String, variant: int = 0) -> Node3D:
     var roof_variant: int = int(variant / 10) * 10
     if posmod(variant, 2) == 1:
         roof_variant += 7
-    var root: Node3D = system.build_mobile(entry, roof_variant)
+    # Prompt 4 now uses the complete V11 architectural build instead of the
+    # lightweight shell. This preserves the existing placement/validation path
+    # while restoring facade articulation, bugnato, balconies, portico,
+    # commercial frontage, weathering, roof and interior glimpses.
+    var root: Node3D = system.build(entry, roof_variant)
     if root == null:
         return null
     if visual_variation != null:
