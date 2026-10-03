@@ -77,21 +77,21 @@ jobs:
         run: |
           .runtime/godot/godot --headless --editor --path . --quit
 
-      - name: Export probe APK only
+      - name: Export Terrain3D probe APK only
         run: |
           set -euo pipefail
           cp project.godot /tmp/project.godot.original
           trap 'cp /tmp/project.godot.original project.godot' EXIT
-          sed -i 's#run/main_scene="res://main.tscn"#run/main_scene="res://android_crash_probe.tscn"#' project.godot
+          sed -i 's#run/main_scene="res://main.tscn"#run/main_scene="res://android_terrain_probe.tscn"#' project.godot
           mkdir -p build
-          .runtime/godot/godot --headless --path . --export-debug Android build/Roma-BRT-Android-Crash-Probe.apk
-          test -s build/Roma-BRT-Android-Crash-Probe.apk
-          ls -lh build/Roma-BRT-Android-Crash-Probe.apk
+          .runtime/godot/godot --headless --path . --export-debug Android build/Roma-BRT-Android-Terrain-Probe.apk
+          test -s build/Roma-BRT-Android-Terrain-Probe.apk
+          ls -lh build/Roma-BRT-Android-Terrain-Probe.apk
 
-      - name: Upload probe APK
+      - name: Upload Terrain3D probe APK
         uses: actions/upload-artifact@v4
         with:
-          name: Roma-BRT-Android-Crash-Probe
-          path: build/Roma-BRT-Android-Crash-Probe.apk
+          name: Roma-BRT-Android-Terrain-Probe
+          path: build/Roma-BRT-Android-Terrain-Probe.apk
           if-no-files-found: error
           retention-days: 7
