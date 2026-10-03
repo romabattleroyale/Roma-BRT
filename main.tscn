@@ -1,4 +1,4 @@
-[gd_scene load_steps=9 format=3]
+[gd_scene load_steps=10 format=3]
 
 [ext_resource type="Script" path="res://terrain_runtime.gd" id="1_rt"]
 [ext_resource type="Script" path="res://viewer.gd" id="2_viewer"]
@@ -7,7 +7,7 @@
 [ext_resource type="Script" path="res://v37_integration/v37_world.gd" id="5_v37"]
 [ext_resource type="Script" path="res://debug_topdown_camera.gd" id="6_debugcam"]
 [ext_resource type="Script" path="res://urban_grid.gd" id="7_grid"]
-[ext_resource type="Script" path="res://v37_integration/prompt6_v11_587_building_pass.gd" id="8_v11"]
+[ext_resource type="Script" path="res://v37_integration/baked_city_loader.gd" id="8_baked"]
 
 [sub_resource type="Environment" id="Env"]
 background_mode = 1
@@ -42,8 +42,8 @@ enable_technical_camera = false
 [node name="Urban_Grid" type="Node3D" parent="."]
 script = ExtResource("7_grid")
 
-[node name="V11BuildingBridge" type="Node3D" parent="."]
-script = ExtResource("8_v11")
+[node name="BakedCity" type="Node3D" parent="."]
+script = ExtResource("8_baked")
 
 [node name="DebugTopDownCamera" type="Node3D" parent="."]
 script = ExtResource("6_debugcam")
@@ -84,7 +84,7 @@ offset_bottom = 205.0
 text = "ROMA HEIGHTMAP BETA — DEBUG TOP-DOWN\n\nRAW 1081×1081 • 16-bit BIG-ENDIAN\nWORLD 2000×2000 m • spacing 1.85185 m\nHEIGHT SCALE 48 m\n\nANDROID + CONTROLLER:\nStick sinistro = sposta mappa • touch meta destra = zoom/pitch • pinch = zoom"
 theme_override_font_sizes/font_size = 15
 
-[node name="Status" type="Label" parent="HUD"]
+[node name="Status" type="Label" parent="."]
 offset_left = 18.0
 offset_top = 215.0
 offset_right = 950.0
