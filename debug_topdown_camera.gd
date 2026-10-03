@@ -30,7 +30,6 @@ func _ready() -> void:
     camera.far = 6000.0
     add_child(camera)
 
-    # Collega il joystick virtuale Android direttamente a questa camera.
     var mobile := get_parent().get_node_or_null("MobileControls")
     if mobile != null and mobile.has_signal("move_changed"):
         mobile.move_changed.connect(_on_virtual_move_changed)
@@ -41,11 +40,9 @@ func _process(delta: float) -> void:
     if camera == null:
         return
 
-    # Joystick virtuale sinistro.
     if virtual_move.length_squared() > 0.0001:
         pan_from_controller(virtual_move, delta)
 
-    # Controller fisico: primo joypad connesso.
     var joypads := Input.get_connected_joypads()
     for joy_id in joypads:
         var move_x := Input.get_joy_axis(joy_id, JOY_AXIS_LEFT_X)
@@ -63,8 +60,11 @@ func _on_virtual_move_changed(value: Vector2) -> void:
 
 func pan_from_controller(move: Vector2, delta: float) -> void:
     var speed := controller_move_speed * maxf(distance / 900.0, 0.45)
+    # Correzione: stick su = mappa su, stick giu' = mappa giu'.
+    # L'asse Z della camera dall'alto richiede l'inversione rispetto al valore
+    # restituito dal joystick per mantenere il movimento visivo intuitivo.
     target.x += move.x * speed * delta
-    target.z += -move.y * speed * delta
+    target.z += move.y * speed * delta
     target.x = clampf(target.x, 0.0, map_size)
     target.z = clampf(target.z, 0.0, map_size)
     update_camera()
@@ -107,21 +107,12 @@ func _input(event: InputEvent) -> void:
             last_pinch_distance = pinch_distance
             return
 
-        # Un dito nella meta' destra: verticale = zoom, orizzontale = pitch.
         var vertical := drag.relative.y
         var horizontal := drag.relative.x
         if absf(vertical) > 0.01:
-            distance = clampf(
-                distance * pow(2.0, vertical * touch_zoom_speed / 1000.0),
-                min_distance,
-                max_distance
-            )
+            distance = clampf(distance * pow(2.0, vertical * touch_zoom_speed / 1000.0), min_distance, max_distance)
         if absf(horizontal) > 0.01:
-            pitch = clampf(
-                pitch - horizontal * touch_pitch_speed,
-                min_pitch,
-                max_pitch
-            )
+            pitch = clampf(pitch - horizontal * touch_pitch_speed, min_pitch, max_pitch)
         update_camera()
 
 func is_right_side(position: Vector2) -> bool:
