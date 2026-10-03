@@ -7,9 +7,6 @@ const LINE_THICKNESS := 0.1
 const LINE_HEIGHT := 0.04
 const LINE_COLOR := Color(0.15, 0.75, 1.0, 0.18)
 
-# Logical intersections, expressed in the existing 2000 x 2000 world.
-# The layout keeps a central historic-core network, a west-side river corridor,
-# and major north/south + east/west axes. These are planning guides only.
 const INTERSECTIONS := [
     {"id":"URB_NW", "position":Vector3(520.0, 0.0, 420.0)},
     {"id":"URB_NC", "position":Vector3(900.0, 0.0, 420.0)},
@@ -29,7 +26,6 @@ const INTERSECTIONS := [
     {"id":"URB_R_S", "position":Vector3(700.0, 0.0, 1660.0)}
 ]
 
-# Pairs of intersection IDs. Every closed loop becomes a future city block.
 const CONNECTIONS := [
     ["URB_NW", "URB_NC"], ["URB_NC", "URB_NE"],
     ["URB_W1", "URB_C1"], ["URB_C1", "URB_E1"],
@@ -44,15 +40,41 @@ const CONNECTIONS := [
     ["URB_E2", "URB_E3"]
 ]
 
+# Closed blocks delimited by the Urban_Grid road-guide lines.
+# These are logical lot rectangles only; they create no road geometry.
+const LOT_RECTS := [
+    {"id":"BLOCK_NW", "min_x":520.0, "max_x":900.0, "min_z":420.0, "max_z":760.0},
+    {"id":"BLOCK_NE", "min_x":900.0, "max_x":1390.0, "min_z":420.0, "max_z":760.0},
+    {"id":"BLOCK_W1", "min_x":520.0, "max_x":900.0, "min_z":760.0, "max_z":1080.0},
+    {"id":"BLOCK_E1", "min_x":900.0, "max_x":1390.0, "min_z":760.0, "max_z":1080.0},
+    {"id":"BLOCK_W2", "min_x":520.0, "max_x":900.0, "min_z":1080.0, "max_z":1400.0},
+    {"id":"BLOCK_E2", "min_x":900.0, "max_x":1390.0, "min_z":1080.0, "max_z":1400.0},
+    {"id":"BLOCK_W3", "min_x":520.0, "max_x":900.0, "min_z":1400.0, "max_z":1660.0},
+    {"id":"BLOCK_E3", "min_x":900.0, "max_x":1390.0, "min_z":1400.0, "max_z":1660.0}
+]
+
 var _built := false
 
 func _ready() -> void:
+    set_meta("lot_rects", LOT_RECTS)
+    set_meta("lot_sides", _build_lot_sides())
     if Engine.is_editor_hint():
         call_deferred("_build_grid")
 
 func _enter_tree() -> void:
+    set_meta("lot_rects", LOT_RECTS)
+    set_meta("lot_sides", _build_lot_sides())
     if Engine.is_editor_hint():
         call_deferred("_build_grid")
+
+func _build_lot_sides() -> Array:
+    var sides := []
+    for rect in LOT_RECTS:
+        sides.append({"ax":rect["min_x"], "az":rect["min_z"], "bx":rect["max_x"], "bz":rect["min_z"]})
+        sides.append({"ax":rect["max_x"], "az":rect["min_z"], "bx":rect["max_x"], "bz":rect["max_z"]})
+        sides.append({"ax":rect["max_x"], "az":rect["max_z"], "bx":rect["min_x"], "bz":rect["max_z"]})
+        sides.append({"ax":rect["min_x"], "az":rect["max_z"], "bx":rect["min_x"], "bz":rect["min_z"]})
+    return sides
 
 func _build_grid() -> void:
     if _built:
@@ -108,6 +130,5 @@ func _build_grid() -> void:
         if Engine.is_editor_hint():
             line.owner = get_tree().edited_scene_root
 
-    # Guides must never appear during gameplay.
     if not Engine.is_editor_hint():
         guides.visible = false
