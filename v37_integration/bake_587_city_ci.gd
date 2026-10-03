@@ -130,8 +130,6 @@ func _run() -> void:
         building_instance.set_meta("v11_variation", variation)
         building_instance.set_meta("baked_v37", true)
         city.add_child(building_instance)
-        # Only the scene-instance root belongs to the city. Its geometry remains
-        # owned by the reusable archetype PackedScene and is not duplicated here.
         building_instance.owner = city
         used[seed] = true
         placed += 1
@@ -173,11 +171,15 @@ func _build_ci_terrain() -> Node3D:
         push_error("CI BAKE 587: Terrain3D class non disponibile")
         return null
 
-    var terrain = Terrain3D.new()
+    # Instantiate by class name so the GDScript parser does not require a static
+    # Terrain3D identifier before the GDExtension registers its classes.
+    var terrain = ClassDB.instantiate("Terrain3D")
+    if terrain == null:
+        push_error("CI BAKE 587: impossibile istanziare Terrain3D")
+        return null
     terrain.name = TERRAIN_NAME
-    # Avoid static Terrain3D enum references here: the CI script can be parsed
-    # before the GDExtension registers its GDScript classes. The property accepts
-    # the documented SIZE_512 enum value (512).
+    # Avoid static Terrain3D enum references here. The property accepts the
+    # documented SIZE_512 enum value (512).
     terrain.region_size = 512
     terrain.vertex_spacing = MAP_SIZE_M / 1080.0
     terrain.mesh_lods = 7
