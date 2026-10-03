@@ -26,7 +26,7 @@ func _run() -> void:
         return
 
     var grid = scene_root.get_node_or_null("Urban_Grid")
-    var terrain = _create_editor_terrain()
+    var terrain = await _create_editor_terrain()
     if terrain == null:
         return
 
@@ -123,6 +123,8 @@ func _run() -> void:
 
         if placed % 25 == 0:
             print("BAKE 587 FIXED - piazzati: ", placed)
+        if i % 10 == 0:
+            await get_tree().process_frame
 
     var packed := PackedScene.new()
     var pack_error := packed.pack(city)
