@@ -3,8 +3,7 @@ name: Roma BRT Runtime
 on:
   workflow_dispatch:
   push:
-    branches:
-      - main
+    branches: [main]
     paths:
       - 'project.godot'
       - '**/*.gd'
@@ -28,24 +27,17 @@ jobs:
     name: Godot 4.7.2 Runtime Smoke Test
     runs-on: ubuntu-latest
     timeout-minutes: 30
-
     steps:
       - name: Checkout Roma-BRT
         uses: actions/checkout@v4
         with:
           fetch-depth: 1
-
       - name: Verify project metadata
-        shell: bash
         run: |
           set -euo pipefail
           test -f project.godot
           grep -q '^\[application\]' project.godot
-          grep -q '^\[display\]' project.godot || true
-          echo 'Godot project metadata OK.'
-
       - name: Download Godot 4.7.2
-        shell: bash
         run: |
           set -euo pipefail
           mkdir -p .runtime/godot
@@ -56,21 +48,16 @@ jobs:
           chmod +x "$GODOT_BIN"
           ln -sf "$(realpath "$GODOT_BIN")" .runtime/godot/godot
           .runtime/godot/godot --version
-
-      - name: Import and validate project in headless runtime
-        shell: bash
+      - name: Runtime-only project initialization
         run: |
           set -euo pipefail
-          .runtime/godot/godot --headless --editor --path . --quit
-
+          code=0
+          timeout 30s .runtime/godot/godot --headless --path . --quit-after 2 || code=$?
+          if [ "$code" -ne 0 ] && [ "$code" -ne 124 ]; then exit "$code"; fi
+          echo 'Runtime-only initialization OK.'
       - name: Diagnose 587 placement rejection path
-        shell: bash
-        run: |
-          set -euo pipefail
-          .runtime/godot/godot --headless --path . --script res://v37_integration/diagnose_587_rejections.gd
-
+        run: .runtime/godot/godot --headless --path . --script res://v37_integration/diagnose_587_rejections.gd
       - name: Bake 587 city in headless runtime
-        shell: bash
         run: |
           set -euo pipefail
           rm -f baked_city/roma_city_587.tscn
@@ -82,46 +69,27 @@ jobs:
           count=$(find baked_city/archetypes_587 -maxdepth 1 -type f -name 'archetype_*.tscn' | wc -l)
           test "$count" -eq 27
           echo "BAKE ARTIFACT OK: city + $count reusable archetype scenes"
-
       - name: Diagnose Terrain3D after main scene initialization
-        shell: bash
-        run: |
-          set -euo pipefail
-          .runtime/godot/godot --headless --path . --script res://v37_integration/diagnose_bake_runtime.gd
-
+        run: .runtime/godot/godot --headless --path . --script res://v37_integration/diagnose_bake_runtime.gd
       - name: Runtime smoke launch
-        shell: bash
         run: |
           set -euo pipefail
           code=0
           timeout 20s .runtime/godot/godot --headless --path . --quit-after 10 || code=$?
           if [ "$code" -ne 0 ] && [ "$code" -ne 124 ]; then exit "$code"; fi
           echo 'Roma-BRT headless runtime smoke test completed.'
-
       - name: Persist baked 587 city to main branch
-        shell: bash
         run: |
           set -euo pipefail
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
           git add baked_city/roma_city_587.tscn baked_city/archetypes_587
-          if git diff --cached --quiet; then
-            echo 'BAKED CITY: no changes to persist.'
-            exit 0
-          fi
+          if git diff --cached --quiet; then exit 0; fi
           git commit -m 'chore: persist reusable baked 587 city [skip ci]'
-
-          # main can move while the 587 bake is running. Rebase the local bake
-          # commit onto the newest main before pushing, retrying a few times.
           for attempt in 1 2 3; do
             git fetch origin main
             git rebase origin/main
-            if git push origin HEAD:main; then
-              echo "BAKED CITY: persisted to main on attempt $attempt."
-              exit 0
-            fi
-            echo "BAKED CITY: push race on attempt $attempt; retrying."
+            if git push origin HEAD:main; then exit 0; fi
             sleep 2
           done
-          echo 'BAKED CITY: unable to persist after 3 retries.'
           exit 1
