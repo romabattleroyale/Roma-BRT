@@ -29,19 +29,16 @@ func _ready() -> void:
         push_error("V11 Building Bridge: impossibile caricare house_library_adapter.gd")
         return
     adapter = adapter_resource.new()
-
     variation_script = load(VARIATION_SCRIPT)
     if variation_script == null:
         push_error("V11 Building Bridge: impossibile caricare building_variation.gd")
         return
-
     water_ray = RayCast3D.new()
     water_ray.name = "WaterValidationRayCast3D"
     water_ray.enabled = true
     water_ray.collide_with_bodies = true
     water_ray.collide_with_areas = true
     add_child(water_ray)
-
     call_deferred("_wait_for_v37")
 
 func _wait_for_v37() -> void:
@@ -59,28 +56,19 @@ func _build_library(v37: Node) -> void:
     if not adapter.initialize():
         push_warning("V11 Building Bridge: City Library V11 non inizializzabile")
         return
-
     var city_root = v37.get("city_root") as Node3D
     var map_data = v37.get("map_data") as Dictionary
     var buildings: Array = map_data.get("city", {}).get("buildings", [])
     var limit = min(TEST_COUNT, buildings.size())
-
     var candidates: Array = []
     for i in range(limit):
         var data: Dictionary = buildings[i]
         var size: Dictionary = data.get("size", {})
-        candidates.append({
-            "index": i,
-            "data": data,
-            "width": maxf(6.0, float(size.get("x", 10.0))),
-            "depth": maxf(6.0, float(size.get("z", 10.0))),
-            "variation": variation_script.call("variation_for", i, int(i / 4))
-        })
+        candidates.append({"index": i, "data": data, "width": maxf(6.0, float(size.get("x", 10.0))), "depth": maxf(6.0, float(size.get("z", 10.0))), "variation": variation_script.call("variation_for", i, int(i / 4))})
 
     var placed = 0
     var blocks = _urban_lot_rects()
     var block_count = min(blocks.size(), int(ceil(float(limit) / 5.0)))
-
     for block_index in range(block_count):
         var group: Array = []
         var first = block_index * 5
@@ -89,15 +77,12 @@ func _build_library(v37: Node) -> void:
             group.append(candidates[i])
         if group.is_empty():
             continue
-
         var rect: Dictionary = blocks[block_index]
         var layout = _make_compact_layout(group)
         var anchor = _direct_anchor(rect, layout, block_index)
         var valid_group = 0
-
         for item in layout:
             await _android_yield()
-
             var candidate: Dictionary = item["candidate"]
             var index: int = int(candidate["index"])
             var data: Dictionary = candidate["data"]
@@ -108,7 +93,6 @@ func _build_library(v37: Node) -> void:
             var center: Vector3 = anchor + item["offset"]
             center.y = 0.0
             var rotation_y: float = float(item["rotation"])
-
             if used_seeds.has(seed):
                 _reject(index, "duplicate_seed")
                 continue
@@ -118,14 +102,10 @@ func _build_library(v37: Node) -> void:
             if not _inside_urban_grid(center, width, depth, rotation_y):
                 _reject(index, "outside_urban_grid_or_on_road_line")
                 continue
-
             var validation = _validate_prompt4_candidate(v37, center, width, depth, rotation_y, rect)
             if not validation["valid"]:
                 _reject(index, str(validation["reason"]))
                 continue
-
-            # Use the highest footprint corner as the base plane. This prevents the
-            # lower side of a building from being buried when the terrain slopes.
             var base_h: float = float(validation["base_h"])
             var style = str(data.get("style", ""))
             var building = adapter.build_for_footprint(width, depth, Vector3(center.x, 0.0, center.z), base_h, style, index, rotation_y)
@@ -134,12 +114,10 @@ func _build_library(v37: Node) -> void:
             if building == null:
                 _reject(index, "library_build_failed")
                 continue
-
             if not building.position.is_finite():
                 building.queue_free()
                 _reject(index, "non_finite_building_transform")
                 continue
-
             building.name = str(data.get("id", "V11Building_%03d" % index))
             building.set_meta("v11_seed", seed)
             building.set_meta("v11_variation", variation)
@@ -154,21 +132,13 @@ func _build_library(v37: Node) -> void:
             building.position.y = base_h
             building.rotation.y = rotation_y
             city_root.add_child(building)
-
-            placed_rects.append({
-                "center": center,
-                "width": width,
-                "depth": depth,
-                "rotation": rotation_y,
-                "block": block_index
-            })
+            placed_rects.append({"center": center, "width": width, "depth": depth, "rotation": rotation_y, "block": block_index})
             used_seeds[seed] = true
             used_archetypes[int(variation["archetype_index"])] = true
             valid_group += 1
             placed += 1
             print("PROMPT 4 — piazzato #", index + 1, " id=", building.name, " block=", rect.get("id", ""), " slot=", item["slot"], " seed=", seed, " archetype=", variation["archetype_index"], " pos=", center, " base_y=", base_h)
             await _android_yield()
-
         print("PROMPT 4 — ", rect.get("id", "BLOCK_%02d" % block_index), " edifici compatti: ", valid_group, " / ", group.size())
 
     built = true
@@ -192,24 +162,12 @@ func _urban_lot_rects() -> Array:
         var rects: Array = grid.get_meta("lot_rects", [])
         if not rects.is_empty():
             return rects
-    return [
-        {"id":"BLOCK_NW", "min_x":520.0, "max_x":900.0, "min_z":420.0, "max_z":760.0},
-        {"id":"BLOCK_NE", "min_x":900.0, "max_x":1390.0, "min_z":420.0, "max_z":760.0},
-        {"id":"BLOCK_W1", "min_x":520.0, "max_x":900.0, "min_z":760.0, "max_z":1080.0},
-        {"id":"BLOCK_E1", "min_x":900.0, "max_x":1390.0, "min_z":760.0, "max_z":1080.0},
-        {"id":"BLOCK_W2", "min_x":520.0, "max_x":900.0, "min_z":1080.0, "max_z":1400.0},
-        {"id":"BLOCK_E2", "min_x":900.0, "max_x":1390.0, "min_z":1080.0, "max_z":1400.0},
-        {"id":"BLOCK_W3", "min_x":520.0, "max_x":900.0, "min_z":1400.0, "max_z":1660.0},
-        {"id":"BLOCK_E3", "min_x":900.0, "max_x":1390.0, "min_z":1400.0, "max_z":1660.0}
-    ]
+    return [{"id":"BLOCK_NW", "min_x":520.0, "max_x":900.0, "min_z":420.0, "max_z":760.0}, {"id":"BLOCK_NE", "min_x":900.0, "max_x":1390.0, "min_z":420.0, "max_z":760.0}, {"id":"BLOCK_W1", "min_x":520.0, "max_x":900.0, "min_z":760.0, "max_z":1080.0}, {"id":"BLOCK_E1", "min_x":900.0, "max_x":1390.0, "min_z":760.0, "max_z":1080.0}, {"id":"BLOCK_W2", "min_x":520.0, "max_x":900.0, "min_z":1080.0, "max_z":1400.0}, {"id":"BLOCK_E2", "min_x":900.0, "max_x":1390.0, "min_z":1080.0, "max_z":1400.0}, {"id":"BLOCK_W3", "min_x":520.0, "max_x":900.0, "min_z":1400.0, "max_z":1660.0}, {"id":"BLOCK_E3", "min_x":900.0, "max_x":1390.0, "min_z":1400.0, "max_z":1660.0}]
 
 func _make_compact_layout(group: Array) -> Array:
-    # Five buildings form a perimeter U: three continuous on the rear edge,
-    # one on each side. Side doors face outward; the courtyard remains open.
     var layout: Array = []
     if group.size() < 5:
         return layout
-
     var w0 = float(group[0]["width"])
     var w1 = float(group[1]["width"])
     var w2 = float(group[2]["width"])
@@ -217,17 +175,13 @@ func _make_compact_layout(group: Array) -> Array:
     var d1 = float(group[1]["depth"])
     var d2 = float(group[2]["depth"])
     var outer_depth = maxf(d0, maxf(d1, d2))
-
     var x0 = -(w0 + w1 + w2) * 0.5 + w0 * 0.5
     var x1 = x0 + w0 * 0.5 + w1 * 0.5
     var x2 = x1 + w1 * 0.5 + w2 * 0.5
     var top_z = -outer_depth * 0.5
-
     layout.append({"candidate":group[0], "offset":Vector3(x0, 0.0, top_z + (outer_depth - d0) * 0.5), "rotation":0.0, "slot":0})
     layout.append({"candidate":group[1], "offset":Vector3(x1, 0.0, top_z + (outer_depth - d1) * 0.5), "rotation":0.0, "slot":1})
     layout.append({"candidate":group[2], "offset":Vector3(x2, 0.0, top_z + (outer_depth - d2) * 0.5), "rotation":0.0, "slot":2})
-
-    # At 90 degrees the source width/depth swap in world space.
     var left_world_w = float(group[3]["depth"])
     var left_world_d = float(group[3]["width"])
     var right_world_w = float(group[4]["depth"])
@@ -235,7 +189,6 @@ func _make_compact_layout(group: Array) -> Array:
     var left_x = x0 - w0 * 0.5 - left_world_w * 0.5
     var right_x = x2 + w2 * 0.5 + right_world_w * 0.5
     var side_z = top_z + outer_depth * 0.5 + maxf(left_world_d, right_world_d) * 0.5
-
     layout.append({"candidate":group[3], "offset":Vector3(left_x, 0.0, side_z), "rotation":PI * 0.5, "slot":3})
     layout.append({"candidate":group[4], "offset":Vector3(right_x, 0.0, side_z), "rotation":-PI * 0.5, "slot":4})
     return layout
@@ -251,7 +204,6 @@ func _direct_anchor(rect: Dictionary, layout: Array, block_index: int) -> Vector
     var max_x = float(rect.get("max_x", 0.0))
     var min_z = float(rect.get("min_z", 0.0))
     var max_z = float(rect.get("max_z", 0.0))
-
     var local_min_x = INF
     var local_max_x = -INF
     var local_min_z = INF
@@ -262,16 +214,14 @@ func _direct_anchor(rect: Dictionary, layout: Array, block_index: int) -> Vector
         var ext = _world_half_extents(float(c["width"]), float(c["depth"]), float(item["rotation"]))
         local_min_x = minf(local_min_x, p.x - ext.x)
         local_max_x = maxf(local_max_x, p.x + ext.x)
-        local_min_z = minf(local_min_z, p.y - ext.y)
-        local_max_z = maxf(local_max_z, p.y + ext.y)
-
+        local_min_z = minf(local_min_z, p.z - ext.y)
+        local_max_z = maxf(local_max_z, p.z + ext.y)
     var anchor_min_x = min_x + ROAD_SETBACK - local_min_x
     var anchor_max_x = max_x - ROAD_SETBACK - local_max_x
     var anchor_min_z = min_z + ROAD_SETBACK - local_min_z
     var anchor_max_z = max_z - ROAD_SETBACK - local_max_z
     if anchor_max_x < anchor_min_x or anchor_max_z < anchor_min_z:
         return Vector3(NAN, 0.0, NAN)
-
     var target_x = anchor_max_x if block_index % 2 == 0 else anchor_min_x
     var target_z = (anchor_min_z + anchor_max_z) * 0.5
     return Vector3(target_x, 0.0, target_z)
@@ -283,7 +233,6 @@ func _validate_prompt4_candidate(v37: Node, center: Vector3, width: float, depth
         return {"valid":false, "reason":"outside_urban_grid_or_on_road_line"}
     if check_overlap and _overlaps_existing(center, width, depth, rotation_y):
         return {"valid":false, "reason":"footprint_overlap"}
-
     var half_w = width * 0.5
     var half_d = depth * 0.5
     var corners = []
@@ -294,14 +243,12 @@ func _validate_prompt4_candidate(v37: Node, center: Vector3, width: float, depth
         var rx = local.x * cos_r - local.y * sin_r
         var rz = local.x * sin_r + local.y * cos_r
         corners.append(Vector3(center.x + rx, 0.0, center.z + rz))
-
     var heights = []
     for corner in corners:
         var h = float(v37.sample_height(corner.x, corner.z)) if v37.has_method("sample_height") else NAN
         if not is_finite(h):
             return {"valid":false, "reason":"non_finite_terrain_height"}
         heights.append(h)
-
     var min_h = heights.min()
     var max_h = heights.max()
     var mean_h = (heights[0] + heights[1] + heights[2] + heights[3]) * 0.25
@@ -311,9 +258,6 @@ func _validate_prompt4_candidate(v37: Node, center: Vector3, width: float, depth
         return {"valid":false, "reason":"slope_gt_2m"}
     if mean_h < SUBSOIL_LIMIT:
         return {"valid":false, "reason":"subsoil_below_-5m"}
-
-    # Critical fix: the whole building footprint starts at the highest terrain
-    # corner, so no facade/door/floor can be buried by a sloping Terrain3D cell.
     var base_h = max_h + TERRAIN_CLEARANCE
     return {"valid":true, "reason":"", "mean_h":mean_h, "base_h":base_h, "min_h":min_h, "max_h":max_h}
 
@@ -322,7 +266,6 @@ func _is_over_water(center: Vector3, mean_h: float) -> bool:
     var water_level = -INF
     if water != null:
         water_level = float(water.global_position.y)
-
     water_ray.global_position = Vector3(center.x, maxf(mean_h + 100.0, 100.0), center.z)
     water_ray.target_position = Vector3(0.0, minf(mean_h - 100.0, -100.0) - water_ray.global_position.y, 0.0)
     water_ray.force_raycast_update()
