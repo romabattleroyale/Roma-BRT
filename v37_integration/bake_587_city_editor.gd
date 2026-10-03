@@ -1,7 +1,7 @@
 @tool
 extends SceneTree
 ## FIXED 587 bake runner.
-## Supports both headless CI and editor invocation through the same bake body.
+## Supports headless CI and editor invocation through the same bake body.
 ## Does not change Terrain3D, Tevere, roads, or V11 aesthetics.
 
 const EDITOR_SYSTEM_SCRIPT := "res://city_library/buildings/houses/roma_architecture_library_v11/scripts/editor_library_building_system.gd"
@@ -12,7 +12,6 @@ const TERRAIN_NAME := "Terrain3D_HEIGHTMAP_2000x2000"
 const MAX_SLOPE_DELTA := 2.0
 const SUBSOIL_LIMIT := -5.0
 const SAFETY_CORRIDOR := 2.0
-const GRID_SETBACK := 10.0
 
 func _init() -> void:
     if not Engine.is_editor_hint():
@@ -92,13 +91,9 @@ func _run_with_root(root: Node) -> void:
         if not is_finite(x) or not is_finite(z):
             rejected += 1
             continue
-        var source_w := maxf(6.0, float(d.get("sx", 10.0)))
-        var source_d := maxf(6.0, float(d.get("sz", 10.0)))
-        var block := _find_block(x, z, root)
-        if block.is_empty():
-            rejected += 1
-            continue
-        var block_index := int(block.get("index", 0))
+        # V37 positions are authoritative. Urban_Grid LOT_RECTS are diagnostic/test
+        # geometry and must not reject valid source positions.
+        var block_index := int(i / 4)
         var variation: Dictionary = variation_script.call("variation_for", i, block_index)
         var seed := int(variation.get("seed", i))
         if used_seeds.has(seed):
@@ -106,12 +101,9 @@ func _run_with_root(root: Node) -> void:
             continue
         var ai := posmod(int(variation.get("archetype_index", i)), catalog.size())
         var entry: Dictionary = catalog[ai]
-        var width := maxf(6.0, float(entry.get("w", source_w)))
-        var depth := maxf(6.0, float(entry.get("d", source_d)))
+        var width := maxf(6.0, float(entry.get("w", d.get("sx", 10.0))))
+        var depth := maxf(6.0, float(entry.get("d", d.get("sz", 10.0))))
         var center := Vector3(x, 0.0, z)
-        if not _inside_block(center, width, depth, block):
-            rejected += 1
-            continue
         if _overlaps(center, width, depth, placed_rects):
             rejected += 1
             continue
@@ -215,21 +207,6 @@ func _corner_heights(terrain: Node, data, c: Vector3, w: float, d: float) -> Arr
     for p in points:
         result.append(_terrain_height(terrain, data, p.x, p.z))
     return result
-
-func _find_block(x: float, z: float, root: Node) -> Dictionary:
-    var grid := root.get_node_or_null("Urban_Grid")
-    if grid != null and grid.has_meta("lot_rects"):
-        var rects = grid.get_meta("lot_rects")
-        for i in range(rects.size()):
-            var r = rects[i]
-            if x >= float(r["min_x"]) and x <= float(r["max_x"]) and z >= float(r["min_z"]) and z <= float(r["max_z"]):
-                var copy = r.duplicate(true)
-                copy["index"] = i
-                return copy
-    return {}
-
-func _inside_block(c: Vector3, w: float, d: float, r: Dictionary) -> bool:
-    return c.x >= float(r["min_x"]) + GRID_SETBACK + w * 0.5 and c.x <= float(r["max_x"]) - GRID_SETBACK - w * 0.5 and c.z >= float(r["min_z"]) + GRID_SETBACK + d * 0.5 and c.z <= float(r["max_z"]) - GRID_SETBACK - d * 0.5
 
 func _overlaps(c: Vector3, w: float, d: float, rects: Array) -> bool:
     for r in rects:
