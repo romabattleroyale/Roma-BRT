@@ -10,7 +10,9 @@ const MAX_SLOPE_DELTA = 2.0
 const SUBSOIL_LIMIT = -5.0
 const ROAD_SETBACK = 10.0
 const SAFETY_CORRIDOR = 2.0
-const BATCH_PAUSE_FRAMES = 2
+const BATCH_PAUSE_FRAMES = 6
+const POST_BUILD_PAUSE_FRAMES = 10
+const START_DELAY_FRAMES = 30
 const TERRAIN_CLEARANCE = 0.10
 
 var adapter = null
@@ -44,6 +46,7 @@ func _wait_for_v37() -> void:
     for _i in range(600):
         var v37 = get_parent().get_node_or_null("V37Integration")
         if v37 != null and v37.get("city_root") != null and not (v37.get("map_data") as Dictionary).is_empty():
+            await _android_yield(START_DELAY_FRAMES)
             await _build_library(v37)
             return
         await get_tree().create_timer(0.1).timeout
@@ -60,6 +63,7 @@ func _build_library(v37: Node) -> void:
     var catalog: Array[Dictionary] = adapter.factory.get_catalog()
     var library_archetypes: int = catalog.size()
     print("PROMPT 4 — V11 ARCHETIPI CARICATI: ", library_archetypes, " (attesi 24)")
+    print("PROMPT 4 — ANDROID OPT: start delay=", START_DELAY_FRAMES, " frame, pausa=", BATCH_PAUSE_FRAMES, " + post-build=", POST_BUILD_PAUSE_FRAMES, " frame")
 
     var candidates: Array = []
     for i in range(limit):
@@ -96,7 +100,7 @@ func _build_library(v37: Node) -> void:
         var valid_group: int = 0
 
         for item in layout:
-            await _android_yield()
+            await _android_yield(BATCH_PAUSE_FRAMES)
             var candidate: Dictionary = item["candidate"]
             var index: int = int(candidate["index"])
             var variation: Dictionary = candidate["variation"]
@@ -149,7 +153,7 @@ func _build_library(v37: Node) -> void:
             placed += 1
             block_counts[block_id] = int(block_counts.get(block_id, 0)) + 1
             print("PROMPT 4 — PIAZZATO #", index + 1, " block=", block_id, " slot=", item["slot"], " archetype=", candidate["archetype"], " id=", candidate["catalog_id"], " colore=", variation["facade_color"], " altezza=", variation["height_floors"])
-            await _android_yield()
+            await _android_yield(POST_BUILD_PAUSE_FRAMES)
         print("PROMPT 4 — ISOLATO ", block_id, ": ", valid_group, " / 5 edifici")
 
     built = true
@@ -166,8 +170,9 @@ func _build_library(v37: Node) -> void:
         print("PROMPT 4 — ", block_id, " = ", block_counts[block_id], " edifici")
     print("PROMPT 4 — MOTIVI SCARTO: ", rejection_counts)
 
-func _android_yield() -> void:
-    for _i in range(BATCH_PAUSE_FRAMES):
+func _android_yield(frames: int = BATCH_PAUSE_FRAMES) -> void:
+    var safe_frames: int = maxi(1, frames)
+    for _i in range(safe_frames):
         await get_tree().process_frame
 
 func _urban_lot_rects() -> Array:
