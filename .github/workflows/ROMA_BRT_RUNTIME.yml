@@ -63,6 +63,12 @@ jobs:
           set -euo pipefail
           .runtime/godot/godot --headless --editor --path . --quit
 
+      - name: Diagnose 587 placement rejection path
+        shell: bash
+        run: |
+          set -euo pipefail
+          .runtime/godot/godot --headless --path . --script res://v37_integration/diagnose_587_rejections.gd
+
       - name: Bake 587 city in headless runtime
         shell: bash
         run: |
