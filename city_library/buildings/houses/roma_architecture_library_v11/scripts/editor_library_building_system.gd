@@ -1,5 +1,5 @@
 @tool
-extends RomaLibraryBuildingSystem
+extends "res://city_library/buildings/houses/roma_architecture_library_v11/scripts/library_building_system.gd"
 class_name RomaEditorLibraryBuildingSystem
 
 # Tool-only wrapper used by the one-time editor bake.
