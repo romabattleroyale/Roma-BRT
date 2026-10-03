@@ -89,6 +89,15 @@ jobs:
           set -euo pipefail
           .runtime/godot/godot --headless --path . --script res://v37_integration/diagnose_bake_runtime.gd
 
+      - name: Runtime smoke launch
+        shell: bash
+        run: |
+          set -euo pipefail
+          code=0
+          timeout 20s .runtime/godot/godot --headless --path . --quit-after 10 || code=$?
+          if [ "$code" -ne 0 ] && [ "$code" -ne 124 ]; then exit "$code"; fi
+          echo 'Roma-BRT headless runtime smoke test completed.'
+
       - name: Persist baked 587 city to main branch
         shell: bash
         run: |
@@ -98,18 +107,21 @@ jobs:
           git add baked_city/roma_city_587.tscn baked_city/archetypes_587
           if git diff --cached --quiet; then
             echo 'BAKED CITY: no changes to persist.'
-          else
-            git commit -m 'chore: persist reusable baked 587 city [skip ci]'
-            git push origin HEAD:main
-            echo 'BAKED CITY: persisted to main.'
+            exit 0
           fi
+          git commit -m 'chore: persist reusable baked 587 city [skip ci]'
 
-      - name: Runtime smoke launch
-        shell: bash
-        run: |
-          set -euo pipefail
-          timeout 20s .runtime/godot/godot --headless --path . --quit-after 10 || code=$?
-          if [ "${code:-0}" -ne 0 ] && [ "${code:-0}" -ne 124 ]; then exit "$code"; fi
-          echo 'Roma-BRT headless runtime smoke test completed.'
-
-# Runtime verification after the Terrain3D enum compatibility patch.
+          # main can move while the 587 bake is running. Rebase the local bake
+          # commit onto the newest main before pushing, retrying a few times.
+          for attempt in 1 2 3; do
+            git fetch origin main
+            git rebase origin/main
+            if git push origin HEAD:main; then
+              echo "BAKED CITY: persisted to main on attempt $attempt."
+              exit 0
+            fi
+            echo "BAKED CITY: push race on attempt $attempt; retrying."
+            sleep 2
+          done
+          echo 'BAKED CITY: unable to persist after 3 retries.'
+          exit 1
