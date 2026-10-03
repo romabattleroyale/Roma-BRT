@@ -55,7 +55,7 @@ jobs:
           set -euo pipefail
           rm -f baked_city/roma_city_587.tscn
           rm -rf baked_city/archetypes_587
-          .runtime/godot/godot --headless --path . --script res://v37_integration/bake_587_city_ci.gd
+          .runtime/godot/godot --headless --verbose --terrain3d-debug=INFO --path . --script res://v37_integration/bake_587_city_ci.gd
           test -f baked_city/roma_city_587.tscn
           test "$(stat -c%s baked_city/roma_city_587.tscn)" -gt 1000
           test -d baked_city/archetypes_587
