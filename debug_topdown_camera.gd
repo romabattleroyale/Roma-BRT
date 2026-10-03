@@ -2,6 +2,7 @@ extends Node3D
 ## Debug camera dall'alto per ispezionare la mappa Roma-BRT.
 ## Android: 1 dito = ruota, 2 dita = pan + pinch zoom.
 ## PC: RMB = ruota, MMB = pan, rotella = zoom.
+## Controller: stick sinistro = ruota la mappa, stick destro verticale = zoom.
 
 @export var map_size := 2000.0
 @export var target := Vector3(1000.0, 0.0, 1000.0)
@@ -12,6 +13,8 @@ extends Node3D
 @export var pitch := -1.22
 @export var rotate_speed := 0.008
 @export var zoom_speed := 0.0025
+@export var controller_rotate_speed := 2.2
+@export var controller_zoom_speed := 2.0
 @export var pan_speed := 1.2
 
 var camera: Camera3D
@@ -32,6 +35,23 @@ func _ready() -> void:
     add_child(camera)
     update_camera()
 
+func _process(delta: float) -> void:
+    if camera == null:
+        return
+
+    # Controller: stick sinistro ruota la mappa.
+    var rotate_axis := Input.get_joy_axis(0, JOY_AXIS_LEFT_X)
+    if absf(rotate_axis) > 0.12:
+        yaw -= rotate_axis * controller_rotate_speed * delta
+        update_camera()
+
+    # Controller: stick destro verticale gestisce lo zoom in/out.
+    var zoom_axis := Input.get_joy_axis(0, JOY_AXIS_RIGHT_Y)
+    if absf(zoom_axis) > 0.12:
+        var zoom_factor := pow(2.0, zoom_axis * controller_zoom_speed * delta)
+        distance = clampf(distance * zoom_factor, min_distance, max_distance)
+        update_camera()
+
 func _unhandled_input(event: InputEvent) -> void:
     if camera == null:
         return
@@ -39,10 +59,10 @@ func _unhandled_input(event: InputEvent) -> void:
     if event is InputEventMouseButton:
         var mouse := event as InputEventMouseButton
         if mouse.button_index == MOUSE_BUTTON_WHEEL_UP and mouse.pressed:
-            distance = maxf(min_distance, distance * 0.88)
+            distance = clampf(distance * 0.82, min_distance, max_distance)
             update_camera()
         elif mouse.button_index == MOUSE_BUTTON_WHEEL_DOWN and mouse.pressed:
-            distance = minf(max_distance, distance / 0.88)
+            distance = clampf(distance * 1.22, min_distance, max_distance)
             update_camera()
         elif mouse.button_index == MOUSE_BUTTON_RIGHT:
             dragging_rotate = mouse.pressed
@@ -94,7 +114,8 @@ func _unhandled_input(event: InputEvent) -> void:
                 pan_camera(center - last_touch_center)
             if last_pinch_distance > 0.0:
                 var pinch_delta := pinch_distance - last_pinch_distance
-                distance = clampf(distance * (1.0 - pinch_delta * zoom_speed), min_distance, max_distance)
+                var pinch_factor := clampf(1.0 - pinch_delta * zoom_speed, 0.70, 1.30)
+                distance = clampf(distance * pinch_factor, min_distance, max_distance)
                 update_camera()
             last_touch_center = center
             last_pinch_distance = pinch_distance
@@ -117,5 +138,7 @@ func update_camera() -> void:
     var vertical := -sin(pitch) * distance
     var offset := Vector3(sin(yaw) * horizontal, vertical, cos(yaw) * horizontal)
     camera.position = target + offset
-    camera.size = clampf(distance * 1.2, 120.0, 3200.0)
+    # Zoom ortografico stabile: la distanza della camera e la dimensione
+    # della vista cambiano insieme, evitando lo zoom debole/irregolare.
+    camera.size = clampf(distance * 0.95, 110.0, 3000.0)
     camera.look_at(target, Vector3.UP)
