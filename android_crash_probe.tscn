@@ -1,0 +1,27 @@
+[gd_scene load_steps=3 format=3]
+
+[sub_resource type="Environment" id="Environment_probe"]
+background_mode = 1
+background_color = Color(0.43, 0.58, 0.68, 1)
+ambient_light_source = 3
+ambient_light_energy = 1.0
+
+[sub_resource type="LabelSettings" id="LabelSettings_probe"]
+font_size = 32
+
+[node name="AndroidCrashProbe" type="Node3D"]
+
+[node name="WorldEnvironment" type="WorldEnvironment" parent="."]
+environment = SubResource("Environment_probe")
+
+[node name="Camera3D" type="Camera3D" parent="."]
+position = Vector3(0, 2, 6)
+current = true
+
+[node name="Label" type="Label" parent="."]
+offset_left = 40.0
+offset_top = 40.0
+offset_right = 800.0
+offset_bottom = 100.0
+text = "ANDROID CRASH PROBE — GODOT 4.7.2"
+label_settings = SubResource("LabelSettings_probe")
