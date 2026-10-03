@@ -83,7 +83,8 @@ jobs:
                   n=n.replace('\\','/')
                   if n.startswith('/') or '..' in n.split('/'):
                       raise SystemExit(f'Unsafe ZIP path: {n}')
-                  if not z.getinfo(n).is_dir() and z.getinfo(n).file_size > 90*1024*1024:
+                  info=z.getinfo(n)
+                  if not info.is_dir() and info.file_size > 90*1024*1024:
                       raise SystemExit(f'File exceeds 90 MiB: {n}')
           PY
 
@@ -145,7 +146,7 @@ jobs:
           find "$ROOT" -maxdepth 2 -type f | sort | head -80
 
       - name: Install into City Library
-        if: ${{ !inputs.dry_run }}
+        if: '${{ !inputs.dry_run }}'
         env:
           ROOT: ${{ steps.validate.outputs.root }}
           DEST: ${{ steps.validate.outputs.destination }}
@@ -156,7 +157,7 @@ jobs:
           rm -rf .library_ingest
 
       - name: Commit library package
-        if: ${{ !inputs.dry_run }}
+        if: '${{ !inputs.dry_run }}'
         env:
           DEST: ${{ steps.validate.outputs.destination }}
         run: |
@@ -169,5 +170,5 @@ jobs:
           git push
 
       - name: Dry-run notice
-        if: ${{ inputs.dry_run }}
+        if: '${{ inputs.dry_run }}'
         run: echo 'DRY RUN: package validated; repository was not modified.'
