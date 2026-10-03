@@ -124,7 +124,7 @@ func _run() -> void:
         if placed % 25 == 0:
             print("BAKE 587 FIXED - piazzati: ", placed)
         if i % 10 == 0:
-            await get_tree().process_frame
+            await _editor_frame()
 
     var packed := PackedScene.new()
     var pack_error := packed.pack(city)
@@ -147,6 +147,11 @@ func _run() -> void:
     print("BAKE 587 FIXED - COMPLETATO | sorgente=", source.size(), " piazzati=", placed, " scartati=", rejected)
     print("BAKE 587 FIXED - scena: ", OUTPUT_SCENE)
 
+func _editor_frame() -> void:
+    var tree := Engine.get_main_loop() as SceneTree
+    if tree != null:
+        await tree.process_frame
+
 func _create_editor_terrain() -> Node:
     if not ClassDB.class_exists("Terrain3D"):
         push_error("BAKE 587: Terrain3D/GDExtension non disponibile nell'editor")
@@ -165,8 +170,12 @@ func _create_editor_terrain() -> Node:
     if assets:
         terrain.assets = assets
 
-    get_scene_root().add_child(terrain, true)
-    await get_tree().process_frame
+    var scene_root = EditorInterface.get_edited_scene_root()
+    if scene_root == null:
+        push_error("BAKE 587: scena editor non disponibile")
+        return null
+    scene_root.add_child(terrain, true)
+    await _editor_frame()
 
     if terrain.data == null:
         push_error("BAKE 587: Terrain3D Data non inizializzato")
@@ -210,9 +219,6 @@ func _create_editor_terrain() -> Node:
     terrain.data.calc_height_range(true)
     print("BAKE 587 FIXED - Terrain3D temporaneo pronto | height=", terrain.data.get_height_range())
     return terrain
-
-func get_scene_root() -> Node:
-    return EditorInterface.get_edited_scene_root()
 
 func _terrain_height(terrain: Node, x: float, z: float) -> float:
     if terrain.has_method("get_height"):
