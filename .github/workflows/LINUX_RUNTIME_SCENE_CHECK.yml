@@ -2,6 +2,19 @@ name: Linux Runtime Scene Check
 
 on:
   workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/LINUX_RUNTIME_SCENE_CHECK.yml'
+      - 'project.godot'
+      - 'main.tscn'
+      - '**/*.gd'
+      - '**/*.tscn'
+      - '**/*.tres'
+      - 'assets/heightmap.raw'
+      - 'baked_city/**'
+      - 'addons/terrain_3d/**'
+      - 'terrain_materials/**'
 
 permissions:
   contents: read
@@ -65,6 +78,7 @@ jobs:
           if kill -0 "$GAME_PID" 2>/dev/null; then
             echo 'FULL SCENE PROCESS STILL RUNNING AFTER 20s'
             GAME_ALIVE=1
+            GAME_EXIT=0
           else
             wait "$GAME_PID"
             GAME_EXIT=$?
