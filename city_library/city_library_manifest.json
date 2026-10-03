@@ -1,0 +1,22 @@
+{
+  "library": "RomaCityLibrary",
+  "engine": "Godot 4.7.2",
+  "target": "Android",
+  "categories": {
+    "houses": "res://city_library/buildings/houses/",
+    "palazzi": "res://city_library/buildings/palazzi/",
+    "architecture": "res://city_library/architecture/",
+    "roads": "res://city_library/roads/",
+    "poi": "res://city_library/poi/",
+    "interiors": "res://city_library/interiors/",
+    "props": "res://city_library/props/",
+    "vegetation": "res://city_library/vegetation/",
+    "infrastructure": "res://city_library/infrastructure/"
+  },
+  "integration": {
+    "terrain3d_authoritative": true,
+    "road_generator": false,
+    "main_map_auto_replace": false,
+    "approved_assets_only": true
+  }
+}
