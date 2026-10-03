@@ -1,11 +1,17 @@
 extends SceneTree
-## CI-only bake validator. It uses the authoritative V37 positions and the existing
-## V11 editor-safe builder, but does not require the interactive Terrain3D RAW picker.
+## CI bake validator/finalizer.
+## Builds the authoritative 587 V11 buildings and places their roots on the
+## same Terrain3D heightmap used by the runtime, without opening FileDialog.
 
 const EDITOR_SYSTEM_SCRIPT := "res://city_library/buildings/houses/roma_architecture_library_v11/scripts/editor_library_building_system.gd"
 const VARIATION_SCRIPT := "res://v37_integration/building_variation.gd"
 const POSITIONS_SCRIPT := "res://v37_integration/v37_building_positions_blob.gd"
 const OUTPUT_SCENE := "res://baked_city/roma_city_587.tscn"
+const RAW_PATH := "res://assets/heightmap.raw"
+const MAP_SIZE_M := 2000.0
+const HEIGHT_SCALE_M := 48.0
+const BYTES_PER_SAMPLE := 2
+const TERRAIN_NAME := "CI_Terrain3D_Heightmap"
 
 func _init() -> void:
     call_deferred("_run")
@@ -18,25 +24,50 @@ func _run() -> void:
         push_error("CI BAKE 587: dipendenze mancanti")
         quit(1)
         return
+
+    var terrain := await _build_ci_terrain()
+    if terrain == null:
+        quit(1)
+        return
+    var terrain_data = terrain.get("data")
+    if terrain_data == null:
+        push_error("CI BAKE 587: Terrain3D data non pronta")
+        quit(1)
+        return
+
     var system = system_script.new()
     if system == null:
         push_error("CI BAKE 587: builder V11 non disponibile")
         quit(1)
         return
     system.setup_materials()
+
     var catalog := _load_catalog()
     var source: Array = positions_script.get_buildings()
     if source.size() != 587 or catalog.is_empty():
         push_error("CI BAKE 587: source=%d catalog=%d" % [source.size(), catalog.size()])
         quit(1)
         return
+
     var city := Node3D.new()
     city.name = "RomaCity_BAKED_587"
     get_root().add_child(city)
     var used := {}
     var placed := 0
+    var missing_height := 0
+
     for i in range(source.size()):
         var d: Dictionary = source[i]
+        var x := float(d.get("x", 0.0))
+        var z := float(d.get("z", 0.0))
+        var h := _terrain_height(terrain, terrain_data, x, z)
+        if not is_finite(h):
+            missing_height += 1
+            push_error("CI BAKE 587: height non valida at index=%d x=%f z=%f" % [i, x, z])
+            city.queue_free()
+            quit(1)
+            return
+
         var variation: Dictionary = variation_script.call("variation_for", i, int(i / 4))
         var seed := int(variation.get("seed", i))
         if used.has(seed):
@@ -52,8 +83,9 @@ func _run() -> void:
             city.queue_free()
             quit(1)
             return
+
         building.name = str(d.get("id", "building_%d" % (i + 1)))
-        building.position = Vector3(float(d.get("x", 0.0)), 0.0, float(d.get("z", 0.0)))
+        building.position = Vector3(x, h, z)
         building.rotation.y = 0.0
         building.set_meta("v37_source_id", building.name)
         building.set_meta("v37_source_position", building.position)
@@ -65,6 +97,13 @@ func _run() -> void:
         building.owner = city
         used[seed] = true
         placed += 1
+
+    if missing_height != 0 or placed != 587:
+        push_error("CI BAKE 587: source=%d placed=%d missing_height=%d" % [source.size(), placed, missing_height])
+        city.queue_free()
+        quit(1)
+        return
+
     var packed := PackedScene.new()
     var err := packed.pack(city)
     if err != OK:
@@ -79,9 +118,93 @@ func _run() -> void:
         city.queue_free()
         quit(1)
         return
-    print("CI BAKE 587 OK: source=587 placed=", placed, " scene=", OUTPUT_SCENE)
+
+    print("CI BAKE 587 OK: source=587 placed=587 terrain=REAL_RAW scene=", OUTPUT_SCENE)
     city.queue_free()
+    terrain.queue_free()
     quit(0)
+
+func _build_ci_terrain() -> Node3D:
+    if not ClassDB.class_exists("Terrain3D"):
+        push_error("CI BAKE 587: Terrain3D class non disponibile")
+        return null
+
+    var terrain = Terrain3D.new()
+    terrain.name = TERRAIN_NAME
+    terrain.region_size = 512
+    terrain.vertex_spacing = MAP_SIZE_M / 1080.0
+    terrain.mesh_lods = 7
+    terrain.show_checkered = false
+    terrain.show_colormap = false
+    terrain.show_grey = false
+    get_root().add_child(terrain, true)
+    await process_frame
+
+    var data = terrain.get("data")
+    if data == null:
+        push_error("CI BAKE 587: Terrain3D Data non inizializzato")
+        terrain.queue_free()
+        return null
+
+    var f := FileAccess.open(RAW_PATH, FileAccess.READ)
+    if f == null:
+        push_error("CI BAKE 587: RAW non apribile: %s" % RAW_PATH)
+        terrain.queue_free()
+        return null
+    var bytes := f.get_buffer(f.get_length())
+    f.close()
+    if bytes.size() == 0 or bytes.size() % BYTES_PER_SAMPLE != 0:
+        push_error("CI BAKE 587: RAW non valido, bytes=%d" % bytes.size())
+        terrain.queue_free()
+        return null
+
+    var samples := bytes.size() / BYTES_PER_SAMPLE
+    var side := int(sqrt(float(samples)))
+    if side * side != samples:
+        push_error("CI BAKE 587: RAW non quadrato, samples=%d" % samples)
+        terrain.queue_free()
+        return null
+
+    var values := PackedFloat32Array()
+    values.resize(samples)
+    var min_u := 65535
+    var max_u := 0
+    for i in range(samples):
+        var u := (int(bytes[i * 2]) << 8) | int(bytes[i * 2 + 1])
+        values[i] = float(u)
+        min_u = mini(min_u, u)
+        max_u = maxi(max_u, u)
+    var source_range := maxf(1.0, float(max_u - min_u))
+    for i in range(samples):
+        values[i] = clampf((values[i] - float(min_u)) / source_range, 0.0, 1.0)
+
+    var img := Image.create_from_data(side, side, false, Image.FORMAT_RF, values.to_byte_array())
+    if img == null:
+        push_error("CI BAKE 587: impossibile creare height Image")
+        terrain.queue_free()
+        return null
+
+    var maps: Array[Image]
+    maps.resize(Terrain3DRegion.TYPE_MAX)
+    maps[Terrain3DRegion.TYPE_HEIGHT] = img
+    data.import_images(maps, Vector3.ZERO, 0.0, HEIGHT_SCALE_M)
+    data.calc_height_range(true)
+    await process_frame
+
+    print("CI TERRAIN OK: RAW=", side, "x", side, " min/max=", min_u, "/", max_u, " height_scale=", HEIGHT_SCALE_M)
+    return terrain
+
+func _terrain_height(terrain: Node, data, x: float, z: float) -> float:
+    var p := Vector3(x, 0.0, z)
+    if terrain.has_method("get_height"):
+        var h := float(terrain.get_height(p))
+        if is_finite(h):
+            return h
+    if data != null and data.has_method("get_height"):
+        var h2 := float(data.get_height(p))
+        if is_finite(h2):
+            return h2
+    return NAN
 
 func _load_catalog() -> Array:
     var f := FileAccess.open("res://city_library/buildings/houses/roma_architecture_library_v11/data/building_catalog.json", FileAccess.READ)
