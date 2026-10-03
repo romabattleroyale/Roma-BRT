@@ -1,0 +1,84 @@
+name: Android Crash Probe
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build-android-probe:
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Checkout Roma-BRT
+        uses: actions/checkout@v4
+
+      - name: Set up Java 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Set up Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: Install Android SDK packages
+        run: |
+          yes | sdkmanager --licenses >/dev/null || true
+          sdkmanager 'platform-tools' 'platforms;android-35' 'build-tools;35.0.0'
+
+      - name: Download Godot 4.7.2
+        run: |
+          mkdir -p .runtime/godot
+          curl -L --fail --retry 3 -o .runtime/godot/godot.zip \
+            'https://github.com/godotengine/godot/releases/download/4.7.2-stable/Godot_v4.7.2-stable_linux.x86_64.zip'
+          unzip -q .runtime/godot/godot.zip -d .runtime/godot
+          GODOT_BIN=$(find .runtime/godot -maxdepth 2 -type f -name 'Godot_v4.7.2-stable_linux.x86_64' | head -n 1)
+          test -n "$GODOT_BIN"
+          chmod +x "$GODOT_BIN"
+          ln -sf "$(realpath "$GODOT_BIN")" .runtime/godot/godot
+          .runtime/godot/godot --version
+
+      - name: Install Godot Android export templates
+        run: |
+          mkdir -p "$HOME/.local/share/godot/export_templates/4.7.2.stable"
+          curl -L --fail --retry 3 -o /tmp/godot_templates.tpz \
+            'https://github.com/godotengine/godot/releases/download/4.7.2-stable/Godot_v4.7.2-stable_export_templates.tpz'
+          unzip -q /tmp/godot_templates.tpz -d "$HOME/.local/share/godot/export_templates/4.7.2.stable"
+          test -f "$HOME/.local/share/godot/export_templates/4.7.2.stable/templates/android_debug.apk"
+
+      - name: Prepare debug keystore
+        run: |
+          mkdir -p "$HOME/.android"
+          if [ ! -f "$HOME/.android/debug.keystore" ]; then
+            keytool -genkeypair -v \
+              -keystore "$HOME/.android/debug.keystore" \
+              -storepass android \
+              -alias androiddebugkey \
+              -keypass android \
+              -keyalg RSA -keysize 2048 -validity 10000 \
+              -dname 'CN=Android Debug,O=Android,C=US'
+          fi
+
+      - name: Import project resources
+        run: |
+          .runtime/godot/godot --headless --editor --path . --quit
+
+      - name: Export probe APK only
+        run: |
+          set -euo pipefail
+          cp project.godot /tmp/project.godot.original
+          trap 'cp /tmp/project.godot.original project.godot' EXIT
+          sed -i 's#run/main_scene="res://main.tscn"#run/main_scene="res://android_crash_probe.tscn"#' project.godot
+          mkdir -p build
+          .runtime/godot/godot --headless --path . --export-debug Android build/Roma-BRT-Android-Crash-Probe.apk
+          test -s build/Roma-BRT-Android-Crash-Probe.apk
+          ls -lh build/Roma-BRT-Android-Crash-Probe.apk
+
+      - name: Upload probe APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: Roma-BRT-Android-Crash-Probe
+          path: build/Roma-BRT-Android-Crash-Probe.apk
+          if-no-files-found: error
+          retention-days: 7
