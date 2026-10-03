@@ -1,7 +1,7 @@
 extends Node3D
 ## Debug camera dall'alto per Android + controller.
-## Controller: stick sinistro = sposta la mappa.
-## Touch: META' DESTRA = zoom e pitch; pinch = zoom preciso.
+## Joystick sinistro virtuale/fisico = sposta la mappa.
+## Touch meta' destra = zoom e pitch; pinch = zoom preciso.
 
 @export var map_size := 2000.0
 @export var target := Vector3(1000.0, 0.0, 1000.0)
@@ -19,22 +19,33 @@ var camera: Camera3D
 var touches: Dictionary = {}
 var right_touch_indices: Dictionary = {}
 var last_pinch_distance := 0.0
+var virtual_move := Vector2.ZERO
 
 func _ready() -> void:
     camera = Camera3D.new()
-    camera.name = "DebugTopDownCamera"
+    camera.name = "DebugTopDownCamera3D"
     camera.current = true
     camera.projection = Camera3D.PROJECTION_ORTHOGONAL
     camera.near = 0.1
     camera.far = 6000.0
     add_child(camera)
+
+    # Collega il joystick virtuale Android direttamente a questa camera.
+    var mobile := get_parent().get_node_or_null("MobileControls")
+    if mobile != null and mobile.has_signal("move_changed"):
+        mobile.move_changed.connect(_on_virtual_move_changed)
+
     update_camera()
 
 func _process(delta: float) -> void:
     if camera == null:
         return
 
-    # Android controller: cerca il primo controller realmente connesso.
+    # Joystick virtuale sinistro.
+    if virtual_move.length_squared() > 0.0001:
+        pan_from_controller(virtual_move, delta)
+
+    # Controller fisico: primo joypad connesso.
     var joypads := Input.get_connected_joypads()
     for joy_id in joypads:
         var move_x := Input.get_joy_axis(joy_id, JOY_AXIS_LEFT_X)
@@ -47,8 +58,10 @@ func _process(delta: float) -> void:
             pan_from_controller(move, delta)
         break
 
+func _on_virtual_move_changed(value: Vector2) -> void:
+    virtual_move = value
+
 func pan_from_controller(move: Vector2, delta: float) -> void:
-    # Schermo: sinistra/destra e avanti/indietro.
     var speed := controller_move_speed * maxf(distance / 900.0, 0.45)
     target.x += move.x * speed * delta
     target.z += -move.y * speed * delta
@@ -60,8 +73,6 @@ func _input(event: InputEvent) -> void:
     if camera == null:
         return
 
-    # Usiamo _input, non _unhandled_input, cosi' i controlli funzionano
-    # anche quando un Control/HUD intercetta il touch.
     if event is InputEventScreenTouch:
         var touch := event as InputEventScreenTouch
         if touch.pressed:
@@ -84,6 +95,8 @@ func _input(event: InputEvent) -> void:
 
         var right_keys := right_touch_indices.keys()
         if right_keys.size() >= 2:
+            if not touches.has(right_keys[0]) or not touches.has(right_keys[1]):
+                return
             var p0: Vector2 = touches[right_keys[0]]
             var p1: Vector2 = touches[right_keys[1]]
             var pinch_distance := p0.distance_to(p1)
@@ -94,8 +107,7 @@ func _input(event: InputEvent) -> void:
             last_pinch_distance = pinch_distance
             return
 
-        # Un dito nella meta' destra:
-        # alto/basso = zoom, sinistra/destra = pitch.
+        # Un dito nella meta' destra: verticale = zoom, orizzontale = pitch.
         var vertical := drag.relative.y
         var horizontal := drag.relative.x
         if absf(vertical) > 0.01:
@@ -111,7 +123,6 @@ func _input(event: InputEvent) -> void:
                 max_pitch
             )
         update_camera()
-        return
 
 func is_right_side(position: Vector2) -> bool:
     return position.x >= get_viewport().get_visible_rect().size.x * 0.5
