@@ -13,17 +13,18 @@ on:
       - '**/*.tres'
       - 'assets/heightmap.raw'
       - 'baked_city/**'
+      - 'terrain_data/**'
       - 'addons/terrain_3d/**'
       - 'terrain_materials/**'
 
 permissions:
-  contents: read
+  contents: write
 
 jobs:
   run-full-scene:
     name: Godot 4.7.2 Full Scene Linux Runtime
     runs-on: ubuntu-24.04
-    timeout-minutes: 10
+    timeout-minutes: 15
     steps:
       - name: Checkout Roma-BRT
         uses: actions/checkout@v4
@@ -61,14 +62,46 @@ jobs:
           test -d baked_city/archetypes_587
           test "$(find baked_city/archetypes_587 -maxdepth 1 -name 'archetype_*.tscn' | wc -l)" -eq 27
 
+      - name: Start Xvfb
+        run: |
+          set -euo pipefail
+          mkdir -p build/linux_runtime
+          Xvfb :99 -screen 0 1280x720x24 -ac +extension GLX +render -noreset > build/linux_runtime/xvfb.log 2>&1 &
+          echo $! > build/linux_runtime/xvfb.pid
+          export DISPLAY=:99
+          sleep 2
+
+      - name: Bake persistent Terrain3D data if missing
+        run: |
+          set -euo pipefail
+          export DISPLAY=:99
+          if [ -f terrain_data/READY.txt ]; then
+            echo 'TERRAIN CACHE ALREADY PRESENT'
+            exit 0
+          fi
+
+          .runtime/godot/godot --path . --display-driver x11 --rendering-method gl_compatibility --audio-driver Dummy --script tools/bake_terrain_data_ci.gd > build/linux_runtime/terrain_bake.log 2>&1
+          test -f terrain_data/READY.txt
+          test "$(find terrain_data -maxdepth 1 -name 'terrain3d*.res' | wc -l)" -gt 0
+          echo 'TERRAIN CACHE GENERATED'
+          cat build/linux_runtime/terrain_bake.log
+
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add terrain_data
+          git commit -m 'chore: persist Terrain3D data [skip ci]'
+          git push
+
+      - name: Verify persistent Terrain3D data
+        run: |
+          set -euo pipefail
+          test -f terrain_data/READY.txt
+          test "$(find terrain_data -maxdepth 1 -name 'terrain3d*.res' | wc -l)" -gt 0
+
       - name: Launch actual main scene under Linux X11
         run: |
           set -u
-          mkdir -p build/linux_runtime
-          Xvfb :99 -screen 0 1280x720x24 -ac +extension GLX +render -noreset > build/linux_runtime/xvfb.log 2>&1 &
-          XVFB_PID=$!
           export DISPLAY=:99
-          sleep 2
 
           set +e
           .runtime/godot/godot --path . --display-driver x11 --rendering-method gl_compatibility --audio-driver Dummy > build/linux_runtime/godot.log 2>&1 &
@@ -93,10 +126,11 @@ jobs:
             kill "$GAME_PID" 2>/dev/null || true
             wait "$GAME_PID" 2>/dev/null || true
           fi
-          kill "$XVFB_PID" 2>/dev/null || true
 
           echo '--- GODOT LOG ---'
           cat build/linux_runtime/godot.log || true
+          echo '--- TERRAIN BAKE LOG ---'
+          cat build/linux_runtime/terrain_bake.log || true
           echo '--- Xvfb LOG ---'
           cat build/linux_runtime/xvfb.log || true
 
