@@ -23,6 +23,7 @@ var roof_material: StandardMaterial3D
 var window_material: StandardMaterial3D
 var fire_patch_material: StandardMaterial3D
 var flame_material: ShaderMaterial
+var grass_material: ShaderMaterial
 var smoke_material: StandardMaterial3D
 var ember_material: StandardMaterial3D
 
@@ -292,7 +293,9 @@ func inner_front_point(index:int,front_scale:float,t:float)->Vector3:
 func fire_front_point(index:int,phase:int,progress:float)->Vector3:
     var outer:=perimeter_point(index);var inner:=inner_front_point(index,float(FIRE_PHASE_SCALE[phase]),fire_time);var next:=inner
     if phase<FIRE_PHASE_SCALE.size()-1:next=inner_front_point(index,float(FIRE_PHASE_SCALE[phase+1]),fire_time)
-    var edge:=1.0 if phase==0 else 0.0;if phase==0:edge=progress;return outer.lerp(inner.lerp(next,progress),edge)
+    var edge:=1.0 if phase==0 else 0.0
+    if phase==0:edge=progress
+    return outer.lerp(inner.lerp(next,progress),edge)
 
 func create_fire_patch(index:int)->Node3D:
     var p:=MeshInstance3D.new();p.name="BurningGround_%02d"%index;var m:=BoxMesh.new();m.size=Vector3(32,0.09,9+float(index%5));p.mesh=m;p.material_override=fire_patch_material;return p
@@ -301,7 +304,13 @@ func create_fire_source(index:int)->Node3D:
     var root:=Node3D.new();root.name="FireSource_%02d"%index
     var flames:=GPUParticles3D.new();flames.name="Flames";flames.amount=30;flames.lifetime=1.15;var pm:=ParticleProcessMaterial.new();pm.emission_shape=ParticleProcessMaterial.EMISSION_SHAPE_SPHERE;pm.emission_sphere_radius=2.2;pm.direction=Vector3.UP;pm.spread=34;pm.initial_velocity_min=1.5;pm.initial_velocity_max=4.2;pm.gravity=Vector3(0,1.05,0);pm.scale_min=0.55;pm.scale_max=1.25;pm.color=Color(1,0.35,0.04,1);flames.process_material=pm;var q:=QuadMesh.new();q.size=Vector2(7,13);q.material=flame_material;flames.draw_pass_1=q;root.add_child(flames)
     var inner:=GPUParticles3D.new();inner.name="InnerFlames";inner.amount=14;inner.lifetime=0.72;var ip:=ParticleProcessMaterial.new();ip.emission_shape=ParticleProcessMaterial.EMISSION_SHAPE_SPHERE;ip.emission_sphere_radius=1.4;ip.direction=Vector3.UP;ip.spread=24;ip.initial_velocity_min=1.8;ip.initial_velocity_max=4.8;ip.gravity=Vector3(0,1.35,0);ip.scale_min=0.28;ip.scale_max=0.72;ip.color=Color(1,0.82,0.16,1);inner.process_material=ip;var iq:=QuadMesh.new();iq.size=Vector2(3.5,7);iq.material=flame_material;inner.draw_pass_1=iq;root.add_child(inner)
-    if index%3==0:var light:=OmniLight3D.new();light.name="FireLight";light.light_color=Color(1,0.20,0.035);light.light_energy=2.8;light.omni_range=48;root.add_child(light)
+    if index % 3 == 0:
+        var light:=OmniLight3D.new()
+        light.name="FireLight"
+        light.light_color=Color(1,0.20,0.035)
+        light.light_energy=2.8
+        light.omni_range=48
+        root.add_child(light)
     var smoke:=GPUParticles3D.new();smoke.name="Smoke";smoke.amount=5;smoke.lifetime=3.6;var sp:=ParticleProcessMaterial.new();sp.emission_shape=ParticleProcessMaterial.EMISSION_SHAPE_SPHERE;sp.emission_sphere_radius=1.35;sp.direction=Vector3.UP;sp.spread=18;sp.initial_velocity_min=0.55;sp.initial_velocity_max=1.55;sp.gravity=Vector3(0.05,0.24,-0.03);sp.scale_min=0.72;sp.scale_max=1.55;sp.color=Color(0.09,0.082,0.075,0.12);smoke.process_material=sp;var sm:=SphereMesh.new();sm.radius=1.15;sm.height=2;sm.material=smoke_material;smoke.draw_pass_1=sm;root.add_child(smoke)
     var base:=MeshInstance3D.new();var bm:=CylinderMesh.new();bm.top_radius=3.8;bm.bottom_radius=4.8;bm.height=0.1;base.mesh=bm;base.position.y=0.05;base.material_override=make_material(Color(0.055,0.028,0.018),1);root.add_child(base)
     return root
