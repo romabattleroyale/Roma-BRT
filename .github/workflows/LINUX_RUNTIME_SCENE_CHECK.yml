@@ -154,3 +154,5 @@ jobs:
           path: build/linux_runtime
           if-no-files-found: warn
           retention-days: 7
+
+# Cache bake is intentionally persisted once; subsequent runs only load it.
