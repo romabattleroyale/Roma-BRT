@@ -1,6 +1,7 @@
 extends Node3D
 ## PROMPT 3: actually instantiate the first 40 V11 buildings.
 ## Validation happens before instantiation. No roads, interiors or terrain edits.
+## Generation is intentionally staggered across frames to avoid blocking the runtime.
 
 const ADAPTER_SCRIPT = "res://city_library/buildings/house_library_adapter.gd"
 const VARIATION_SCRIPT = "res://v37_integration/building_variation.gd"
@@ -43,7 +44,7 @@ func _wait_for_v37() -> void:
     for _i in range(600):
         var v37 = get_parent().get_node_or_null("V37Integration")
         if v37 != null and v37.get("city_root") != null and not (v37.get("map_data") as Dictionary).is_empty():
-            _build_library(v37)
+            await _build_library(v37)
             return
         await get_tree().create_timer(0.1).timeout
     push_warning("V11 Building Bridge: V37 world non pronto entro 60 secondi")
@@ -62,6 +63,7 @@ func _build_library(v37: Node) -> void:
     var placed = 0
 
     for i in range(limit):
+        await get_tree().process_frame
         var data: Dictionary = buildings[i]
         var size: Dictionary = data.get("size", {})
         var width = maxf(6.0, float(size.get("x", 10.0)))
@@ -73,9 +75,6 @@ func _build_library(v37: Node) -> void:
             _reject(i, "duplicate_seed")
             continue
 
-        # The first 40 source records are the test set. Their footprints are
-        # deterministically packed into the first two Urban Grid blocks so
-        # every instantiated building is inside a logical city rectangle.
         var center = _grid_test_position(i, width, depth)
         if not center.is_finite():
             _reject(i, "non_finite_position")
@@ -148,6 +147,7 @@ func _build_library(v37: Node) -> void:
         used_archetypes[int(seed_variation["archetype_index"])] = true
         placed += 1
         print("V11 TEST 40 — piazzato #", i + 1, " id=", building.name, " seed=", seed, " archetype=", seed_variation["archetype_index"], " pos=", center)
+        await get_tree().process_frame
 
     built = true
     print("V11 TEST 40 — PIAZZATI: ", placed, " / ", limit)
