@@ -5,148 +5,84 @@ on:
     paths:
       - 'incoming_libraries/*.zip'
       - '.github/workflows/library-ingest.yml'
-  workflow_dispatch:
-    inputs:
-      archive:
-        description: 'ZIP in incoming_libraries/'
-        required: true
-        type: string
-      destination:
-        description: 'Optional destination inside city_library/'
-        required: false
-        default: ''
-        type: string
-      dry_run:
-        description: 'Validate only; do not modify repository'
-        required: false
-        default: false
-        type: boolean
 
 permissions:
   contents: write
 
-concurrency:
-  group: city-library-ingest
-  cancel-in-progress: false
-
 jobs:
   ingest:
     runs-on: ubuntu-latest
-    timeout-minutes: 20
     steps:
       - name: Checkout
         uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
 
-      - name: Select archive
-        id: select
-        env:
-          INPUT_ARCHIVE: ${{ inputs.archive }}
+      - name: Ingest V11 library
+        shell: bash
         run: |
           set -euo pipefail
-          if [ -n "$INPUT_ARCHIVE" ]; then
-            ARCHIVE="$INPUT_ARCHIVE"
-          else
-            mapfile -t ZIPS < <(find incoming_libraries -maxdepth 1 -type f -name '*.zip' -print | sort)
-            if [ "${#ZIPS[@]}" -ne 1 ]; then
-              echo "Expected exactly one ZIP in incoming_libraries/. Found ${#ZIPS[@]}"
-              printf ' - %s\n' "${ZIPS[@]}"
-              exit 1
-            fi
-            ARCHIVE="${ZIPS[0]}"
-          fi
+
+          ARCHIVE="incoming_libraries/RomaRoyale_Architecture_Library_V11_CLEARANCE_AUDIT_FIXED.zip"
+          DEST="city_library/buildings/houses/roma_architecture_library_v11"
+          WORK=".library_ingest"
+
           test -f "$ARCHIVE"
-          echo "archive=$ARCHIVE" >> "$GITHUB_OUTPUT"
+          rm -rf "$WORK"
+          mkdir -p "$WORK/unpacked"
 
-      - name: Prepare workspace
-        env:
-          ARCHIVE: ${{ steps.select.outputs.archive }}
-        run: |
-          set -euo pipefail
-          rm -rf .library_ingest
-          mkdir -p .library_ingest/unpacked
-          unzip -q "$ARCHIVE" -d .library_ingest/unpacked
+          unzip -q "$ARCHIVE" -d "$WORK/unpacked"
 
-      - name: Validate package
-        id: validate
-        env:
-          ARCHIVE: ${{ steps.select.outputs.archive }}
-          REQUESTED_DESTINATION: ${{ inputs.destination }}
-        run: |
-          set -euo pipefail
-          ROOT=".library_ingest/unpacked"
-
-          python3 -c 'import os, zipfile; p=os.environ["ARCHIVE"]; z=zipfile.ZipFile(p); bad=[i.filename for i in z.infolist() if i.filename.replace(chr(92), "/").startswith("/") or ".." in i.filename.replace(chr(92), "/").split("/") or (not i.is_dir() and i.file_size > 90*1024*1024)]; z.close(); raise SystemExit("Unsafe or oversized ZIP entry: "+bad[0]) if bad else None'
-
+          ROOT="$WORK/unpacked"
           mapfile -t TOP < <(find "$ROOT" -mindepth 1 -maxdepth 1 -type d -print)
           FILES_AT_TOP=$(find "$ROOT" -mindepth 1 -maxdepth 1 -type f | wc -l)
           if [ "${#TOP[@]}" -eq 1 ] && [ "$FILES_AT_TOP" -eq 0 ]; then
             ROOT="${TOP[0]}"
           fi
 
-          if find "$ROOT" -type d -name '.godot' -print -quit | grep -q . || find "$ROOT" -type f -name 'project.godot' -print -quit | grep -q .; then
-            echo "Rejected: package contains a complete Godot project."
+          if find "$ROOT" -type d -name '.godot' -print -quit | grep -q .; then
+            echo 'Rejected: .godot directory found.'
+            exit 1
+          fi
+          if find "$ROOT" -type f -name 'project.godot' -print -quit | grep -q .; then
+            echo 'Rejected: project.godot found.'
             exit 1
           fi
 
-          DEST="$REQUESTED_DESTINATION"
-          if [ -z "$DEST" ] && [ -f "$ROOT/library_manifest.json" ]; then
-            DEST=$(python3 -c 'import json,sys; print(json.load(open(sys.argv[1], encoding="utf-8")).get("destination",""))' "$ROOT/library_manifest.json")
-          fi
+          test -f "$ROOT/data/building_catalog.json"
 
-          ARCHIVE_NAME=$(basename "$ARCHIVE")
-          if [ -z "$DEST" ] && [[ "$ARCHIVE_NAME" == RomaRoyale_Architecture_Library_V11* ]]; then
-            DEST="city_library/buildings/houses/roma_architecture_library_v11"
-          fi
+          python3 - "$ROOT/data/building_catalog.json" <<'PY'
+          import json
+          import sys
+          path = sys.argv[1]
+          data = json.load(open(path, encoding='utf-8'))
+          if not isinstance(data, list) or not data:
+              raise SystemExit('Building catalog must be a non-empty array')
+          ids = []
+          for item in data:
+              if not isinstance(item, dict) or not item.get('id'):
+                  raise SystemExit('Every building catalog entry needs an id')
+              ids.append(str(item['id']))
+          if len(ids) != len(set(ids)):
+              raise SystemExit('Duplicate building IDs')
+          print(f'Validated house catalog: {len(ids)} archetypes')
+          PY
 
-          case "$DEST" in
-            city_library/*) ;;
-            *) echo "Destination must be inside city_library/: $DEST"; exit 1 ;;
-          esac
-
-          if [[ "$DEST" == city_library/buildings/houses/* ]]; then
-            test -f "$ROOT/data/building_catalog.json" || { echo "Missing data/building_catalog.json"; exit 1; }
-            python3 -c 'import json,sys; d=json.load(open(sys.argv[1], encoding="utf-8")); ids=[str(x.get("id","")) for x in d if isinstance(x,dict)]; raise SystemExit("Building catalog must be a non-empty array") if not isinstance(d,list) or not d else None; raise SystemExit("Duplicate building IDs") if len(ids)!=len(set(ids)) else print(f"Validated house catalog: {len(ids)} archetypes")' "$ROOT/data/building_catalog.json"
-          fi
-
-          if grep -RniE 'Road Generator|road_generator[[:space:]]*:[[:space:]]*true' "$ROOT" --exclude='*.png' --exclude='*.jpg' --exclude='*.jpeg' --exclude='*.exr' --exclude='*.hdr' --exclude='*.glb' --exclude='*.gltf' 2>/dev/null; then
-            echo "Rejected: Road Generator enablement marker found."
+          if grep -RniE 'Road Generator|road_generator[[:space:]]*:[[:space:]]*true' "$ROOT" \
+            --exclude='*.png' --exclude='*.jpg' --exclude='*.jpeg' \
+            --exclude='*.exr' --exclude='*.hdr' --exclude='*.glb' --exclude='*.gltf' 2>/dev/null; then
+            echo 'Rejected: Road Generator enablement marker found.'
             exit 1
           fi
 
-          echo "root=$ROOT" >> "$GITHUB_OUTPUT"
-          echo "destination=$DEST" >> "$GITHUB_OUTPUT"
-
-      - name: Package summary
-        env:
-          ROOT: ${{ steps.validate.outputs.root }}
-          DEST: ${{ steps.validate.outputs.destination }}
-        run: |
-          echo "Destination: $DEST"
-          echo "Files: $(find "$ROOT" -type f | wc -l)"
-          echo "Size: $(du -sh "$ROOT" | cut -f1)"
-
-      - name: Install and commit
-        env:
-          ROOT: ${{ steps.validate.outputs.root }}
-          DEST: ${{ steps.validate.outputs.destination }}
-          DRY_RUN: ${{ inputs.dry_run }}
-        run: |
-          set -euo pipefail
-          if [ "$DRY_RUN" = "true" ]; then
-            echo "DRY RUN: package validated; repository will not be modified."
-            exit 0
-          fi
           mkdir -p "$DEST"
           rsync -a --delete "$ROOT/" "$DEST/"
-          rm -rf .library_ingest
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          rm -rf "$WORK"
+
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
           git add "$DEST"
           if git diff --cached --quiet; then
-            echo "No changes."
+            echo 'Library already installed; no changes needed.'
             exit 0
           fi
-          git commit -m "library: ingest $(basename "$DEST")"
+          git commit -m 'library: ingest Roma Architecture Library V11'
           git push
