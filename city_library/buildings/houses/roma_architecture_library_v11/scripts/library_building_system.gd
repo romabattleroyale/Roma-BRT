@@ -107,3 +107,20 @@ func _warm_roof(color: Color, uv_scale: float) -> StandardMaterial3D:
     m.uv1_scale = Vector3(uv_scale, uv_scale, uv_scale)
     m.texture_repeat = true
     return m
+
+func _pbr(color_path: String, normal_path: String, rough: float, uv_scale: float) -> StandardMaterial3D:
+    var m := StandardMaterial3D.new()
+    if not color_path.is_empty():
+        var color: Texture2D = load(color_path) as Texture2D
+        if color:
+            m.albedo_texture = color
+    if not normal_path.is_empty():
+        var normal: Texture2D = load(normal_path) as Texture2D
+        if normal:
+            m.normal_enabled = true
+            m.normal_texture = normal
+            m.normal_scale = 0.55
+    m.roughness = rough
+    m.uv1_scale = Vector3(uv_scale, uv_scale, uv_scale)
+    m.texture_repeat = true
+    return m
