@@ -2,6 +2,18 @@ name: ROMA BRT — Linux Real Map Video
 
 on:
   workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/LINUX_MAP_VIDEO.yml'
+      - 'main.tscn'
+      - 'terrain_runtime_android_safe.gd'
+      - 'viewer.gd'
+      - 'baked_city/**'
+      - 'terrain_data/**'
+      - 'terrain_materials/**'
+      - 'assets/heightmap.raw'
+      - 'project.godot'
 
 jobs:
   record:
