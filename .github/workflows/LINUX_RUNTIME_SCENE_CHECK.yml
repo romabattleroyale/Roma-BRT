@@ -80,17 +80,6 @@ jobs:
           export DISPLAY=:99
           sleep 2
 
-      - name: DIAGNOSTIC — Pure orange facade building capture
-        run: |
-          set -u
-          export DISPLAY=:99
-          set +e
-          .runtime/godot/godot --path . --display-driver x11 --rendering-method gl_compatibility --audio-driver Dummy --script res://tools/diagnostic_orange_building_capture.gd > build/linux_runtime/orange_facade.log 2>&1
-          EXIT_CODE=$?
-          cat build/linux_runtime/orange_facade.log
-          test "$EXIT_CODE" -eq 0
-          test -s build/linux_runtime/orange_facade_test.png
-
       - name: Bake persistent Terrain3D data if missing
         run: |
           set -euo pipefail
@@ -184,5 +173,3 @@ jobs:
           retention-days: 14
 
 # Cache bake is intentionally persisted once; subsequent runs only load it.
-# Diagnostic trigger: current-main Linux Compatibility visual capture requested by user.
-# Temporary orange facade diagnostic requested by user; no project material fix is applied.
