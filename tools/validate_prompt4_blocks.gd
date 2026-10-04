@@ -29,6 +29,8 @@ func _run() -> void:
     print("Urban_Grid node: ", "OK" if grid != null else "MISSING")
     var rects: Array = []
     if grid != null:
+        await process_frame
+        await process_frame
         rects = grid.get_meta("lot_rects", []) as Array
     print("Urban_Grid: %d rettangoli trovati" % rects.size())
 
