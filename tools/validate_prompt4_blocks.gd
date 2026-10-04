@@ -38,12 +38,12 @@ func _run() -> void:
 
     if bridge == null:
         push_error("BLOCK GATE FAIL: V11 bridge missing")
-        root.queue_free()
+        await _cleanup_root(root)
         quit(2)
         return
     if not bool(bridge.get("built")):
         push_error("BLOCK GATE FAIL: V11 bridge did not finish within %.0f s" % WAIT_SECONDS)
-        root.queue_free()
+        await _cleanup_root(root)
         quit(3)
         return
 
@@ -92,7 +92,12 @@ func _run() -> void:
         print("Edifici per isolato — %s: %d" % [block_id, int(block_counts[block_id])])
 
     var terrain := root.find_child("Terrain3D_HEIGHTMAP_2000x2000", true, false)
-    var water := root.find_child("WaterPlane", true, false)
+    # The authoritative runtime names the river ribbon "TevereWater". Keep
+    # WaterPlane as a compatibility alias for older scenes, but never require a
+    # fake water node just to satisfy this gate.
+    var water := root.find_child("TevereWater", true, false)
+    if water == null:
+        water = root.find_child("WaterPlane", true, false)
     print("Terrain3D: ", "OK" if terrain != null else "MISSING")
     print("Tevere/WaterPlane: ", "OK" if water != null else "MISSING")
 
@@ -126,13 +131,19 @@ func _run() -> void:
     var all_ok := rects.size() == EXPECTED_BLOCKS and block_counts.size() == EXPECTED_BLOCKS and buildings.size() == EXPECTED_BLOCKS * BUILDINGS_PER_BLOCK and block_geometry_ok and corridor_ok and courtyard_ok and palette_ok and terrain != null and water != null and missing.is_empty()
     if not all_ok:
         push_error("PROMPT 4 BLOCK GATE FAIL")
-        root.queue_free()
+        await _cleanup_root(root)
         quit(4)
         return
 
     print("PROMPT 4 BLOCK GATE PASS")
-    root.queue_free()
+    await _cleanup_root(root)
     quit(0)
+
+func _cleanup_root(root: Node) -> void:
+    if root != null and is_instance_valid(root):
+        root.queue_free()
+        await process_frame
+        await process_frame
 
 func root_scene_add(root: Node) -> void:
     root_scene = root
