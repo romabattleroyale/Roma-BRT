@@ -1,0 +1,50 @@
+name: V11 Artistic Audit
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - 'baked_city/archetypes_587/**'
+      - 'baked_city/v11_shared_materials/**'
+      - 'city_library/buildings/houses/roma_architecture_library_v11/assets/textures/**'
+      - 'tools/v11_artistic_audit.gd'
+      - '.github/workflows/V11_ARTISTIC_AUDIT.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  audit:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Download Godot 4.7.2
+        run: |
+          set -euo pipefail
+          mkdir -p .runtime/godot
+          curl -L --fail --retry 3 -o .runtime/godot/godot.zip 'https://github.com/godotengine/godot/releases/download/4.7.2-stable/Godot_v4.7.2-stable_linux.x86_64.zip'
+          unzip -q .runtime/godot/godot.zip -d .runtime/godot
+          GODOT_BIN=$(find .runtime/godot -maxdepth 2 -type f -name 'Godot_v4.7.2-stable_linux.x86_64' | head -n 1)
+          chmod +x "$GODOT_BIN"
+          ln -sf "$(realpath "$GODOT_BIN")" .runtime/godot/godot
+      - name: Import project resources
+        run: .runtime/godot/godot --headless --editor --path . --quit
+      - name: Run artistic audit
+        run: |
+          set -euo pipefail
+          mkdir -p build
+          .runtime/godot/godot --headless --path . --script res://tools/v11_artistic_audit.gd | tee build/v11_artistic_audit.log
+          cp ~/.local/share/godot/app_userdata/*/v11_artistic_audit.txt build/v11_artistic_audit.txt 2>/dev/null || true
+      - name: Upload audit
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: V11-Artistic-Audit
+          path: |
+            build/v11_artistic_audit.log
+            build/v11_artistic_audit.txt
+          if-no-files-found: warn
+          retention-days: 14
