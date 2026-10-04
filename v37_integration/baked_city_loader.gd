@@ -1,12 +1,13 @@
 extends Node3D
 ## V11 diagnostic only. Loads first 5 baked buildings regardless of camera position.
-const BAKED_SCENE := "res://baked_city/roma_city_587.tscn"
-const MAX_BUILDINGS_TO_LOAD := 5
+const BAKED_SCENE: String = "res://baked_city/roma_city_587.tscn"
+const MAX_BUILDINGS_TO_LOAD: int = 5
 var _entries: Array[Dictionary] = []
 var _active: Dictionary = {}
 var _archetype_cache: Dictionary = {}
 var _diagnostic_triangles: int = 0
 var _diagnostic_textures: int = 0
+var _memory_baseline_mb: float = 0.0
 
 func _memory_mb() -> float:
     return float(Performance.get_monitor(Performance.MEMORY_STATIC)) / 1048576.0
@@ -26,7 +27,8 @@ func _between(line: String, left: String, right: String) -> String:
 
 func _build_index() -> void:
     print("=== PRE-LOAD LIBRERIA ===")
-    print("Memoria usata: %.2f MB" % _memory_mb())
+    _memory_baseline_mb = _memory_mb()
+    print("Memoria usata: %.2f MB" % _memory_baseline_mb)
     if not FileAccess.file_exists(BAKED_SCENE):
         push_error("BAKED CITY: scena non trovata")
         return
@@ -90,10 +92,12 @@ func _run_diagnostic() -> void:
     print("Edifici caricati: %d / %d" % [_active.size(), MAX_BUILDINGS_TO_LOAD])
     print("Triangoli totali: %d" % _diagnostic_triangles)
     print("Memoria totale: %.2f MB" % _memory_mb())
+    print("Memoria delta dal pre-load: %.2f MB" % (_memory_mb() - _memory_baseline_mb))
+    print("Texture uniche totali: %d" % _diagnostic_textures)
 
 func _instantiate_entry_diagnostic(entry: Dictionary, building_number: int) -> void:
-    var name: String = entry["name"]
-    var path: String = entry["archetype"]
+    var name: String = str(entry["name"])
+    var path: String = str(entry["archetype"])
     print("[EDIFICIO #%d] Nome=%s, path=%s" % [building_number, name, path])
     var packed: PackedScene = _archetype_cache.get(path) as PackedScene
     if packed == null:
@@ -105,7 +109,10 @@ func _instantiate_entry_diagnostic(entry: Dictionary, building_number: int) -> v
     var pre_stats: Dictionary = _inspect_packed_scene(packed)
     print("[EDIFICIO #%d] Triangoli mesh: %d" % [building_number, pre_stats["triangles"]])
     print("[EDIFICIO #%d] Texture: %d (formato: %s)" % [building_number, pre_stats["textures"], pre_stats["texture_format"]])
+    for texture_path in pre_stats["texture_paths"]:
+        print("[EDIFICIO #%d] Texture path: %s" % [building_number, texture_path])
     print("[EDIFICIO #%d] Nodi figli: %d" % [building_number, pre_stats["nodes"]])
+    var before_mb: float = _memory_mb()
     var node: Node3D = packed.instantiate() as Node3D
     if node == null:
         print("[EDIFICIO #%d] ERRORE: instantiate() null" % building_number)
@@ -119,37 +126,45 @@ func _instantiate_entry_diagnostic(entry: Dictionary, building_number: int) -> v
     var post_stats: Dictionary = _inspect_node(node)
     _diagnostic_triangles += int(post_stats["triangles"])
     _diagnostic_textures += int(post_stats["textures"])
-    print("[EDIFICIO #%d] Memoria dopo istanziazione: %.2f MB" % [building_number, _memory_mb()])
+    var after_mb: float = _memory_mb()
+    print("[EDIFICIO #%d] Memoria dopo istanziazione: %.2f MB" % [building_number, after_mb])
+    print("[EDIFICIO #%d] Memoria delta edificio: %.2f MB" % [building_number, after_mb - before_mb])
     print("[EDIFICIO #%d] Verifica runtime: triangoli=%d texture=%d nodi=%d" % [building_number, post_stats["triangles"], post_stats["textures"], post_stats["nodes"]])
+    for texture_path in post_stats["texture_paths"]:
+        print("[EDIFICIO #%d] Runtime texture path: %s" % [building_number, texture_path])
     await get_tree().process_frame
 
 func _inspect_packed_scene(packed: PackedScene) -> Dictionary:
-    var result: Dictionary = {"triangles": 0, "textures": 0, "nodes": 0, "texture_format": "n/d"}
+    var result: Dictionary = {"triangles": 0, "textures": 0, "nodes": 0, "texture_format": "n/d", "texture_paths": []}
     var state: SceneState = packed.get_state()
     if state == null:
         return result
     result["nodes"] = state.get_node_count()
+    var ids: Dictionary = {}
     var formats: Dictionary = {}
+    var paths: Dictionary = {}
     for n in range(state.get_node_count()):
         for p in range(state.get_node_property_count(n)):
             var value = state.get_node_property_value(n, p)
             if value is Mesh:
                 result["triangles"] = int(result["triangles"]) + _mesh_triangles(value)
+                for s in range(value.get_surface_count()):
+                    _collect_material_textures(value.surface_get_material(s), ids, formats, paths)
             elif value is Texture2D:
-                result["textures"] = int(result["textures"]) + 1
-                formats[_texture_format(value)] = true
+                _register_texture(value, ids, formats, paths)
             elif value is Material:
-                var ms: Dictionary = _inspect_material(value)
-                result["textures"] = int(result["textures"]) + int(ms["textures"])
-                for fmt in ms["formats"].keys():
-                    formats[fmt] = true
+                _collect_material_textures(value, ids, formats, paths)
     if formats.size() > 0:
         result["texture_format"] = ", ".join(formats.keys())
+    result["textures"] = ids.size()
+    result["texture_paths"] = paths.keys()
     return result
 
 func _inspect_node(root: Node) -> Dictionary:
-    var result: Dictionary = {"triangles": 0, "textures": 0, "nodes": 0}
+    var result: Dictionary = {"triangles": 0, "textures": 0, "nodes": 0, "texture_paths": []}
     var ids: Dictionary = {}
+    var formats: Dictionary = {}
+    var paths: Dictionary = {}
     var stack: Array[Node] = [root]
     while not stack.is_empty():
         var current: Node = stack.pop_back()
@@ -162,19 +177,19 @@ func _inspect_node(root: Node) -> Dictionary:
                 continue
             var value = current.get(prop_name)
             if value is Texture2D:
-                var texture_id: int = value.get_instance_id()
-                ids[texture_id] = true
+                _register_texture(value, ids, formats, paths)
             elif value is Material:
-                _collect_material_textures(value, ids)
+                _collect_material_textures(value, ids, formats, paths)
         if current is MeshInstance3D:
             var mi: MeshInstance3D = current as MeshInstance3D
             if mi.mesh:
                 result["triangles"] = int(result["triangles"]) + _mesh_triangles(mi.mesh)
                 for s in range(mi.mesh.get_surface_count()):
-                    _collect_material_textures(mi.mesh.surface_get_material(s), ids)
+                    _collect_material_textures(mi.mesh.surface_get_material(s), ids, formats, paths)
             for s in range(mi.get_surface_override_material_count()):
-                _collect_material_textures(mi.get_surface_override_material(s), ids)
+                _collect_material_textures(mi.get_surface_override_material(s), ids, formats, paths)
     result["textures"] = ids.size()
+    result["texture_paths"] = paths.keys()
     return result
 
 func _mesh_triangles(mesh: Mesh) -> int:
@@ -195,21 +210,38 @@ func _mesh_triangles(mesh: Mesh) -> int:
 func _inspect_material(material: Material) -> Dictionary:
     var ids: Dictionary = {}
     var formats: Dictionary = {}
-    _collect_material_textures(material, ids, formats)
-    return {"textures": ids.size(), "formats": formats}
+    var paths: Dictionary = {}
+    _collect_material_textures(material, ids, formats, paths)
+    return {"textures": ids.size(), "formats": formats, "paths": paths}
 
-func _collect_material_textures(material: Material, ids: Dictionary, formats: Dictionary = {}) -> void:
+func _collect_material_textures(material: Material, ids: Dictionary, formats: Dictionary = {}, paths: Dictionary = {}) -> void:
     if material == null:
         return
     for prop in material.get_property_list():
         var prop_name: String = str(prop.get("name", ""))
-        if not prop_name.to_lower().contains("texture"):
-            continue
         var value = material.get(prop_name)
         if value is Texture2D:
-            var id: int = value.get_instance_id()
-            ids[id] = true
-            formats[_texture_format(value)] = true
+            _register_texture(value, ids, formats, paths)
+    if material is ShaderMaterial:
+        var shader_material: ShaderMaterial = material as ShaderMaterial
+        var shader: Shader = shader_material.shader
+        if shader != null:
+            for uniform in shader.get_shader_uniform_list():
+                var uniform_name: String = str(uniform.get("name", ""))
+                var uniform_value = shader_material.get_shader_parameter(uniform_name)
+                if uniform_value is Texture2D:
+                    _register_texture(uniform_value, ids, formats, paths)
+
+func _register_texture(texture: Texture2D, ids: Dictionary, formats: Dictionary, paths: Dictionary) -> void:
+    if texture == null:
+        return
+    var id: int = texture.get_instance_id()
+    ids[id] = true
+    formats[_texture_format(texture)] = true
+    var path: String = texture.resource_path
+    if path.is_empty():
+        path = "<embedded/subresource>"
+    paths[path] = true
 
 func _texture_format(texture: Texture2D) -> String:
     var path: String = texture.resource_path
