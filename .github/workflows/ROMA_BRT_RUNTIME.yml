@@ -68,6 +68,12 @@ jobs:
           count=$(find baked_city/archetypes_587 -maxdepth 1 -type f -name 'archetype_*.tscn' | wc -l)
           test "$count" -eq 27
           echo "BAKE ARTIFACT OK: city + $count reusable archetype scenes"
+      - name: Optimize V11 building visuals
+        run: |
+          set -euo pipefail
+          .runtime/godot/godot --headless --path . --script res://tools/optimize_v11_archetypes.gd
+          test "$(find baked_city/archetypes_587 -maxdepth 1 -type f -name 'archetype_*.tscn' | wc -l)" -eq 27
+          echo 'V11 VISUAL OPTIMIZATION OK'
       - name: Diagnose Terrain3D after main scene initialization
         run: .runtime/godot/godot --headless --path . --script res://v37_integration/diagnose_bake_runtime.gd
       - name: Runtime smoke launch
@@ -86,9 +92,6 @@ jobs:
           if git diff --cached --quiet; then exit 0; fi
           git commit -m 'chore: persist reusable baked 587 city [skip ci]'
 
-          # Merge the latest main instead of rebasing the generated baked tree.
-          # -X ours keeps the freshly generated 587 city when the same baked
-          # files changed on main, avoiding the 27-archetype conflict storm.
           for attempt in 1 2 3; do
             git fetch origin main
             git merge origin/main -X ours --no-edit || {

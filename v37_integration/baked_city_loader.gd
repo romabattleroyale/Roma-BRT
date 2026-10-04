@@ -156,6 +156,16 @@ func _inspect_node(root: Node) -> Dictionary:
         result["nodes"] = int(result["nodes"]) + 1
         for child in current.get_children():
             stack.append(child)
+        for prop in current.get_property_list():
+            var prop_name: String = str(prop.get("name", ""))
+            if prop_name.is_empty():
+                continue
+            var value = current.get(prop_name)
+            if value is Texture2D:
+                var texture_id: int = value.get_instance_id()
+                ids[texture_id] = true
+            elif value is Material:
+                _collect_material_textures(value, ids)
         if current is MeshInstance3D:
             var mi: MeshInstance3D = current as MeshInstance3D
             if mi.mesh:
@@ -192,7 +202,7 @@ func _collect_material_textures(material: Material, ids: Dictionary, formats: Di
     if material == null:
         return
     for prop in material.get_property_list():
-        var prop_name: String = prop.get("name", "")
+        var prop_name: String = str(prop.get("name", ""))
         if not prop_name.to_lower().contains("texture"):
             continue
         var value = material.get(prop_name)
