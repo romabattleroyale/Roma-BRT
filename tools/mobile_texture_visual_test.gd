@@ -45,11 +45,26 @@ func _ready() -> void:
     await get_tree().process_frame
     await get_tree().process_frame
     var texture_paths: Dictionary = _collect_texture_paths(building)
+    var material_report: Dictionary = _collect_material_report(building)
     print("=== ANDROID TEXTURE TEST ===")
     print("Archetipo: %s" % ARCHETYPE)
     print("Texture2D risolte su Android: %d" % texture_paths.size())
     for path in texture_paths.keys():
         print("ANDROID_TEXTURE: %s" % path)
+    print("MATERIAL_REPORT: %s" % JSON.stringify(material_report))
+    if not bool(material_report.get("muro_romano_used", false)):
+        push_error("ANDROID ART TEST FAIL: Muro_Romano is not assigned to any visible surface")
+        get_tree().quit(4)
+        return
+    if not bool(material_report.get("muro_romano_terracotta", false)):
+        push_error("ANDROID ART TEST FAIL: Muro_Romano is not using terracotta albedo")
+        get_tree().quit(5)
+        return
+    if not bool(material_report.get("muro_romano_pbr", false)):
+        push_error("ANDROID ART TEST FAIL: Muro_Romano missing normal/roughness")
+        get_tree().quit(6)
+        return
+    print("ANDROID_ART_TEST PASS: Muro_Romano terracotta + normal + roughness assigned")
     print("ANDROID_TEXTURE_TEST PASS: texture resources resolved")
     await get_tree().create_timer(3.0).timeout
     get_tree().quit(0)
@@ -69,6 +84,52 @@ func _collect_texture_paths(root: Node) -> Dictionary:
         for child in current.get_children():
             stack.append(child)
     return out
+
+func _collect_material_report(root: Node) -> Dictionary:
+    var report: Dictionary = {
+        "muro_romano_used": false,
+        "muro_romano_terracotta": false,
+        "muro_romano_pbr": false,
+        "material_usage": {},
+        "detail_nodes": []
+    }
+    var usage: Dictionary = report["material_usage"] as Dictionary
+    var detail_nodes: Array[String] = report["detail_nodes"] as Array[String]
+    var stack: Array[Node] = [root]
+    while not stack.is_empty():
+        var current: Node = stack.pop_back()
+        var lower_name: String = current.name.to_lower()
+        if lower_name.contains("balcon") or lower_name.contains("persian") or lower_name.contains("shutter") or lower_name.contains("cornic") or lower_name.contains("travert"):
+            detail_nodes.append(str(current.name))
+        if current is MeshInstance3D:
+            var mi: MeshInstance3D = current as MeshInstance3D
+            if mi.mesh != null:
+                for s in range(mi.mesh.get_surface_count()):
+                    _inspect_material(mi.mesh.get_surface_material(s), report, usage)
+                for s in range(mi.get_surface_override_material_count()):
+                    _inspect_material(mi.get_surface_override_material(s), report, usage)
+        for child in current.get_children():
+            stack.append(child)
+    detail_nodes.sort()
+    return report
+
+func _inspect_material(material: Material, report: Dictionary, usage: Dictionary) -> void:
+    if material == null:
+        return
+    var path: String = material.resource_path
+    if path.is_empty():
+        path = "<embedded>"
+    usage[path] = int(usage.get(path, 0)) + 1
+    if material.resource_name != "Muro_Romano":
+        return
+    report["muro_romano_used"] = true
+    var albedo: Variant = material.get("albedo_texture")
+    var normal: Variant = material.get("normal_texture")
+    var roughness: Variant = material.get("roughness_texture")
+    if albedo is Texture2D and (albedo as Texture2D).resource_path.contains("roman_plaster_terracotta"):
+        report["muro_romano_terracotta"] = true
+    if normal is Texture2D and roughness is Texture2D:
+        report["muro_romano_pbr"] = true
 
 func _collect_material_textures(material: Material, out: Dictionary) -> void:
     if material == null:
