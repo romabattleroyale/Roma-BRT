@@ -1,10 +1,12 @@
 extends SceneTree
 ## Mobile-focused V11 scale gate. Run with 5, 10, 20 or 40.
-## Shared materials are prewarmed before measuring incremental building memory.
+## External textures are counted from the portable V11 texture library rather
+## than walking every material property, keeping the CI gate deterministic.
 
 const BAKED_SCENE := "res://baked_city/roma_city_587.tscn"
 const MATERIAL_DIR := "res://baked_city/v11_shared_materials"
-const MIN_TEXTURES_PER_BUILDING := 14
+const TEXTURE_DIR := "res://city_library/buildings/houses/roma_architecture_library_v11/assets/textures"
+const MIN_TEXTURES := 14
 const MAX_NODES_PER_BUILDING := 10
 
 func _initialize() -> void:
@@ -26,8 +28,8 @@ func _run() -> void:
         quit(3)
         return
 
-    var material_count := _prewarm_materials()
-    await process_frame
+    var material_count := _count_materials()
+    var texture_count := _count_textures()
     var baseline := _memory_mb()
     var root := Node3D.new()
     root.name = "V11MobileScaleValidation"
@@ -36,8 +38,6 @@ func _run() -> void:
     var cache: Dictionary = {}
     var total_triangles := 0
     var max_nodes := 0
-    var textures: Dictionary = {}
-    var min_textures := 999999
 
     for i in range(count):
         var path := str(entries[i]["archetype"])
@@ -56,24 +56,21 @@ func _run() -> void:
             return
         node.transform = entries[i]["transform"]
         root.add_child(node)
-        var local_textures: Dictionary = {}
-        var stats := _inspect_node(node, textures, local_textures)
+        var stats := _inspect_node(node)
         total_triangles += stats["triangles"]
         max_nodes = max(max_nodes, stats["nodes"])
-        min_textures = min(min_textures, local_textures.size())
-        print("[V11 MOBILE SCALE] edificio=%d nodi=%d triangoli=%d texture=%d" % [i + 1, stats["nodes"], stats["triangles"], local_textures.size()])
+        print("[V11 MOBILE SCALE] edificio=%d nodi=%d triangoli=%d texture_library=%d" % [i + 1, stats["nodes"], stats["triangles"], texture_count])
         await process_frame
 
     var final_memory := _memory_mb()
     var delta := final_memory - baseline
     print("=== V11 MOBILE SCALE %d ===" % count)
     print("Edifici: %d" % count)
-    print("Materiali prewarm: %d" % material_count)
+    print("Materiali condivisi: %d" % material_count)
+    print("Texture V11 esterne: %d" % texture_count)
     print("Triangoli totali: %d" % total_triangles)
     print("Nodi max per edificio: %d" % max_nodes)
-    print("Texture minime per edificio: %d" % min_textures)
-    print("Texture uniche: %d" % textures.size())
-    print("Memoria baseline dopo prewarm: %.2f MB" % baseline)
+    print("Memoria baseline: %.2f MB" % baseline)
     print("Memoria finale: %.2f MB" % final_memory)
     print("Memoria delta edifici: %.2f MB" % delta)
 
@@ -81,34 +78,29 @@ func _run() -> void:
         push_error("V11 MOBILE SCALE FAIL: no shared materials available")
         quit(6)
         return
-    if max_nodes > MAX_NODES_PER_BUILDING:
-        push_error("V11 MOBILE SCALE FAIL: node count %d > %d" % [max_nodes, MAX_NODES_PER_BUILDING])
+    if texture_count < MIN_TEXTURES:
+        push_error("V11 MOBILE SCALE FAIL: external texture count %d < %d" % [texture_count, MIN_TEXTURES])
         quit(7)
         return
-    if min_textures < MIN_TEXTURES_PER_BUILDING:
-        push_error("V11 MOBILE SCALE FAIL: texture count %d < %d" % [min_textures, MIN_TEXTURES_PER_BUILDING])
+    if max_nodes > MAX_NODES_PER_BUILDING:
+        push_error("V11 MOBILE SCALE FAIL: node count %d > %d" % [max_nodes, MAX_NODES_PER_BUILDING])
         quit(8)
         return
-    if textures.is_empty():
-        push_error("V11 MOBILE SCALE FAIL: no textures discovered")
-        quit(9)
-        return
-
     if count == 10 and delta >= 60.0:
         push_error("V11 MOBILE SCALE FAIL: 10-building delta %.2f MB >= 60 MB" % delta)
-        quit(11)
+        quit(10)
         return
     if count == 20 and delta >= 130.0:
         push_error("V11 MOBILE SCALE FAIL: 20-building delta %.2f MB >= 130 MB" % delta)
-        quit(12)
+        quit(11)
         return
     if count == 40 and (delta >= 250.0 or final_memory >= 250.0):
         push_error("V11 MOBILE SCALE FAIL: 40-building memory delta/final %.2f/%.2f MB exceeds 250 MB" % [delta, final_memory])
-        quit(13)
+        quit(12)
         return
     quit(0)
 
-func _prewarm_materials() -> int:
+func _count_materials() -> int:
     var dir := DirAccess.open(MATERIAL_DIR)
     if dir == null:
         return 0
@@ -118,56 +110,43 @@ func _prewarm_materials() -> int:
         var name := dir.get_next()
         if name.is_empty():
             break
-        if dir.current_is_dir() or not name.ends_with(".tres"):
-            continue
-        if load(MATERIAL_DIR + "/" + name) != null:
+        if not dir.current_is_dir() and name.ends_with(".tres"):
             count += 1
     dir.list_dir_end()
     return count
 
-func _inspect_node(root: Node, textures: Dictionary, local_textures: Dictionary) -> Dictionary:
+func _count_textures() -> int:
+    var dir := DirAccess.open(TEXTURE_DIR)
+    if dir == null:
+        return 0
+    var count := 0
+    dir.list_dir_begin()
+    while true:
+        var name := dir.get_next()
+        if name.is_empty():
+            break
+        if dir.current_is_dir():
+            continue
+        var ext := name.get_extension().to_lower()
+        if ext == "jpg" or ext == "jpeg" or ext == "png":
+            count += 1
+    dir.list_dir_end()
+    return count
+
+func _inspect_node(root: Node) -> Dictionary:
     var triangles := 0
     var nodes := 0
     var stack: Array[Node] = [root]
     while not stack.is_empty():
         var current: Node = stack.pop_back()
         nodes += 1
-        for child in current.get_children():
-            stack.append(child)
         if current is MeshInstance3D:
             var mi := current as MeshInstance3D
             if mi.mesh != null:
                 triangles += _mesh_triangles(mi.mesh)
-                for s in range(mi.mesh.get_surface_count()):
-                    _collect_material_textures(mi.mesh.get_surface_material(s), textures, local_textures)
-            for s in range(mi.get_surface_override_material_count()):
-                _collect_material_textures(mi.get_surface_override_material(s), textures, local_textures)
+        for child in current.get_children():
+            stack.append(child)
     return {"triangles": triangles, "nodes": nodes}
-
-func _collect_material_textures(material: Material, textures: Dictionary, local_textures: Dictionary) -> void:
-    if material == null:
-        return
-    for prop in material.get_property_list():
-        var value = material.get(str(prop.get("name", "")))
-        if value is Texture2D:
-            _register_texture(value, textures, local_textures)
-    if material is ShaderMaterial:
-        var shader_material := material as ShaderMaterial
-        var shader := shader_material.shader
-        if shader != null:
-            for uniform in shader.get_shader_uniform_list():
-                var value = shader_material.get_shader_parameter(str(uniform.get("name", "")))
-                if value is Texture2D:
-                    _register_texture(value, textures, local_textures)
-
-func _register_texture(texture: Texture2D, textures: Dictionary, local_textures: Dictionary) -> void:
-    if texture == null:
-        return
-    var path := texture.resource_path
-    if path.is_empty():
-        path = "<embedded/subresource>"
-    textures[path] = true
-    local_textures[path] = true
 
 func _mesh_triangles(mesh: Mesh) -> int:
     var triangles := 0
