@@ -2,13 +2,17 @@ extends SceneTree
 ## Offline V11 optimizer.
 ## Goal: flatten each baked archetype to one visual MeshInstance3D and one
 ## StaticBody3D/ConcavePolygonShape3D, while preserving materials and transforms.
+## V11 material resources are externalized once and reused by all archetypes.
 
 const ARCH_DIR: String = "res://baked_city/archetypes_587"
+const MATERIAL_DIR: String = "res://baked_city/v11_shared_materials"
+var _shared_materials: Dictionary = {}
 
 func _initialize() -> void:
     call_deferred("_run")
 
 func _run() -> void:
+    DirAccess.make_dir_recursive_absolute(ProjectSettings.globalize_path(MATERIAL_DIR))
     var optimized: int = 0
     for i in range(27):
         var path: String = "%s/archetype_%02d.tscn" % [ARCH_DIR, i]
@@ -17,6 +21,7 @@ func _run() -> void:
             continue
         if _optimize_one(path):
             optimized += 1
+    print("V11 OPTIMIZER: shared_materials=%d" % _shared_materials.size())
     print("V11 OPTIMIZER: optimized=%d/27" % optimized)
     quit(0 if optimized == 27 else 1)
 
@@ -56,6 +61,7 @@ func _optimize_one(path: String) -> bool:
                 material = mi.material_override
             if material == null:
                 material = mesh.surface_get_material(surface)
+            material = _get_shared_material(material)
             var key: String = _material_key(material)
             if not tools.has(key):
                 var st: SurfaceTool = SurfaceTool.new()
@@ -124,6 +130,50 @@ func _optimize_one(path: String) -> bool:
     print("V11 OPTIMIZER: %s mesh_nodes=%d surfaces=%d collision_vertices=%d" % [path, meshes.size(), merged_count, merged_faces.size()])
     return true
 
+func _get_shared_material(material: Material) -> Material:
+    if material == null:
+        return null
+    var key: String = _material_signature(material)
+    var existing: Material = _shared_materials.get(key) as Material
+    if existing != null:
+        return existing
+
+    material.resource_local_to_scene = false
+    var index: int = _shared_materials.size()
+    var shared_path: String = "%s/material_%02d.tres" % [MATERIAL_DIR, index]
+    var save_error: Error = ResourceSaver.save(material, shared_path)
+    if save_error != OK:
+        push_error("V11 OPTIMIZER: shared material save failed: %s" % shared_path)
+        return material
+    var shared: Material = load(shared_path) as Material
+    if shared == null:
+        push_error("V11 OPTIMIZER: shared material reload failed: %s" % shared_path)
+        return material
+    shared.resource_local_to_scene = false
+    _shared_materials[key] = shared
+    print("V11 OPTIMIZER: shared material #%02d %s" % [index, shared_path])
+    return shared
+
+func _material_signature(material: Material) -> String:
+    var parts: PackedStringArray = [material.get_class()]
+    for prop in material.get_property_list():
+        var prop_name: String = str(prop.get("name", ""))
+        if prop_name.is_empty() or prop_name == "resource_local_to_scene" or prop_name == "resource_path" or prop_name == "resource_name":
+            continue
+        var value = material.get(prop_name)
+        if value is Texture2D:
+            var texture: Texture2D = value as Texture2D
+            var texture_path: String = texture.resource_path
+            if texture_path.is_empty():
+                texture_path = "<embedded:%d>" % texture.get_instance_id()
+            parts.append("%s=tex:%s" % [prop_name, texture_path])
+        elif value is Resource:
+            var resource: Resource = value as Resource
+            parts.append("%s=res:%s:%s" % [prop_name, resource.get_class(), resource.resource_path])
+        elif value is bool or value is int or value is float or value is String or value is Color or value is Vector2 or value is Vector2i or value is Vector3 or value is Vector3i:
+            parts.append("%s=%s" % [prop_name, str(value)])
+    return "|".join(parts)
+
 func _collect_all_meshes(current: Node, out: Array[MeshInstance3D]) -> void:
     for child in current.get_children():
         var node: Node = child
@@ -147,9 +197,7 @@ func _local_transform_to_root(node: Node3D, root: Node3D) -> Transform3D:
 func _material_key(material: Material) -> String:
     if material == null:
         return "__NO_MATERIAL__"
-    if not material.resource_path.is_empty():
-        return "PATH:" + material.resource_path
-    return "INSTANCE:" + str(material.get_instance_id())
+    return "SIG:" + _material_signature(material)
 
 func _append_collision_faces(mesh: Mesh, transform: Transform3D, out: PackedVector3Array) -> void:
     for surface in range(mesh.get_surface_count()):
