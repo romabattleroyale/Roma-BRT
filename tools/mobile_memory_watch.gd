@@ -57,22 +57,21 @@ func _log_building_memory(building: Node3D, number: int) -> void:
     print("[MEM] Edificio #", number, " piazzato - Memoria processo: %.2f MB - Risorse in cache: %d - Nodi: %d - Mesh: %d - Materiali: %d - Texture: %d" % [memory_mb, stats["resources"], stats["nodes"], stats["meshes"], stats["materials"], stats["textures"]])
 
 func _resource_stats(root: Node) -> Dictionary:
-    var nodes := 0
+    var stats := _collect_resources(root)
+    return {
+        "nodes": stats["nodes"],
+        "meshes": stats["meshes"].size(),
+        "materials": stats["materials"].size(),
+        "textures": stats["textures"].size(),
+        "resources": stats["resources"].size()
+    }
+
+func _collect_resources(node: Node) -> Dictionary:
+    var nodes := 1
     var meshes := {}
     var materials := {}
     var textures := {}
     var resources := {}
-    _collect_resources(root, nodes, meshes, materials, textures, resources)
-    return {
-        "nodes": nodes,
-        "meshes": meshes.size(),
-        "materials": materials.size(),
-        "textures": textures.size(),
-        "resources": resources.size()
-    }
-
-func _collect_resources(node: Node, nodes: int, meshes: Dictionary, materials: Dictionary, textures: Dictionary, resources: Dictionary) -> void:
-    nodes += 1
     if node is MeshInstance3D:
         var mesh_node := node as MeshInstance3D
         var mesh := mesh_node.mesh
@@ -80,14 +79,6 @@ func _collect_resources(node: Node, nodes: int, meshes: Dictionary, materials: D
             var mesh_id := mesh.get_instance_id()
             meshes[mesh_id] = true
             resources[mesh_id] = true
-        for slot in range(mesh_node.get_surface_override_material_count()):
-            var mat := mesh_node.get_surface_override_material(slot)
-            if mat != null:
-                var mat_id := mat.get_instance_id()
-                materials[mat_id] = true
-                resources[mat_id] = true
-                _collect_material_textures(mat, textures, resources)
-        if mesh != null:
             for surface in range(mesh.get_surface_count()):
                 var mat := mesh.surface_get_material(surface)
                 if mat != null:
@@ -95,8 +86,25 @@ func _collect_resources(node: Node, nodes: int, meshes: Dictionary, materials: D
                     materials[mat_id] = true
                     resources[mat_id] = true
                     _collect_material_textures(mat, textures, resources)
+        for slot in range(mesh_node.get_surface_override_material_count()):
+            var override_mat := mesh_node.get_surface_override_material(slot)
+            if override_mat != null:
+                var override_id := override_mat.get_instance_id()
+                materials[override_id] = true
+                resources[override_id] = true
+                _collect_material_textures(override_mat, textures, resources)
     for child in node.get_children():
-        _collect_resources(child, nodes, meshes, materials, textures, resources)
+        var child_stats := _collect_resources(child)
+        nodes += int(child_stats["nodes"])
+        for key in child_stats["meshes"].keys():
+            meshes[key] = true
+        for key in child_stats["materials"].keys():
+            materials[key] = true
+        for key in child_stats["textures"].keys():
+            textures[key] = true
+        for key in child_stats["resources"].keys():
+            resources[key] = true
+    return {"nodes":nodes,"meshes":meshes,"materials":materials,"textures":textures,"resources":resources}
 
 func _collect_material_textures(material: Material, textures: Dictionary, resources: Dictionary) -> void:
     if material is BaseMaterial3D:
