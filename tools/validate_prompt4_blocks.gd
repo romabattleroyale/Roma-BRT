@@ -60,10 +60,19 @@ func _run() -> void:
     var v37: Node = root.get_node_or_null("V37Integration")
     if v37 != null:
         city_root = v37.get("city_root") as Node
-    var block_counts: Dictionary = {}
+
+    # The bridge sets built after its placement loop, but the scene tree can
+    # still need a frame to expose the final hierarchy to the gate traversal.
+    # Wait for the actual Prompt 4 population, not only the bridge flag.
+    var building_deadline := Time.get_ticks_msec() + int(WAIT_SECONDS * 1000.0)
     var buildings: Array[Node] = []
-    if city_root != null:
+    while city_root != null and buildings.size() < EXPECTED_BLOCKS * BUILDINGS_PER_BLOCK and Time.get_ticks_msec() < building_deadline:
+        buildings.clear()
         _collect_prompt4_buildings(city_root, buildings)
+        if buildings.size() < EXPECTED_BLOCKS * BUILDINGS_PER_BLOCK:
+            await process_frame
+
+    var block_counts: Dictionary = {}
     for b in buildings:
         var block_id := str(b.get_meta("prompt4_block", ""))
         if not block_id.is_empty():
