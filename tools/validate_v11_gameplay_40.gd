@@ -21,11 +21,9 @@ func _run() -> void:
         push_error("V11 GAMEPLAY FAIL: only %d entries available, need %d" % [entries.size(), BUILDINGS])
         quit(2)
         return
-
     var root := Node3D.new()
     root.name = "V11GameplayValidation"
     get_root().add_child(root)
-
     var passed := 0
     for i in range(BUILDINGS):
         var packed := load(str(entries[i]["archetype"])) as PackedScene
@@ -40,7 +38,7 @@ func _run() -> void:
             return
         building.transform = entries[i]["transform"]
         root.add_child(building)
-        var result := _probe_building(building)
+        var result := await _probe_building(building)
         print("[V11 GAMEPLAY] edificio=%d door=%s enter=%s walk=%s" % [i + 1, str(result["door"]), str(result["enter"]), str(result["walk"])])
         if bool(result["enter"]) and bool(result["walk"]):
             passed += 1
@@ -48,7 +46,6 @@ func _run() -> void:
             push_error("V11 GAMEPLAY FAIL: building %d entry/walk probe failed" % (i + 1))
         building.queue_free()
         await process_frame
-
     print("=== V11 GAMEPLAY 40 ===")
     print("Edifici testati: %d" % BUILDINGS)
     print("Edifici PASS: %d" % passed)
@@ -74,7 +71,6 @@ func _probe_building(root: Node3D) -> Dictionary:
     cs.shape = capsule
     player.add_child(cs)
     get_root().add_child(player)
-
     var start := door_point - inward * OUTSIDE_OFFSET
     start.y = DOOR_Y
     player.global_position = start
@@ -86,7 +82,6 @@ func _probe_building(root: Node3D) -> Dictionary:
             entered = false
             break
         await process_frame
-
     var walked := entered
     if entered:
         var side_move := _side_vector(side) * 1.2
@@ -110,7 +105,7 @@ func _side_vector(side: int) -> Vector3:
     return Vector3(0, 0, 1)
 
 func _door_point(aabb: AABB, side: int) -> Vector3:
-    var p := aabb.position + aabb.size * 0.5
+    var p: Vector3 = aabb.position + aabb.size * 0.5
     if side == 0:
         p.z = aabb.position.z - 0.35
     elif side == 1:
@@ -138,7 +133,7 @@ func _visual_aabb(root: Node3D) -> AABB:
                     var vertices = arrays[Mesh.ARRAY_VERTEX]
                     if vertices is PackedVector3Array:
                         for v in vertices:
-                            var p := tr * v
+                            var p: Vector3 = tr * v
                             if first:
                                 out = AABB(p, Vector3.ZERO)
                                 first = false
