@@ -68,12 +68,20 @@ jobs:
           count=$(find baked_city/archetypes_587 -maxdepth 1 -type f -name 'archetype_*.tscn' | wc -l)
           test "$count" -eq 27
           echo "BAKE ARTIFACT OK: city + $count reusable archetype scenes"
-      - name: Optimize V11 building visuals
+      - name: Optimize V11 building visuals and collision
         run: |
           set -euo pipefail
           .runtime/godot/godot --headless --path . --script res://tools/optimize_v11_archetypes.gd
           test "$(find baked_city/archetypes_587 -maxdepth 1 -type f -name 'archetype_*.tscn' | wc -l)" -eq 27
-          echo 'V11 VISUAL OPTIMIZATION OK'
+          echo 'V11 VISUAL/COLLISION OPTIMIZATION OK'
+      - name: Validate V11 at 5 buildings
+        run: .runtime/godot/godot --headless --path . --script res://tools/validate_v11_scale.gd -- 5
+      - name: Validate V11 at 10 buildings
+        run: .runtime/godot/godot --headless --path . --script res://tools/validate_v11_scale.gd -- 10
+      - name: Validate V11 at 20 buildings
+        run: .runtime/godot/godot --headless --path . --script res://tools/validate_v11_scale.gd -- 20
+      - name: Validate V11 at 40 buildings
+        run: .runtime/godot/godot --headless --path . --script res://tools/validate_v11_scale.gd -- 40
       - name: Diagnose Terrain3D after main scene initialization
         run: .runtime/godot/godot --headless --path . --script res://v37_integration/diagnose_bake_runtime.gd
       - name: Runtime smoke launch
