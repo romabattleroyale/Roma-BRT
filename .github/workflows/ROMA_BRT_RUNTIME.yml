@@ -86,6 +86,10 @@ jobs:
           set -euo pipefail
           .runtime/godot/godot --headless --path . --script res://tools/optimize_v11_archetypes.gd
           test "$(find baked_city/v11_shared_materials -maxdepth 1 -type f -name '*.tres' | wc -l)" -gt 0
+      - name: Enforce final Roman facade art style
+        run: |
+          set -euo pipefail
+          .runtime/godot/godot --headless --path . --script res://tools/enforce_v11_facade_style.gd
       - name: Simplify V11 building collisions only
         run: .runtime/godot/godot --headless --path . --script res://tools/simplify_v11_collisions.gd
       - name: Validate V11 collision at 5 buildings - hard gate
