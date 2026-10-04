@@ -7,6 +7,7 @@ on:
     paths:
       - 'mobile_texture_test.tscn'
       - 'tools/mobile_texture_visual_test.gd'
+      - 'tools/optimize_v11_archetypes.gd'
       - 'baked_city/**'
       - 'city_library/buildings/houses/roma_architecture_library_v11/assets/textures/**'
       - 'export_presets.cfg'
@@ -104,6 +105,7 @@ jobs:
             adb logcat -d > build/android-texture-logcat.txt
             adb exec-out screencap -p > build/android-texture-screenshot.png
             grep -F 'ANDROID_TEXTURE_TEST PASS' build/android-texture-logcat.txt
+            grep -F 'ANDROID_ART_TEST PASS' build/android-texture-logcat.txt
             texture_count=$(grep -c '^.*ANDROID_TEXTURE:' build/android-texture-logcat.txt || true)
             test "$texture_count" -ge 14
       - name: Verify screenshot is visually non-flat
