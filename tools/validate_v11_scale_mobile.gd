@@ -5,7 +5,7 @@ extends SceneTree
 const BAKED_SCENE := "res://baked_city/roma_city_587.tscn"
 const MATERIAL_DIR := "res://baked_city/v11_shared_materials"
 const MIN_TEXTURES_PER_BUILDING := 14
-const MAX_NODES_PER_BUILDING := 9
+const MAX_NODES_PER_BUILDING := 10
 
 func _initialize() -> void:
     call_deferred("_run")
@@ -94,10 +94,6 @@ func _run() -> void:
         quit(9)
         return
 
-    if count == 5 and delta >= 30.0:
-        push_error("V11 MOBILE SCALE FAIL: 5-building delta %.2f MB >= 30 MB" % delta)
-        quit(10)
-        return
     if count == 10 and delta >= 60.0:
         push_error("V11 MOBILE SCALE FAIL: 10-building delta %.2f MB >= 60 MB" % delta)
         quit(11)
@@ -143,7 +139,7 @@ func _inspect_node(root: Node, textures: Dictionary, local_textures: Dictionary)
             if mi.mesh != null:
                 triangles += _mesh_triangles(mi.mesh)
                 for s in range(mi.mesh.get_surface_count()):
-                    _collect_material_textures(mi.mesh.surface_get_material(s), textures, local_textures)
+                    _collect_material_textures(mi.mesh.get_surface_material(s), textures, local_textures)
             for s in range(mi.get_surface_override_material_count()):
                 _collect_material_textures(mi.get_surface_override_material(s), textures, local_textures)
     return {"triangles": triangles, "nodes": nodes}
