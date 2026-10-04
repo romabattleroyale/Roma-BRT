@@ -49,6 +49,11 @@ func _optimize_one(path: String) -> bool:
         var local_to_root: Transform3D = _local_transform_to_root(mi, root)
         for surface in range(mesh.get_surface_count()):
             var material: Material = mi.get_surface_override_material(surface)
+            # V11 geometry is primarily authored with MeshInstance3D.material_override,
+            # not per-surface overrides. The old optimizer ignored that property and
+            # therefore baked every merged surface without a material/texture.
+            if material == null:
+                material = mi.material_override
             if material == null:
                 material = mesh.surface_get_material(surface)
             var key: String = _material_key(material)
