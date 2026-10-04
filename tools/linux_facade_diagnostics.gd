@@ -12,15 +12,13 @@ func _initialize() -> void:
     print("DIAG renderer=", ProjectSettings.get_setting("renderer/rendering_method", "<unset>"))
     var err: Error = change_scene_to_file(MAIN_SCENE)
     print("DIAG change_scene_to_file error=", err)
-    var timer8: SceneTreeTimer = create_timer(8.0)
-    timer8.timeout.connect(func() -> void: _run_diagnostics("T+8s"))
-    var timer16: SceneTreeTimer = create_timer(16.0)
-    timer16.timeout.connect(func() -> void: _run_diagnostics("T+16s"))
-    var timer30: SceneTreeTimer = create_timer(30.0)
-    timer30.timeout.connect(func() -> void:
-        print("=== LINUX FACADE DIAGNOSTICS — END ===")
-        quit(0)
-    )
+    await create_timer(8.0).timeout
+    _run_diagnostics("T+8s")
+    await create_timer(8.0).timeout
+    _run_diagnostics("T+16s")
+    await create_timer(10.0).timeout
+    print("=== LINUX FACADE DIAGNOSTICS — END ===")
+    quit(0)
 
 func _run_diagnostics(label: String) -> void:
     print("--- FACADE DIAGNOSTICS ", label, " ---")
