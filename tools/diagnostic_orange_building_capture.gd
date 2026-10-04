@@ -88,8 +88,8 @@ func _run() -> void:
 
     var box := _combined_aabb(prototype)
     var center := box.position + box.size * 0.5
-    var radius := max(box.size.x, max(box.size.y, box.size.z)) * 0.5
-    radius = max(radius, 2.0)
+    var radius: float = maxf(box.size.x, maxf(box.size.y, box.size.z)) * 0.5
+    radius = maxf(radius, 2.0)
     camera.position = center + Vector3(radius * 1.8, radius * 1.25, radius * 1.8)
     camera.look_at(center, Vector3.UP)
 
@@ -130,7 +130,7 @@ func _combined_aabb(root: Node3D) -> AABB:
             local_box.position + local_box.size
         ]
         for c in corners:
-            var p := mi.transform * c
+            var p: Vector3 = mi.transform * c
             if first:
                 result = AABB(p, Vector3.ZERO)
                 first = false
