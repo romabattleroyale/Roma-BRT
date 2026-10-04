@@ -8,7 +8,7 @@ func _initialize() -> void:
     call_deferred("_run")
 
 func _run() -> void:
-    var args: PackedStringArray = get_cmdline_user_args()
+    var args: PackedStringArray = OS.get_cmdline_user_args()
     var count: int = 5
     if not args.is_empty():
         count = int(args[0])
