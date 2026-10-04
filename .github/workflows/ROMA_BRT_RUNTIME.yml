@@ -68,12 +68,18 @@ jobs:
           count=$(find baked_city/archetypes_587 -maxdepth 1 -type f -name 'archetype_*.tscn' | wc -l)
           test "$count" -eq 27
           echo "BAKE ARTIFACT OK: city + $count reusable archetype scenes"
-      - name: Optimize V11 building visuals and collision
+      - name: Optimize V11 building visuals and materials
         run: |
           set -euo pipefail
           .runtime/godot/godot --headless --path . --script res://tools/optimize_v11_archetypes.gd
           test "$(find baked_city/archetypes_587 -maxdepth 1 -type f -name 'archetype_*.tscn' | wc -l)" -eq 27
-          echo 'V11 VISUAL/COLLISION OPTIMIZATION OK'
+          echo 'V11 VISUAL/MATERIAL OPTIMIZATION OK'
+      - name: Simplify V11 building collisions only
+        run: |
+          set -euo pipefail
+          .runtime/godot/godot --headless --path . --script res://tools/simplify_v11_collisions.gd
+          test "$(find baked_city/archetypes_587 -maxdepth 1 -type f -name 'archetype_*.tscn' | wc -l)" -eq 27
+          echo 'V11 COLLISION SIMPLIFICATION OK'
       - name: Validate V11 at 5 buildings
         run: .runtime/godot/godot --headless --path . --script res://tools/validate_v11_scale.gd -- 5
       - name: Validate V11 at 10 buildings
