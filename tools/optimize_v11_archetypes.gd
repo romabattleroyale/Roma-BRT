@@ -8,6 +8,7 @@ extends SceneTree
 
 const ARCH_DIR: String = "res://baked_city/archetypes_587"
 const MATERIAL_DIR: String = "res://baked_city/v11_shared_materials"
+const TEXTURE_DIR: String = "res://city_library/buildings/houses/roma_architecture_library_v11/assets/textures"
 const COMPRESS_FLAGS: int = Mesh.ARRAY_FLAG_COMPRESS_ATTRIBUTES
 var _shared_materials: Dictionary = {}
 
@@ -148,11 +149,11 @@ func _surface_supports_compression(mesh: Mesh, surface: int) -> bool:
     var arrays: Array = mesh.surface_get_arrays(surface)
     if arrays.is_empty():
         return false
-    var vertices = arrays[Mesh.ARRAY_VERTEX]
+    var vertices: Variant = arrays[Mesh.ARRAY_VERTEX]
     if not (vertices is PackedVector3Array):
         return false
-    var normals = arrays[Mesh.ARRAY_NORMAL]
-    var tangents = arrays[Mesh.ARRAY_TANGENT]
+    var normals: Variant = arrays[Mesh.ARRAY_NORMAL]
+    var tangents: Variant = arrays[Mesh.ARRAY_TANGENT]
     var has_normals: bool = normals is PackedVector3Array and (normals as PackedVector3Array).size() > 0
     var has_tangents: bool = (tangents is PackedFloat32Array or tangents is PackedFloat64Array) and tangents.size() > 0
     # Godot compressed attributes require vertices+normals+tangents,
@@ -167,7 +168,13 @@ func _get_shared_material(material: Material) -> Material:
     if existing != null:
         return existing
 
+    material = _apply_roman_facade_style(material)
     material.resource_local_to_scene = false
+    key = _material_signature(material)
+    existing = _shared_materials.get(key) as Material
+    if existing != null:
+        return existing
+
     var index: int = _shared_materials.size()
     var shared_path: String = "%s/material_%02d.tres" % [MATERIAL_DIR, index]
     var save_error: Error = ResourceSaver.save(material, shared_path)
@@ -183,13 +190,34 @@ func _get_shared_material(material: Material) -> Material:
     print("V11 OPTIMIZER: shared material #%02d %s" % [index, shared_path])
     return shared
 
+func _apply_roman_facade_style(material: Material) -> Material:
+    if material == null or material.resource_name != "Muro_Romano":
+        return material
+    var terracotta: Texture2D = load("%s/roman_plaster_terracotta.jpg" % TEXTURE_DIR) as Texture2D
+    var terracotta_normal: Texture2D = load("%s/roman_plaster_terracotta_normal.jpg" % TEXTURE_DIR) as Texture2D
+    var weathered_roughness: Texture2D = load("%s/roman_plaster_weathered_roughness.jpg" % TEXTURE_DIR) as Texture2D
+    if material is StandardMaterial3D:
+        var standard: StandardMaterial3D = material as StandardMaterial3D
+        if terracotta != null:
+            standard.albedo_color = Color(1, 1, 1, 1)
+            standard.albedo_texture = terracotta
+        if terracotta_normal != null:
+            standard.normal_enabled = true
+            standard.normal_scale = 0.58
+            standard.normal_texture = terracotta_normal
+        if weathered_roughness != null:
+            standard.roughness = 0.9
+            standard.roughness_texture = weathered_roughness
+        print("V11 ART: Muro_Romano -> terracotta albedo + normal + roughness")
+    return material
+
 func _material_signature(material: Material) -> String:
     var parts: PackedStringArray = [material.get_class()]
     for prop in material.get_property_list():
         var prop_name: String = str(prop.get("name", ""))
         if prop_name.is_empty() or prop_name == "resource_local_to_scene" or prop_name == "resource_path" or prop_name == "resource_name":
             continue
-        var value = material.get(prop_name)
+        var value: Variant = material.get(prop_name)
         if value is Texture2D:
             var texture: Texture2D = value as Texture2D
             var texture_path: String = texture.resource_path
@@ -233,10 +261,10 @@ func _append_collision_faces(mesh: Mesh, transform: Transform3D, out: PackedVect
         var arrays: Array = mesh.surface_get_arrays(surface)
         if arrays.is_empty():
             continue
-        var vertices = arrays[Mesh.ARRAY_VERTEX]
+        var vertices: Variant = arrays[Mesh.ARRAY_VERTEX]
         if not (vertices is PackedVector3Array):
             continue
-        var indices = arrays[Mesh.ARRAY_INDEX]
+        var indices: Variant = arrays[Mesh.ARRAY_INDEX]
         if indices is PackedInt32Array and indices.size() >= 3:
             for i in range(0, indices.size(), 3):
                 out.append(transform * vertices[indices[i]])
