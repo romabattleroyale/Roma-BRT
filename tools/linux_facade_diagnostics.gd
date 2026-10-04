@@ -67,7 +67,7 @@ func _run_diagnostics(label: String) -> void:
             if is_roof:
                 roof_candidates += 1
                 print("ROOF_CANDIDATE ", desc)
-                if not _roof_test_done and sm.albedo_texture == null:
+                if not _roof_test_done:
                     _apply_facade_texture_to_roof(sm)
 
     print("DIAG facade_material_surfaces=", facade_count, " roof_candidates=", roof_candidates)
