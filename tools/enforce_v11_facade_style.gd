@@ -51,7 +51,7 @@ func _run() -> void:
         if not is_facade:
             continue
 
-        var color := FACADE_COLORS[facade_count % FACADE_COLORS.size()]
+        var color: Color = FACADE_COLORS[facade_count % FACADE_COLORS.size()]
         material.resource_name = "Muro_Romano"
         material.albedo_color = color
         material.albedo_texture = albedo
