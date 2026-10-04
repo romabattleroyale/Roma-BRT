@@ -65,20 +65,26 @@ jobs:
           if [ ! -f "$HOME/.android/debug.keystore" ]; then keytool -genkeypair -v -keystore "$HOME/.android/debug.keystore" -storepass android -alias androiddebugkey -keypass android -keyalg RSA -keysize 2048 -validity 10000 -dname 'CN=Android Debug,O=Android,C=US'; fi
       - name: Import project resources
         run: .runtime/godot/godot --headless --editor --path . --quit
-      - name: Switch temporary main scene to mobile texture test
+      - name: Switch temporary Android test scene and x86_64 export
         run: |
+          set -euo pipefail
           cp project.godot /tmp/project.godot.original
+          cp export_presets.cfg /tmp/export_presets.cfg.original
           sed -i 's#run/main_scene="res://main.tscn"#run/main_scene="res://mobile_texture_test.tscn"#' project.godot
+          sed -i 's#architectures/x86_64=false#architectures/x86_64=true#' export_presets.cfg
           grep -F 'run/main_scene="res://mobile_texture_test.tscn"' project.godot
+          grep -F 'architectures/x86_64=true' export_presets.cfg
       - name: Export Android texture test APK
         run: |
           set -euo pipefail
           mkdir -p build
           .runtime/godot/godot --headless --path . --export-debug Android build/Roma-BRT-V11-Android-TextureTest.apk
           test -s build/Roma-BRT-V11-Android-TextureTest.apk
-      - name: Restore project file
+      - name: Restore project files
         if: always()
-        run: cp /tmp/project.godot.original project.godot
+        run: |
+          cp /tmp/project.godot.original project.godot
+          cp /tmp/export_presets.cfg.original export_presets.cfg
       - name: Run APK on Android emulator and capture screenshot
         uses: reactivecircus/android-emulator-runner@v2
         with:
@@ -92,8 +98,8 @@ jobs:
           script: |
             set -euo pipefail
             adb install -r build/Roma-BRT-V11-Android-TextureTest.apk
-            adb shell am force-stop com.romabattleroyale.romabattleroyale
-            adb shell am start -n com.romabattleroyale.romabattleroyale/.MainActivity
+            adb shell am force-stop com.romabattleroyale.romabrtprobe
+            adb shell am start -n com.romabattleroyale.romabrtprobe/.MainActivity
             sleep 8
             adb logcat -d > build/android-texture-logcat.txt
             adb exec-out screencap -p > build/android-texture-screenshot.png
@@ -109,7 +115,8 @@ jobs:
           im = Image.open('build/android-texture-screenshot.png').convert('RGB')
           stat = ImageStat.Stat(im)
           extrema = im.getextrema()
-          unique = len(im.resize((160,160)).getcolors(maxcolors=1000000) or [])
+          colors = im.resize((160,160)).getcolors(maxcolors=1000000)
+          unique = len(colors or [])
           spread = sum(b-a for a,b in extrema)
           mean_std = sum(stat.stddev)
           print('ANDROID SCREENSHOT unique_colors=', unique)
