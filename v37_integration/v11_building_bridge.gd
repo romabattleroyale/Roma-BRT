@@ -81,7 +81,11 @@ func _build_library(v37: Node) -> void:
     var blocks: Array = _urban_lot_rects()
     var block_count: int = int(min(blocks.size(), int(ceil(float(limit) / 5.0))))
     print("PROMPT 4 — URBAN_GRID RETTANGOLI: ", blocks.size(), " (attesi 8)")
+    print("Urban_Grid: ", blocks.size(), " rettangoli trovati")
     print("PROMPT 4 — ISOLATI UTILIZZATI: ", block_count)
+    print("Isolati creati: ", block_count)
+    print("Edifici per isolato: 5")
+    print("Road setback: ", ROAD_SETBACK, "m per lato; corridoio tra isolati: ", ROAD_SETBACK * 2.0, "m")
 
     var placed: int = 0
     for block_index in range(block_count):
@@ -126,7 +130,7 @@ func _build_library(v37: Node) -> void:
                 _reject(index, str(validation["reason"]))
                 continue
             var base_h: float = float(validation["base_h"])
-            var building = adapter.factory.build_and_place(str(candidate["catalog_id"]), Vector3(center.x, 0.0, center.z), base_h, rotation_y, index)
+            var building = adapter.factory.build_mobile_and_place(str(candidate["catalog_id"]), Vector3(center.x, 0.0, center.z), base_h, rotation_y, index)
             if building == null:
                 _reject(index, "library_build_failed")
                 continue
@@ -144,7 +148,7 @@ func _build_library(v37: Node) -> void:
             building.set_meta("prompt4_safety_corridor_m", SAFETY_CORRIDOR)
             building.set_meta("prompt4_courtyard", true)
             building.set_meta("prompt4_terrain_base_h", base_h)
-            building.set_meta("prompt4_android_lightweight", false)
+            building.set_meta("prompt4_android_lightweight", true)
             building.set_meta("prompt4_full_architecture", true)
             city_root.add_child(building)
             placed_rects.append({"center":center, "width":width, "depth":depth, "rotation":rotation_y, "block":block_index})
