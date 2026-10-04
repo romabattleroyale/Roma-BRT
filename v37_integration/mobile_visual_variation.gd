@@ -44,10 +44,17 @@ func _facade_material(color: Color) -> StandardMaterial3D:
     _load_facade_textures()
     var material := StandardMaterial3D.new()
     material.albedo_color = color
-    material.albedo_texture = _facade_albedo
-    material.normal_texture = _facade_normal
-    material.roughness_texture = _facade_roughness
+    if _facade_albedo != null:
+        material.albedo_texture = _facade_albedo
+    if _facade_normal != null:
+        material.normal_enabled = true
+        material.normal_texture = _facade_normal
+        material.normal_scale = 0.58
+    if _facade_roughness != null:
+        material.roughness_texture = _facade_roughness
     material.roughness = 0.88
+    material.uv1_scale = Vector3(3.6, 3.6, 3.6)
+    material.texture_repeat = true
     _facade_materials[key] = material
     return material
 
