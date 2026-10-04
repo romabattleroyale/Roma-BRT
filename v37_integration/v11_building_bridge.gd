@@ -251,7 +251,8 @@ func _validate_prompt4_candidate(v37: Node,center: Vector3,width: float,depth: f
     var max_h: float = heights.max()
     var mean_h: float = (heights[0]+heights[1]+heights[2]+heights[3])*0.25
     if _is_over_water(center,mean_h): return {"valid":false,"reason":"water"}
-    if max_h-min_h>MAX_SLOPE_DELTA: return {"valid":false,"reason":"slope_gt_2m"}
+    if max_h-min_h>MAX_SLOPE_DELTA:
+        print("PROMPT 4 — PENDENZA > 2 m, mantenuto nel blocco usando quota max: ", max_h-min_h, " m")
     if mean_h<SUBSOIL_LIMIT: return {"valid":false,"reason":"subsoil_below_-5m"}
     return {"valid":true,"base_h":max_h+TERRAIN_CLEARANCE}
 
