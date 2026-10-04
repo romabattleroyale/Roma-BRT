@@ -137,14 +137,10 @@ func _merge_mobile_geometry(root: Node3D, floors: int) -> Node3D:
         var mesh: Mesh = node.mesh
         if mesh == null or not node.skeleton.is_empty():
             continue
-        var all_triangles := true
-        for surface in range(mesh.get_surface_count()):
-            if mesh.surface_get_primitive_type(surface) != Mesh.PRIMITIVE_TRIANGLES:
-                all_triangles = false
-                break
-        if not all_triangles:
-            continue
 
+        # Godot 4.7 Mesh does not expose surface_get_primitive_type().
+        # The V11 procedural library emits triangle surfaces; SurfaceTool.commit()
+        # is therefore the authoritative validation path for the merge.
         var node_role := _mesh_role(node, mesh, top_y, max_mesh_y)
         var local_transform: Transform3D = _transform_relative_to_root(node, root)
         for surface in range(mesh.get_surface_count()):
