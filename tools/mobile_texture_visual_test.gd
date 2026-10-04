@@ -6,24 +6,23 @@ extends Node3D
 const ARCHETYPE := "res://baked_city/archetypes_587/archetype_00.tscn"
 
 func _ready() -> void:
-    var building_scene := load(ARCHETYPE) as PackedScene
+    var building_scene: PackedScene = load(ARCHETYPE) as PackedScene
     if building_scene == null:
         push_error("ANDROID TEXTURE TEST FAIL: cannot load archetype_00")
         get_tree().quit(2)
         return
-    var building := building_scene.instantiate() as Node3D
+    var building: Node3D = building_scene.instantiate() as Node3D
     if building == null:
         push_error("ANDROID TEXTURE TEST FAIL: instantiate failed")
         get_tree().quit(3)
         return
     add_child(building)
 
-    var center := Vector3.ZERO
     var aabb := _visual_aabb(building)
-    center = aabb.position + aabb.size * 0.5
+    var center: Vector3 = aabb.position + aabb.size * 0.5
     var camera := Camera3D.new()
     camera.current = true
-    var span := maxf(maxf(aabb.size.x, aabb.size.y), aabb.size.z)
+    var span: float = maxf(maxf(aabb.size.x, aabb.size.y), aabb.size.z)
     camera.position = center + Vector3(span * 1.25, span * 0.70, span * 1.25)
     camera.look_at(center, Vector3.UP)
     add_child(camera)
@@ -45,7 +44,7 @@ func _ready() -> void:
 
     await get_tree().process_frame
     await get_tree().process_frame
-    var texture_paths := _collect_texture_paths(building)
+    var texture_paths: Dictionary = _collect_texture_paths(building)
     print("=== ANDROID TEXTURE TEST ===")
     print("Archetipo: %s" % ARCHETYPE)
     print("Texture2D risolte su Android: %d" % texture_paths.size())
@@ -59,9 +58,9 @@ func _collect_texture_paths(root: Node) -> Dictionary:
     var out: Dictionary = {}
     var stack: Array[Node] = [root]
     while not stack.is_empty():
-        var current := stack.pop_back()
+        var current: Node = stack.pop_back()
         if current is MeshInstance3D:
-            var mi := current as MeshInstance3D
+            var mi: MeshInstance3D = current as MeshInstance3D
             if mi.mesh != null:
                 for s in range(mi.mesh.get_surface_count()):
                     _collect_material_textures(mi.mesh.get_surface_material(s), out)
@@ -75,43 +74,45 @@ func _collect_material_textures(material: Material, out: Dictionary) -> void:
     if material == null:
         return
     for prop in material.get_property_list():
-        var value = material.get(str(prop.get("name", "")))
+        var prop_name: String = str(prop.get("name", ""))
+        var value: Variant = material.get(prop_name)
         if value is Texture2D:
-            var texture := value as Texture2D
-            var path := texture.resource_path
+            var texture: Texture2D = value as Texture2D
+            var path: String = texture.resource_path
             if path.is_empty():
                 path = "<embedded>"
             out[path] = true
     if material is ShaderMaterial:
-        var shader_material := material as ShaderMaterial
-        var shader := shader_material.shader
+        var shader_material: ShaderMaterial = material as ShaderMaterial
+        var shader: Shader = shader_material.shader
         if shader != null:
             for uniform in shader.get_shader_uniform_list():
-                var value = shader_material.get_shader_parameter(str(uniform.get("name", "")))
-                if value is Texture2D:
-                    var texture := value as Texture2D
-                    var path := texture.resource_path
+                var uniform_name: String = str(uniform.get("name", ""))
+                var shader_value: Variant = shader_material.get_shader_parameter(uniform_name)
+                if shader_value is Texture2D:
+                    var texture: Texture2D = shader_value as Texture2D
+                    var path: String = texture.resource_path
                     if path.is_empty():
                         path = "<embedded>"
                     out[path] = true
 
 func _visual_aabb(root: Node3D) -> AABB:
-    var first := true
+    var first: bool = true
     var out := AABB()
     var stack: Array[Node] = [root]
     while not stack.is_empty():
         var current: Node = stack.pop_back()
         if current is MeshInstance3D:
-            var mi := current as MeshInstance3D
+            var mi: MeshInstance3D = current as MeshInstance3D
             if mi.mesh != null:
-                var tr := _local_transform_to_root(mi, root)
+                var tr: Transform3D = _local_transform_to_root(mi, root)
                 for s in range(mi.mesh.get_surface_count()):
-                    var arrays := mi.mesh.surface_get_arrays(s)
+                    var arrays: Array = mi.mesh.surface_get_arrays(s)
                     if arrays.is_empty():
                         continue
-                    var vertices = arrays[Mesh.ARRAY_VERTEX]
-                    if vertices is PackedVector3Array:
-                        for v in vertices:
+                    var vertices: PackedVector3Array = arrays[Mesh.ARRAY_VERTEX] as PackedVector3Array
+                    if vertices != null:
+                        for v: Vector3 in vertices:
                             var p: Vector3 = tr * v
                             if first:
                                 out = AABB(p, Vector3.ZERO)
@@ -126,7 +127,7 @@ func _local_transform_to_root(node: Node3D, root: Node3D) -> Transform3D:
     var result := Transform3D.IDENTITY
     var current: Node = node
     while current != root:
-        var n := current as Node3D
+        var n: Node3D = current as Node3D
         if n == null:
             break
         result = n.transform * result
