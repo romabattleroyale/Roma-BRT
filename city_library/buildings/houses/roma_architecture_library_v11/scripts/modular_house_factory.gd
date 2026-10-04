@@ -145,7 +145,9 @@ func _merge_mobile_geometry(root: Node3D, floors: int) -> Node3D:
         var local_transform: Transform3D = _transform_relative_to_root(node, root)
         for surface in range(mesh.get_surface_count()):
             var material: Material = node.get_active_material(surface)
-            var format_key: int = int(mesh.surface_get_format(surface))
+            var format_key: int = -1
+            if mesh is ArrayMesh:
+                format_key = int((mesh as ArrayMesh).surface_get_format(surface))
             var material_key: int = 0 if material == null else material.get_instance_id()
             var key := "%s|m%d|f%d" % [node_role, material_key, format_key]
             var st: SurfaceTool = tools.get(key) as SurfaceTool
