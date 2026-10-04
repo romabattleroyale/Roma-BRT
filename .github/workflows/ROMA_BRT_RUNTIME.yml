@@ -13,6 +13,9 @@ on:
       - '**/*.glb'
       - '**/*.gltf'
       - '**/*.godot'
+      - '**/*.jpg'
+      - '**/*.jpeg'
+      - '**/*.png'
       - '.github/workflows/ROMA_BRT_RUNTIME.yml'
 
 permissions:
@@ -37,6 +40,7 @@ jobs:
           set -euo pipefail
           test -f project.godot
           grep -q '^\[application\]' project.godot
+          grep -q 'textures/vram_compression/import_etc2_astc=true' project.godot
       - name: Download Godot 4.7.2
         run: |
           set -euo pipefail
@@ -57,6 +61,11 @@ jobs:
             exit 1
           fi
           grep -F 'city_library/buildings/houses/roma_architecture_library_v11/assets/textures' city_library/buildings/houses/roma_architecture_library_v11/scripts/building_system.gd >/dev/null
+      - name: Optimize V11 textures for Android memory
+        run: |
+          set -euo pipefail
+          .runtime/godot/godot --headless --path . --script res://tools/optimize_v11_textures_mobile.gd
+          find city_library/buildings/houses/roma_architecture_library_v11/assets/textures -maxdepth 1 -type f \( -name '*.jpg' -o -name '*.jpeg' -o -name '*.png' \) -print | sort
       - name: Import Godot assets for headless CI
         run: |
           set -euo pipefail
@@ -125,14 +134,14 @@ jobs:
           test -s build/Roma-BRT-V11-Mobile-Textures.zip
           unzip -tq build/Roma-BRT-V11-Mobile-Textures.zip
           ls -lh build/Roma-BRT-V11-Mobile-Textures.zip
-      - name: Persist baked 587 city and mobile materials to main branch
+      - name: Persist baked 587 city, mobile materials and optimized textures to main branch
         run: |
           set -euo pipefail
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-          git add baked_city/roma_city_587.tscn baked_city/archetypes_587 baked_city/v11_shared_materials
+          git add baked_city/roma_city_587.tscn baked_city/archetypes_587 baked_city/v11_shared_materials city_library/buildings/houses/roma_architecture_library_v11/assets/textures
           if git diff --cached --quiet; then exit 0; fi
-          git commit -m 'chore: persist V11 mobile-ready baked city and materials [skip ci]'
+          git commit -m 'chore: persist V11 mobile-ready city materials and textures [skip ci]'
 
           for attempt in 1 2 3; do
             git fetch origin main
