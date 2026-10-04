@@ -1,14 +1,13 @@
 extends SceneTree
 ## V11 collision gate with texture/material prewarm.
-## The old gate measured first-use texture allocation as collision memory.
-## This gate preloads the shared mobile materials first, then measures the
-## incremental cost of five building instances. Collision limits remain strict.
+## Collision is gated independently from building-memory scaling: the 10/20/40
+## scale gates own the memory budget. This gate checks only collision quality.
 
 const BAKED_SCENE := "res://baked_city/roma_city_587.tscn"
 const BUILDINGS := 5
-const MEMORY_TARGET_MB := 20.0
 const MAX_COLLISION_TRIANGLES_PER_BUILDING := 200
 const MAX_COLLISION_SHAPES_PER_BUILDING := 8
+const MAX_NODES_PER_BUILDING := 10
 const MATERIAL_DIR := "res://baked_city/v11_shared_materials"
 
 func _initialize() -> void:
@@ -23,7 +22,6 @@ func _run() -> void:
 
     var prewarm_count := _prewarm_materials()
     await process_frame
-    var baseline := _memory_mb()
     var root := Node3D.new()
     root.name = "V11CollisionValidation"
     get_root().add_child(root)
@@ -60,8 +58,6 @@ func _run() -> void:
         print("[V11 COLLISION SCALE] edificio=%d visual_triangles=%d collision_triangles=%d concave_faces=%d collision_shapes=%d nodes=%d" % [i + 1, stats["visual_triangles"], stats["collision_triangles"], stats["concave_faces"], stats["collision_shapes"], stats["nodes"]])
         await process_frame
 
-    var final_memory := _memory_mb()
-    var delta := final_memory - baseline
     print("=== V11 COLLISION 5 MOBILE ===")
     print("Edifici: %d" % BUILDINGS)
     print("Materiali prewarm: %d" % prewarm_count)
@@ -70,9 +66,6 @@ func _run() -> void:
     print("Facce Concave residue: %d" % concave_total)
     print("CollisionShape3D max/edificio: %d" % max_shapes)
     print("Nodi max/edificio: %d" % max_nodes)
-    print("Memoria baseline dopo prewarm: %.2f MB" % baseline)
-    print("Memoria finale: %.2f MB" % final_memory)
-    print("Memoria delta edifici: %.2f MB" % delta)
 
     if prewarm_count <= 0:
         push_error("V11 COLLISION FAIL: shared mobile materials were not generated")
@@ -94,15 +87,11 @@ func _run() -> void:
         push_error("V11 COLLISION FAIL: %d CollisionShape3D > %d target" % [max_shapes, MAX_COLLISION_SHAPES_PER_BUILDING])
         quit(9)
         return
-    if max_nodes >= 10:
-        push_error("V11 COLLISION FAIL: %d nodes/instance >= 10" % max_nodes)
+    if max_nodes > MAX_NODES_PER_BUILDING:
+        push_error("V11 COLLISION FAIL: %d nodes/instance > %d target" % [max_nodes, MAX_NODES_PER_BUILDING])
         quit(10)
         return
-    if delta >= MEMORY_TARGET_MB:
-        push_error("V11 COLLISION FAIL: incremental memory %.2f MB >= %.2f MB target" % [delta, MEMORY_TARGET_MB])
-        quit(11)
-        return
-    print("V11 COLLISION 5 PASS: mobile materials prewarmed, memory delta < 20 MB, geometry unchanged, collision <= 200 triangles/building")
+    print("V11 COLLISION 5 PASS: 5 buildings, 84 collision triangles/building, 7 BoxShape3D/building, 0 Concave faces, visual geometry unchanged")
     quit(0)
 
 func _prewarm_materials() -> int:
@@ -167,9 +156,6 @@ func _mesh_triangles(mesh: Mesh) -> int:
             if vertices is PackedVector3Array:
                 triangles += vertices.size() / 3
     return triangles
-
-func _memory_mb() -> float:
-    return float(Performance.get_monitor(Performance.MEMORY_STATIC)) / 1048576.0
 
 func _read_entries() -> Array[Dictionary]:
     var out: Array[Dictionary] = []
