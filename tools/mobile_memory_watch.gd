@@ -24,7 +24,7 @@ func _process(_delta: float) -> void:
     var count := buildings.size()
     if count > last_count:
         for building in buildings:
-            var id := building.get_instance_id()
+            var id: int = building.get_instance_id()
             if seen_buildings.has(id):
                 continue
             seen_buildings[id] = true
@@ -76,20 +76,20 @@ func _collect_resources(node: Node) -> Dictionary:
         var mesh_node := node as MeshInstance3D
         var mesh := mesh_node.mesh
         if mesh != null:
-            var mesh_id := mesh.get_instance_id()
+            var mesh_id: int = mesh.get_instance_id()
             meshes[mesh_id] = true
             resources[mesh_id] = true
             for surface in range(mesh.get_surface_count()):
                 var mat := mesh.surface_get_material(surface)
                 if mat != null:
-                    var mat_id := mat.get_instance_id()
+                    var mat_id: int = mat.get_instance_id()
                     materials[mat_id] = true
                     resources[mat_id] = true
                     _collect_material_textures(mat, textures, resources)
         for slot in range(mesh_node.get_surface_override_material_count()):
             var override_mat := mesh_node.get_surface_override_material(slot)
             if override_mat != null:
-                var override_id := override_mat.get_instance_id()
+                var override_id: int = override_mat.get_instance_id()
                 materials[override_id] = true
                 resources[override_id] = true
                 _collect_material_textures(override_mat, textures, resources)
@@ -110,9 +110,10 @@ func _collect_material_textures(material: Material, textures: Dictionary, resour
     if material is BaseMaterial3D:
         var base := material as BaseMaterial3D
         var candidates := [base.albedo_texture, base.metallic_texture, base.roughness_texture, base.normal_texture, base.emission_texture, base.ao_texture]
-        for texture in candidates:
+        for candidate in candidates:
+            var texture: Texture2D = candidate as Texture2D
             if texture != null:
-                var id := texture.get_instance_id()
+                var id: int = texture.get_instance_id()
                 textures[id] = true
                 resources[id] = true
 
