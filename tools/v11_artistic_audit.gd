@@ -1,9 +1,11 @@
 extends SceneTree
 ## Headless V11 artistic/material audit.
 ## Audits every baked archetype without changing scene geometry, terrain, roads, or graph.
+## Uses the effective material path (surface override -> material_override -> mesh surface)
+## so the audit matches what the optimized runtime actually renders.
 
-const ARCH_DIR := "res://baked_city/archetypes_587"
-const OUT_FILE := "user://v11_artistic_audit.txt"
+const ARCH_DIR: String = "res://baked_city/archetypes_587"
+const OUT_FILE: String = "user://v11_artistic_audit.txt"
 
 func _initialize() -> void:
     var report: FileAccess = FileAccess.open(OUT_FILE, FileAccess.WRITE)
@@ -28,6 +30,8 @@ func _initialize() -> void:
     var global_uv_missing: int = 0
     var global_meshes: int = 0
     var global_nodes: int = 0
+    var global_effective_overrides: int = 0
+    var global_detail_nodes: int = 0
     var failures: int = 0
 
     for file_name in archetypes:
@@ -48,6 +52,8 @@ func _initialize() -> void:
         var mesh_count: int = 0
         var node_count: int = 0
         var uv_missing: int = 0
+        var effective_override_count: int = 0
+        var detail_node_count: int = 0
         var materials: Dictionary = {}
         var textures: Dictionary = {}
         var named_nodes: Array[String] = []
@@ -56,14 +62,22 @@ func _initialize() -> void:
         while not stack.is_empty():
             var current: Node = stack.pop_back()
             node_count += 1
-            if current.name.to_lower().contains("balcon") or current.name.to_lower().contains("persian") or current.name.to_lower().contains("shutter") or current.name.to_lower().contains("cornic") or current.name.to_lower().contains("travert"):
+            var lower_name: String = current.name.to_lower()
+            if lower_name.contains("balcon") or lower_name.contains("persian") or lower_name.contains("shutter") or lower_name.contains("cornic") or lower_name.contains("travert"):
                 named_nodes.append(str(current.name))
+                detail_node_count += 1
             if current is MeshInstance3D:
                 mesh_count += 1
                 var mi: MeshInstance3D = current as MeshInstance3D
+                if mi.material_override != null:
+                    effective_override_count += 1
                 if mi.mesh != null:
                     for s in range(mi.mesh.get_surface_count()):
-                        var surface_material: Material = mi.mesh.get_surface_material(s)
+                        var surface_material: Material = mi.get_surface_override_material(s)
+                        if surface_material == null:
+                            surface_material = mi.material_override
+                        if surface_material == null:
+                            surface_material = mi.mesh.get_surface_material(s)
                         _audit_material(surface_material, materials, textures)
                         if not _has_uv(mi.mesh.surface_get_arrays(s)):
                             uv_missing += 1
@@ -77,6 +91,8 @@ func _initialize() -> void:
         global_uv_missing += uv_missing
         global_meshes += mesh_count
         global_nodes += node_count
+        global_effective_overrides += effective_override_count
+        global_detail_nodes += detail_node_count
 
         var material_list: Array[String] = []
         for key in materials.keys():
@@ -89,13 +105,13 @@ func _initialize() -> void:
         var named_list: Array[String] = named_nodes.duplicate()
         named_list.sort()
 
-        var line: String = "ARCHETYPE %s meshes=%d nodes=%d uv_missing=%d materials=%s textures=%s named_detail_nodes=%s" % [file_name, mesh_count, node_count, uv_missing, ";".join(material_list), ";".join(texture_list), ";".join(named_list)]
+        var line: String = "ARCHETYPE %s meshes=%d nodes=%d uv_missing=%d effective_material_overrides=%d materials=%s textures=%s named_detail_nodes=%s" % [file_name, mesh_count, node_count, uv_missing, effective_override_count, ";".join(material_list), ";".join(texture_list), ";".join(named_list)]
         print(line)
         report.store_line(line)
         root.free()
 
-    report.store_line("SUMMARY archetypes=%d failures=%d meshes=%d nodes=%d uv_missing=%d unique_materials=%d unique_textures=%d" % [archetypes.size(), failures, global_meshes, global_nodes, global_uv_missing, global_materials.size(), global_textures.size()])
-    print("SUMMARY archetypes=%d failures=%d meshes=%d nodes=%d uv_missing=%d unique_materials=%d unique_textures=%d" % [archetypes.size(), failures, global_meshes, global_nodes, global_uv_missing, global_materials.size(), global_textures.size()])
+    report.store_line("SUMMARY archetypes=%d failures=%d meshes=%d nodes=%d uv_missing=%d effective_material_overrides=%d named_detail_nodes=%d unique_materials=%d unique_textures=%d" % [archetypes.size(), failures, global_meshes, global_nodes, global_uv_missing, global_effective_overrides, global_detail_nodes, global_materials.size(), global_textures.size()])
+    print("SUMMARY archetypes=%d failures=%d meshes=%d nodes=%d uv_missing=%d effective_material_overrides=%d named_detail_nodes=%d unique_materials=%d unique_textures=%d" % [archetypes.size(), failures, global_meshes, global_nodes, global_uv_missing, global_effective_overrides, global_detail_nodes, global_materials.size(), global_textures.size()])
 
     if failures > 0 or global_uv_missing > 0:
         quit(1)
