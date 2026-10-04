@@ -141,7 +141,8 @@ func _merge_mobile_geometry(root: Node3D, floors: int) -> Node3D:
         # Godot 4.7 Mesh does not expose surface_get_primitive_type().
         # The V11 procedural library emits triangle surfaces; SurfaceTool.commit()
         # is therefore the authoritative validation path for the merge.
-        var node_role := _mesh_role(node, mesh, top_y, max_mesh_y)
+        var node_role := _resolve_role(node, mesh, top_y, max_mesh_y)
+        node.set_meta("role", node_role)
         var local_transform: Transform3D = _transform_relative_to_root(node, root)
         for surface in range(mesh.get_surface_count()):
             var material: Material = node.get_active_material(surface)
@@ -180,6 +181,7 @@ func _merge_mobile_geometry(root: Node3D, floors: int) -> Node3D:
     var merged_instance := MeshInstance3D.new()
     merged_instance.name = "MobileMergedMesh"
     merged_instance.mesh = merged_mesh
+    merged_mesh.set_meta("surface_roles", roles)
     merged_instance.set_meta("mobile_merged", true)
     merged_instance.set_meta("mobile_surface_roles", roles)
     root.add_child(merged_instance)
@@ -197,6 +199,24 @@ func _transform_relative_to_root(node: Node3D, root: Node3D) -> Transform3D:
     if current != root:
         return Transform3D.IDENTITY
     return transform
+
+func _resolve_role(node: MeshInstance3D, mesh: Mesh, top_y: float, max_mesh_y: float) -> String:
+    var explicit_role := str(node.get_meta("role", "")).to_lower().strip_edges()
+    if not explicit_role.is_empty() and explicit_role != "unknown":
+        return explicit_role
+    var groups := node.get_groups()
+    for group in groups:
+        var group_name := str(group).to_lower()
+        if group_name.contains("facade"):
+            return "facade"
+        if group_name.contains("roof"):
+            return "roof"
+    var node_name := node.name.to_lower()
+    if node_name.begins_with("front_") or node_name.begins_with("back_") or node_name.begins_with("left_") or node_name.begins_with("right_"):
+        return "facade"
+    if node_name.contains("roof") or node_name.contains("coppi") or node_name.contains("tetto"):
+        return "roof"
+    return _mesh_role(node, mesh, top_y, max_mesh_y)
 
 func _mesh_role(node: MeshInstance3D, mesh: Mesh, top_y: float, max_mesh_y: float) -> String:
     var is_facade := false

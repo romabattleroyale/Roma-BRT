@@ -1,11 +1,12 @@
 [gd_resource type="StandardMaterial3D" format=3]
 
-[ext_resource type="Texture2D" path="res://city_library/buildings/houses/roma_architecture_library_v11/assets/textures/roman_plaster_terracotta.jpg" id="1_o3mei"]
-[ext_resource type="Texture2D" path="res://city_library/buildings/houses/roma_architecture_library_v11/assets/textures/roman_plaster_terracotta_normal.jpg" id="2_pkhj0"]
+[ext_resource type="Texture2D" path="res://city_library/buildings/houses/roma_architecture_library_v11/assets/textures/roman_plaster_weathered_albedo.jpg" id="1_o3mei"]
+[ext_resource type="Texture2D" path="res://city_library/buildings/houses/roma_architecture_library_v11/assets/textures/roman_plaster_weathered_normal.jpg" id="2_pkhj0"]
 [ext_resource type="Texture2D" path="res://city_library/buildings/houses/roma_architecture_library_v11/assets/textures/roman_plaster_weathered_roughness.jpg" id="3_r2n3c"]
 
 [resource]
 resource_name = "Muro_Romano"
+albedo_color = Color(0.827451, 0.6509804, 0.22745098, 1)
 albedo_texture = ExtResource("1_o3mei")
 roughness = 0.9
 roughness_texture = ExtResource("3_r2n3c")

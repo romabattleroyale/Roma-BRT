@@ -1060,12 +1060,16 @@ func _weathered_facade(tint: Color, albedo_path: String, normal_path: String, ro
     if albedo:
         m.albedo_texture = albedo
     m.albedo_color = tint
-    var normal: Texture2D = load(normal_path) as Texture2D
+    var normal: Texture2D = null
+    if not normal_path.is_empty():
+        normal = load(normal_path) as Texture2D
     if normal:
         m.normal_enabled = true
         m.normal_texture = normal
         m.normal_scale = 0.52
-    var rough: Texture2D = load(roughness_path) as Texture2D
+    var rough: Texture2D = null
+    if not roughness_path.is_empty():
+        rough = load(roughness_path) as Texture2D
     if rough:
         m.roughness_texture = rough
     m.roughness = 0.90
@@ -1078,12 +1082,16 @@ func _weathered_pbr(albedo_path: String, normal_path: String, roughness_path: St
     var albedo: Texture2D = load(albedo_path) as Texture2D
     if albedo:
         m.albedo_texture = albedo
-    var normal: Texture2D = load(normal_path) as Texture2D
+    var normal: Texture2D = null
+    if not normal_path.is_empty():
+        normal = load(normal_path) as Texture2D
     if normal:
         m.normal_enabled = true
         m.normal_texture = normal
         m.normal_scale = 0.52
-    var roughness_tex: Texture2D = load(roughness_path) as Texture2D
+    var roughness_tex: Texture2D = null
+    if not roughness_path.is_empty():
+        roughness_tex = load(roughness_path) as Texture2D
     if roughness_tex:
         m.roughness_texture = roughness_tex
     m.roughness = rough
@@ -1095,7 +1103,9 @@ func _warm_facade(color: Color, normal_path: String) -> StandardMaterial3D:
     var m: StandardMaterial3D = StandardMaterial3D.new()
     m.albedo_color = color
     m.roughness = 0.90
-    var normal: Texture2D = load(normal_path) as Texture2D
+    var normal: Texture2D = null
+    if not normal_path.is_empty():
+        normal = load(normal_path) as Texture2D
     if normal:
         m.normal_enabled = true
         m.normal_texture = normal
@@ -1108,7 +1118,9 @@ func _pbr(color_path: String, normal_path: String, rough: float, uv_scale: float
     var color: Texture2D = load(color_path) as Texture2D
     if color:
         m.albedo_texture = color
-    var normal: Texture2D = load(normal_path) as Texture2D
+    var normal: Texture2D = null
+    if not normal_path.is_empty():
+        normal = load(normal_path) as Texture2D
     if normal:
         m.normal_enabled = true
         m.normal_texture = normal

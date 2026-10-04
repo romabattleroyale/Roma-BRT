@@ -81,12 +81,16 @@ func apply(root: Node3D, variant: int, floors: int) -> void:
     var roof_surface_count: int = 0
     for node in _mesh_nodes(root):
         if bool(node.get_meta("mobile_merged", false)) and node.mesh != null:
-            var roles: Array = node.get_meta("mobile_surface_roles", []) as Array
+            var roles: Array = node.mesh.get_meta("surface_roles", []) as Array
+            if roles.is_empty():
+                roles = node.get_meta("mobile_surface_roles", []) as Array
             var surface_count: int = node.mesh.get_surface_count()
             for surface in range(surface_count):
                 var role := str(roles[surface]) if surface < roles.size() else "other"
                 if role == "facade":
                     node.set_surface_override_material(surface, facade_mat)
+                    var effective := node.get_surface_override_material(surface) as StandardMaterial3D
+                    print("[MAT-ROLE] surface=%d role=facade override=%s" % [surface, effective.albedo_color.to_html(false) if effective != null else "NULL"])
                     facade_surface_count += 1
                 elif role == "roof":
                     node.set_surface_override_material(surface, roof_mat)
