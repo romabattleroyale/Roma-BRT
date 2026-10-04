@@ -16,9 +16,8 @@ func _initialize() -> void:
     print("DIAG renderer=", ProjectSettings.get_setting("renderer/rendering_method", "<unset>"))
     var err: Error = change_scene_to_file(MAIN_SCENE)
     print("DIAG change_scene_to_file error=", err)
-    set_process(true)
 
-func _process(delta: float) -> void:
+func _process(delta: float) -> bool:
     _elapsed += delta
     if not _ran_t8 and _elapsed >= 8.0:
         _ran_t8 = true
@@ -28,7 +27,8 @@ func _process(delta: float) -> void:
         _run_diagnostics("T+16s")
     if _elapsed >= 30.0:
         print("=== LINUX FACADE DIAGNOSTICS — END ===")
-        quit(0)
+        return true
+    return false
 
 func _run_diagnostics(label: String) -> void:
     print("--- FACADE DIAGNOSTICS ", label, " ---")
