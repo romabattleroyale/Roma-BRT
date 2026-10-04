@@ -48,6 +48,15 @@ jobs:
           chmod +x "$GODOT_BIN"
           ln -sf "$(realpath "$GODOT_BIN")" .runtime/godot/godot
           .runtime/godot/godot --version
+      - name: Normalize V11 texture paths for mobile bake
+        run: |
+          set -euo pipefail
+          .runtime/godot/godot --headless --path . --script res://tools/normalize_v11_texture_paths.gd
+          if grep -R 'res://assets/textures/' city_library/buildings/houses/roma_architecture_library_v11/scripts/building_system.gd; then
+            echo 'Legacy V11 texture paths remain'
+            exit 1
+          fi
+          grep -F 'city_library/buildings/houses/roma_architecture_library_v11/assets/textures' city_library/buildings/houses/roma_architecture_library_v11/scripts/building_system.gd >/dev/null
       - name: Import Godot assets for headless CI
         run: |
           set -euo pipefail
@@ -60,7 +69,7 @@ jobs:
         run: |
           set -euo pipefail
           rm -f baked_city/roma_city_587.tscn
-          rm -rf baked_city/archetypes_587
+          rm -rf baked_city/archetypes_587 baked_city/v11_shared_materials
           .runtime/godot/godot --headless --verbose --terrain3d-debug=INFO --path . --script res://v37_integration/bake_587_city_ci.gd
           test -f baked_city/roma_city_587.tscn
           test "$(stat -c%s baked_city/roma_city_587.tscn)" -gt 1000
@@ -73,7 +82,9 @@ jobs:
           set -euo pipefail
           .runtime/godot/godot --headless --path . --script res://tools/optimize_v11_archetypes.gd
           test "$(find baked_city/archetypes_587 -maxdepth 1 -type f -name 'archetype_*.tscn' | wc -l)" -eq 27
-          echo 'V11 VISUAL/MATERIAL OPTIMIZATION OK'
+          material_count=$(find baked_city/v11_shared_materials -maxdepth 1 -type f -name '*.tres' | wc -l)
+          test "$material_count" -gt 0
+          echo "V11 VISUAL/MATERIAL OPTIMIZATION OK: shared_materials=$material_count"
       - name: Simplify V11 building collisions only
         run: |
           set -euo pipefail
@@ -81,15 +92,17 @@ jobs:
           test "$(find baked_city/archetypes_587 -maxdepth 1 -type f -name 'archetype_*.tscn' | wc -l)" -eq 27
           echo 'V11 COLLISION SIMPLIFICATION OK'
       - name: Validate V11 collision at 5 buildings - hard gate
-        run: .runtime/godot/godot --headless --path . --script res://tools/validate_v11_collision_5.gd
-      - name: Validate V11 at 5 buildings
-        run: .runtime/godot/godot --headless --path . --script res://tools/validate_v11_scale.gd -- 5
-      - name: Validate V11 at 10 buildings
-        run: .runtime/godot/godot --headless --path . --script res://tools/validate_v11_scale.gd -- 10
-      - name: Validate V11 at 20 buildings
-        run: .runtime/godot/godot --headless --path . --script res://tools/validate_v11_scale.gd -- 20
-      - name: Validate V11 at 40 buildings
-        run: .runtime/godot/godot --headless --path . --script res://tools/validate_v11_scale.gd -- 40
+        run: .runtime/godot/godot --headless --path . --script res://tools/validate_v11_collision_5_mobile.gd
+      - name: Validate V11 at 5 buildings with mobile textures
+        run: .runtime/godot/godot --headless --path . --script res://tools/validate_v11_scale_mobile.gd -- 5
+      - name: Validate V11 at 10 buildings with mobile textures
+        run: .runtime/godot/godot --headless --path . --script res://tools/validate_v11_scale_mobile.gd -- 10
+      - name: Validate V11 at 20 buildings with mobile textures
+        run: .runtime/godot/godot --headless --path . --script res://tools/validate_v11_scale_mobile.gd -- 20
+      - name: Validate V11 at 40 buildings with mobile textures
+        run: .runtime/godot/godot --headless --path . --script res://tools/validate_v11_scale_mobile.gd -- 40
+      - name: Validate V11 gameplay at 40 buildings
+        run: .runtime/godot/godot --headless --path . --script res://tools/validate_v11_gameplay_40.gd
       - name: Diagnose Terrain3D after main scene initialization
         run: .runtime/godot/godot --headless --path . --script res://v37_integration/diagnose_bake_runtime.gd
       - name: Runtime smoke launch
@@ -99,14 +112,27 @@ jobs:
           timeout 20s .runtime/godot/godot --headless --path . --quit-after 10 || code=$?
           if [ "$code" -ne 0 ] && [ "$code" -ne 124 ]; then exit "$code"; fi
           echo 'Roma-BRT headless runtime smoke test completed.'
-      - name: Persist baked 587 city to main branch
+      - name: Package V11 mobile texture/archetype bundle
+        run: |
+          set -euo pipefail
+          mkdir -p build
+          rm -f build/Roma-BRT-V11-Mobile-Textures.zip
+          zip -qr build/Roma-BRT-V11-Mobile-Textures.zip \
+            baked_city/roma_city_587.tscn \
+            baked_city/archetypes_587 \
+            baked_city/v11_shared_materials \
+            city_library/buildings/houses/roma_architecture_library_v11/assets/textures
+          test -s build/Roma-BRT-V11-Mobile-Textures.zip
+          unzip -tq build/Roma-BRT-V11-Mobile-Textures.zip
+          ls -lh build/Roma-BRT-V11-Mobile-Textures.zip
+      - name: Persist baked 587 city and mobile materials to main branch
         run: |
           set -euo pipefail
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-          git add baked_city/roma_city_587.tscn baked_city/archetypes_587
+          git add baked_city/roma_city_587.tscn baked_city/archetypes_587 baked_city/v11_shared_materials
           if git diff --cached --quiet; then exit 0; fi
-          git commit -m 'chore: persist reusable baked 587 city [skip ci]'
+          git commit -m 'chore: persist V11 mobile-ready baked city and materials [skip ci]'
 
           for attempt in 1 2 3; do
             git fetch origin main
@@ -117,3 +143,11 @@ jobs:
             if git push origin HEAD:main; then exit 0; fi
           done
           exit 1
+      - name: Upload V11 mobile texture bundle
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: Roma-BRT-V11-Mobile-Textures
+          path: build/Roma-BRT-V11-Mobile-Textures.zip
+          if-no-files-found: warn
+          retention-days: 14
