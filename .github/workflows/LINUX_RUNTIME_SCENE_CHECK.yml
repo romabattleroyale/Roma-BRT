@@ -111,13 +111,13 @@ jobs:
           test -f terrain_data/READY.txt
           test "$(find terrain_data -maxdepth 1 -name 'terrain3d*.res' | wc -l)" -gt 0
 
-      - name: Launch actual main scene under Linux X11
+      - name: Launch actual main scene + facade diagnostics under Linux X11
         run: |
           set -u
           export DISPLAY=:99
 
           set +e
-          .runtime/godot/godot --path . --display-driver x11 --rendering-method gl_compatibility --audio-driver Dummy > build/linux_runtime/godot.log 2>&1 &
+          .runtime/godot/godot --path . --display-driver x11 --rendering-method gl_compatibility --audio-driver Dummy --script res://tools/linux_facade_diagnostics.gd > build/linux_runtime/godot.log 2>&1 &
           GAME_PID=$!
           sleep 20
 
@@ -140,7 +140,7 @@ jobs:
             wait "$GAME_PID" 2>/dev/null || true
           fi
 
-          echo '--- GODOT LOG ---'
+          echo '--- GODOT LOG / FACADE DIAGNOSTICS ---'
           cat build/linux_runtime/godot.log || true
           echo '--- TERRAIN CONTROL LOG ---'
           cat build/linux_runtime/terrain_control.log || true
