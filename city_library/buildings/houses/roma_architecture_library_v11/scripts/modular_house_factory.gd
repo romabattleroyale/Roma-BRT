@@ -77,7 +77,7 @@ func build_mobile_by_id(id: String, variant: int = 0) -> Node3D:
             return null
         var merged := _merge_mobile_geometry(prototype, floors)
         if merged == null:
-            prototype.queue_free()
+            prototype.free()
             return null
         prototype = merged
         mobile_prototypes[cache_key] = prototype
@@ -101,7 +101,7 @@ func build_and_place(id: String, terrain_position: Vector3, terrain_height: floa
     root.position = Vector3(terrain_position.x, terrain_height, terrain_position.z)
     root.rotation.y = rotation_y
     if not root.position.is_finite():
-        root.queue_free()
+        root.free()
         return null
     return root
 
@@ -114,7 +114,7 @@ func build_mobile_and_place(id: String, terrain_position: Vector3, terrain_heigh
     root.position = Vector3(terrain_position.x, terrain_height, terrain_position.z)
     root.rotation.y = rotation_y
     if not root.position.is_finite():
-        root.queue_free()
+        root.free()
         return null
     return root
 
@@ -132,11 +132,10 @@ func _merge_mobile_geometry(root: Node3D, floors: int) -> Node3D:
     var tools: Dictionary = {}
     var roles: Array[String] = []
     var merged_nodes: Array[MeshInstance3D] = []
-    var root_inverse := root.global_transform.affine_inverse()
 
     for node in mesh_nodes:
         var mesh: Mesh = node.mesh
-        if mesh == null or mesh.get_blend_shape_count() > 0 or not node.skeleton.is_empty():
+        if mesh == null or not node.skeleton.is_empty():
             continue
         var all_triangles := true
         for surface in range(mesh.get_surface_count()):
@@ -147,7 +146,7 @@ func _merge_mobile_geometry(root: Node3D, floors: int) -> Node3D:
             continue
 
         var node_role := _mesh_role(node, mesh, top_y, max_mesh_y)
-        var local_transform: Transform3D = root_inverse * node.global_transform
+        var local_transform: Transform3D = _transform_relative_to_root(node, root)
         for surface in range(mesh.get_surface_count()):
             var material: Material = node.get_active_material(surface)
             var format_key: int = int(mesh.surface_get_format(surface))
@@ -188,8 +187,18 @@ func _merge_mobile_geometry(root: Node3D, floors: int) -> Node3D:
     root.add_child(merged_instance)
 
     for node in merged_nodes:
-        node.queue_free()
+        node.free()
     return root
+
+func _transform_relative_to_root(node: Node3D, root: Node3D) -> Transform3D:
+    var transform := Transform3D.IDENTITY
+    var current: Node3D = node
+    while current != null and current != root:
+        transform = current.transform * transform
+        current = current.get_parent() as Node3D
+    if current != root:
+        return Transform3D.IDENTITY
+    return transform
 
 func _mesh_role(node: MeshInstance3D, mesh: Mesh, top_y: float, max_mesh_y: float) -> String:
     var is_facade := false
