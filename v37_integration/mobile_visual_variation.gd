@@ -25,6 +25,23 @@ func apply(root: Node3D, variant: int, floors: int) -> void:
     var roof_mat := StandardMaterial3D.new()
     roof_mat.albedo_color = roof_color
     roof_mat.roughness = 0.90
+
+    var merged_applied := false
+    for node in _mesh_nodes(root):
+        if bool(node.get_meta("mobile_merged", false)) and node.mesh != null:
+            var roles: Array = node.get_meta("mobile_surface_roles", []) as Array
+            var surface_count: int = node.mesh.get_surface_count()
+            for surface in range(surface_count):
+                var role := str(roles[surface]) if surface < roles.size() else "other"
+                if role == "facade":
+                    node.set_surface_override_material(surface, facade_mat)
+                elif role == "roof":
+                    node.set_surface_override_material(surface, roof_mat)
+            merged_applied = true
+
+    if merged_applied:
+        return
+
     var top_y: float = float(floors) * 3.2
     var max_mesh_y: float = -INF
     for node in _mesh_nodes(root):
