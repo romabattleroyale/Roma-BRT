@@ -8,28 +8,28 @@ const FRONT_Z_OFFSET: float = 0.17
 var mats: Dictionary = {}
 
 func setup_materials() -> void:
-    mats["plaster_cream"] = _pbr("res://assets/textures/roman_plaster_cream.jpg", "res://assets/textures/roman_plaster_cream_normal.jpg", 0.88, 3.2)
-    mats["plaster_pale"] = _pbr("res://assets/textures/roman_plaster_pale.jpg", "res://assets/textures/roman_plaster_pale_normal.jpg", 0.90, 3.2)
-    mats["plaster_terracotta"] = _pbr("res://assets/textures/roman_plaster_terracotta.jpg", "res://assets/textures/roman_plaster_terracotta_normal.jpg", 0.86, 3.0)
-    mats["brick"] = _pbr("res://assets/textures/brick_weathered_albedo.jpg", "res://assets/textures/brick_weathered_normal.jpg", 0.92, 4.0)
-    var brick_rough: Texture2D = load("res://assets/textures/brick_weathered_roughness.jpg") as Texture2D
+    mats["plaster_cream"] = _pbr("res://city_library/buildings/houses/roma_architecture_library_v11/assets/textures/roman_plaster_cream.jpg", "res://city_library/buildings/houses/roma_architecture_library_v11/assets/textures/roman_plaster_cream_normal.jpg", 0.88, 3.2)
+    mats["plaster_pale"] = _pbr("res://city_library/buildings/houses/roma_architecture_library_v11/assets/textures/roman_plaster_pale.jpg", "res://city_library/buildings/houses/roma_architecture_library_v11/assets/textures/roman_plaster_pale_normal.jpg", 0.90, 3.2)
+    mats["plaster_terracotta"] = _pbr("res://city_library/buildings/houses/roma_architecture_library_v11/assets/textures/roman_plaster_terracotta.jpg", "res://city_library/buildings/houses/roma_architecture_library_v11/assets/textures/roman_plaster_terracotta_normal.jpg", 0.86, 3.0)
+    mats["brick"] = _pbr("res://city_library/buildings/houses/roma_architecture_library_v11/assets/textures/brick_weathered_albedo.jpg", "res://city_library/buildings/houses/roma_architecture_library_v11/assets/textures/brick_weathered_normal.jpg", 0.92, 4.0)
+    var brick_rough: Texture2D = load("res://city_library/buildings/houses/roma_architecture_library_v11/assets/textures/brick_weathered_roughness.jpg") as Texture2D
     var brick_mat: StandardMaterial3D = mats["brick"] as StandardMaterial3D
     if brick_rough:
         brick_mat.roughness_texture = brick_rough
         brick_mat.roughness = 0.88
-    mats["travertine"] = _weathered_pbr("res://assets/textures/travertine_weathered_albedo.jpg", "res://assets/textures/travertine_weathered_normal.jpg", "res://assets/textures/travertine_weathered_roughness.jpg", 0.86, 2.8)
-    mats["wood"] = _pbr("res://assets/textures/dark_wood.jpg", "res://assets/textures/dark_wood_normal.jpg", 0.78, 2.0)
-    mats["painted_wood"] = _pbr("res://assets/textures/painted_wood.jpg", "res://assets/textures/painted_wood_normal.jpg", 0.80, 2.0)
+    mats["travertine"] = _weathered_pbr("res://city_library/buildings/houses/roma_architecture_library_v11/assets/textures/travertine_weathered_albedo.jpg", "res://city_library/buildings/houses/roma_architecture_library_v11/assets/textures/travertine_weathered_normal.jpg", "res://city_library/buildings/houses/roma_architecture_library_v11/assets/textures/travertine_weathered_roughness.jpg", 0.86, 2.8)
+    mats["wood"] = _pbr("res://city_library/buildings/houses/roma_architecture_library_v11/assets/textures/dark_wood.jpg", "res://city_library/buildings/houses/roma_architecture_library_v11/assets/textures/dark_wood_normal.jpg", 0.78, 2.0)
+    mats["painted_wood"] = _pbr("res://city_library/buildings/houses/roma_architecture_library_v11/assets/textures/painted_wood.jpg", "res://city_library/buildings/houses/roma_architecture_library_v11/assets/textures/painted_wood_normal.jpg", 0.80, 2.0)
     mats["roof"] = _warm_roof(Color("#E45B2F"), 3.5)
     mats["roof_terrace"] = _terracotta_terrace()
-    mats["fabric_blue"] = _pbr("res://assets/textures/fabric_blue.jpg", "", 0.84, 2.2)
+    mats["fabric_blue"] = _pbr("res://city_library/buildings/houses/roma_architecture_library_v11/assets/textures/fabric_blue.jpg", "", 0.84, 2.2)
 
-    mats["shutter_green"] = _pbr("res://assets/textures/painted_wood.jpg", "res://assets/textures/painted_wood_normal.jpg", 0.82, 2.0)
-    mats["shutter_warm"] = _pbr("res://assets/textures/painted_wood.jpg", "res://assets/textures/painted_wood_normal.jpg", 0.80, 2.0)
+    mats["shutter_green"] = _pbr("res://city_library/buildings/houses/roma_architecture_library_v11/assets/textures/painted_wood.jpg", "res://city_library/buildings/houses/roma_architecture_library_v11/assets/textures/painted_wood_normal.jpg", 0.82, 2.0)
+    mats["shutter_warm"] = _pbr("res://city_library/buildings/houses/roma_architecture_library_v11/assets/textures/painted_wood.jpg", "res://city_library/buildings/houses/roma_architecture_library_v11/assets/textures/painted_wood_normal.jpg", 0.80, 2.0)
     mats["stucco"] = StandardMaterial3D.new()
     (mats["stucco"] as StandardMaterial3D).albedo_color = Color("#D9C3A1")
     (mats["stucco"] as StandardMaterial3D).roughness = 0.86
-    mats["weathered_plaster"] = _weathered_pbr("res://assets/textures/roman_plaster_weathered_albedo.jpg", "res://assets/textures/roman_plaster_weathered_normal.jpg", "res://assets/textures/roman_plaster_weathered_roughness.jpg", 0.94, 3.8)
+    mats["weathered_plaster"] = _weathered_pbr("res://city_library/buildings/houses/roma_architecture_library_v11/assets/textures/roman_plaster_weathered_albedo.jpg", "res://city_library/buildings/houses/roma_architecture_library_v11/assets/textures/roman_plaster_weathered_normal.jpg", "res://city_library/buildings/houses/roma_architecture_library_v11/assets/textures/roman_plaster_weathered_roughness.jpg", 0.94, 3.8)
     mats["iron"] = StandardMaterial3D.new()
     (mats["iron"] as StandardMaterial3D).albedo_color = Color("#252522")
     (mats["iron"] as StandardMaterial3D).metallic = 0.78
@@ -80,11 +80,11 @@ func setup_materials() -> void:
     mats["plant"] = plant
 
     # Roman facades: warm albedo + real plaster color texture + normal + roughness.
-    mats["facade_ochre"] = _weathered_facade(Color("#FFF0C9"), "res://assets/textures/roman_plaster_weathered_albedo.jpg", "res://assets/textures/roman_plaster_weathered_normal.jpg", "res://assets/textures/roman_plaster_weathered_roughness.jpg")
-    mats["facade_yellow"] = _weathered_facade(Color("#FFF2B8"), "res://assets/textures/roman_plaster_weathered_albedo.jpg", "res://assets/textures/roman_plaster_weathered_normal.jpg", "res://assets/textures/roman_plaster_weathered_roughness.jpg")
-    mats["facade_beige"] = _weathered_facade(Color("#FFF2DA"), "res://assets/textures/roman_plaster_weathered_albedo.jpg", "res://assets/textures/roman_plaster_weathered_normal.jpg", "res://assets/textures/roman_plaster_weathered_roughness.jpg")
-    mats["facade_terracotta"] = _weathered_facade(Color("#FFD0B2"), "res://assets/textures/roman_plaster_weathered_albedo.jpg", "res://assets/textures/roman_plaster_weathered_normal.jpg", "res://assets/textures/roman_plaster_weathered_roughness.jpg")
-    mats["facade_rose"] = _weathered_facade(Color("#FFE0D4"), "res://assets/textures/roman_plaster_weathered_albedo.jpg", "res://assets/textures/roman_plaster_weathered_normal.jpg", "res://assets/textures/roman_plaster_weathered_roughness.jpg")
+    mats["facade_ochre"] = _weathered_facade(Color("#FFF0C9"), "res://city_library/buildings/houses/roma_architecture_library_v11/assets/textures/roman_plaster_weathered_albedo.jpg", "res://city_library/buildings/houses/roma_architecture_library_v11/assets/textures/roman_plaster_weathered_normal.jpg", "res://city_library/buildings/houses/roma_architecture_library_v11/assets/textures/roman_plaster_weathered_roughness.jpg")
+    mats["facade_yellow"] = _weathered_facade(Color("#FFF2B8"), "res://city_library/buildings/houses/roma_architecture_library_v11/assets/textures/roman_plaster_weathered_albedo.jpg", "res://city_library/buildings/houses/roma_architecture_library_v11/assets/textures/roman_plaster_weathered_normal.jpg", "res://city_library/buildings/houses/roma_architecture_library_v11/assets/textures/roman_plaster_weathered_roughness.jpg")
+    mats["facade_beige"] = _weathered_facade(Color("#FFF2DA"), "res://city_library/buildings/houses/roma_architecture_library_v11/assets/textures/roman_plaster_weathered_albedo.jpg", "res://city_library/buildings/houses/roma_architecture_library_v11/assets/textures/roman_plaster_weathered_normal.jpg", "res://city_library/buildings/houses/roma_architecture_library_v11/assets/textures/roman_plaster_weathered_roughness.jpg")
+    mats["facade_terracotta"] = _weathered_facade(Color("#FFD0B2"), "res://city_library/buildings/houses/roma_architecture_library_v11/assets/textures/roman_plaster_weathered_albedo.jpg", "res://city_library/buildings/houses/roma_architecture_library_v11/assets/textures/roman_plaster_weathered_normal.jpg", "res://city_library/buildings/houses/roma_architecture_library_v11/assets/textures/roman_plaster_weathered_roughness.jpg")
+    mats["facade_rose"] = _weathered_facade(Color("#FFE0D4"), "res://city_library/buildings/houses/roma_architecture_library_v11/assets/textures/roman_plaster_weathered_albedo.jpg", "res://city_library/buildings/houses/roma_architecture_library_v11/assets/textures/roman_plaster_weathered_normal.jpg", "res://city_library/buildings/houses/roma_architecture_library_v11/assets/textures/roman_plaster_weathered_roughness.jpg")
 
 func build(data: Dictionary, variant: int) -> Node3D:
     var root: Node3D = Node3D.new()
@@ -1021,10 +1021,10 @@ func _cylinder(parent: Node3D, pos: Vector3, radius: float, height: float, mater
 
 func _terracotta_terrace() -> StandardMaterial3D:
     var m: StandardMaterial3D = StandardMaterial3D.new()
-    var albedo: Texture2D = load("res://assets/textures/cotto_tiles.jpg") as Texture2D
+    var albedo: Texture2D = load("res://city_library/buildings/houses/roma_architecture_library_v11/assets/textures/cotto_tiles.jpg") as Texture2D
     if albedo:
         m.albedo_texture = albedo
-    var normal: Texture2D = load("res://assets/textures/cotto_tiles_normal.jpg") as Texture2D
+    var normal: Texture2D = load("res://city_library/buildings/houses/roma_architecture_library_v11/assets/textures/cotto_tiles_normal.jpg") as Texture2D
     if normal:
         m.normal_enabled = true
         m.normal_texture = normal
@@ -1038,15 +1038,15 @@ func _terracotta_terrace() -> StandardMaterial3D:
 func _warm_roof(color: Color, uv_scale: float) -> StandardMaterial3D:
     var m: StandardMaterial3D = StandardMaterial3D.new()
     m.albedo_color = color
-    var albedo: Texture2D = load("res://assets/textures/coppi_romani_albedo.jpg") as Texture2D
+    var albedo: Texture2D = load("res://city_library/buildings/houses/roma_architecture_library_v11/assets/textures/coppi_romani_albedo.jpg") as Texture2D
     if albedo:
         m.albedo_texture = albedo
-    var normal: Texture2D = load("res://assets/textures/coppi_romani_normal.jpg") as Texture2D
+    var normal: Texture2D = load("res://city_library/buildings/houses/roma_architecture_library_v11/assets/textures/coppi_romani_normal.jpg") as Texture2D
     if normal:
         m.normal_enabled = true
         m.normal_texture = normal
         m.normal_scale = 0.72
-    var rough: Texture2D = load("res://assets/textures/coppi_romani_roughness.jpg") as Texture2D
+    var rough: Texture2D = load("res://city_library/buildings/houses/roma_architecture_library_v11/assets/textures/coppi_romani_roughness.jpg") as Texture2D
     if rough:
         m.roughness_texture = rough
     m.roughness = 0.88
