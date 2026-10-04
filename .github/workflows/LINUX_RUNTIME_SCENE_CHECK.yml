@@ -55,6 +55,14 @@ jobs:
           .runtime/godot/godot --headless --editor --path . --quit
           test -d .godot/imported
 
+      - name: DEBUG — V11 facade material lifecycle trace (Compatibility)
+        run: |
+          set -u
+          .runtime/godot/godot --headless --rendering-method gl_compatibility --path . --script res://tools/debug_v11_material_trace.gd > build_material_trace.log 2>&1
+          TRACE_EXIT=$?
+          cat build_material_trace.log
+          test "$TRACE_EXIT" -eq 0
+
       - name: Verify runtime inputs
         run: |
           set -euo pipefail
@@ -154,5 +162,14 @@ jobs:
           path: build/linux_runtime
           if-no-files-found: warn
           retention-days: 7
+
+      - name: Upload material trace
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: V11-Material-Debug-Trace
+          path: build_material_trace.log
+          if-no-files-found: warn
+          retention-days: 14
 
 # Cache bake is intentionally persisted once; subsequent runs only load it.
