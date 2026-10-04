@@ -7,7 +7,7 @@
 [ext_resource type="Script" path="res://v37_integration/v37_world.gd" id="5_v37"]
 [ext_resource type="Script" path="res://debug_topdown_camera.gd" id="6_debugcam"]
 [ext_resource type="Script" path="res://urban_grid.gd" id="7_grid"]
-[ext_resource type="Script" path="res://v37_integration/baked_city_loader.gd" id="8_baked"]
+[ext_resource type="Script" path="res://v37_integration/v11_building_bridge.gd" id="8_v11bridge"]
 
 [sub_resource type="Environment" id="Env"]
 background_mode = 1
@@ -42,8 +42,8 @@ enable_technical_camera = false
 [node name="Urban_Grid" type="Node3D" parent="."]
 script = ExtResource("7_grid")
 
-[node name="BakedCity" type="Node3D" parent="."]
-script = ExtResource("8_baked")
+[node name="V11BuildingBridge" type="Node3D" parent="."]
+script = ExtResource("8_v11bridge")
 
 [node name="DebugTopDownCamera" type="Node3D" parent="."]
 script = ExtResource("6_debugcam")
