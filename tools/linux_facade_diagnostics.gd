@@ -7,25 +7,28 @@ const FACADE_TEXTURE_PATH := "res://city_library/buildings/houses/roma_architect
 const IMPORT_PATH := FACADE_TEXTURE_PATH + ".import"
 const TARGET_COLOR := Color(0.827451, 0.65098, 0.227451, 1.0) # #D3A63A
 
-var _roof_test_done: bool = false
+var _elapsed: float = 0.0
+var _ran_t8: bool = false
+var _ran_t16: bool = false
 
 func _initialize() -> void:
     print("=== LINUX FACADE DIAGNOSTICS — START ===")
     print("DIAG renderer=", ProjectSettings.get_setting("renderer/rendering_method", "<unset>"))
     var err: Error = change_scene_to_file(MAIN_SCENE)
     print("DIAG change_scene_to_file error=", err)
-    call_deferred("_wait_for_scene")
+    set_process(true)
 
-func _wait_for_scene() -> void:
-    await process_frame
-    await process_frame
-    await create_timer(8.0).timeout
-    _run_diagnostics("T+8s")
-    await create_timer(8.0).timeout
-    _run_diagnostics("T+16s")
-    await create_timer(10.0).timeout
-    print("=== LINUX FACADE DIAGNOSTICS — END ===")
-    quit(0)
+func _process(delta: float) -> void:
+    _elapsed += delta
+    if not _ran_t8 and _elapsed >= 8.0:
+        _ran_t8 = true
+        _run_diagnostics("T+8s")
+    if not _ran_t16 and _elapsed >= 16.0:
+        _ran_t16 = true
+        _run_diagnostics("T+16s")
+    if _elapsed >= 30.0:
+        print("=== LINUX FACADE DIAGNOSTICS — END ===")
+        quit(0)
 
 func _run_diagnostics(label: String) -> void:
     print("--- FACADE DIAGNOSTICS ", label, " ---")
@@ -40,6 +43,7 @@ func _run_diagnostics(label: String) -> void:
 
     var facade_count: int = 0
     var roof_candidates: int = 0
+    var roof_test_done: bool = false
     for mi in meshes:
         if mi.mesh == null:
             continue
@@ -67,8 +71,9 @@ func _run_diagnostics(label: String) -> void:
             if is_roof:
                 roof_candidates += 1
                 print("ROOF_CANDIDATE ", desc)
-                if not _roof_test_done:
+                if not roof_test_done:
                     _apply_facade_texture_to_roof(sm)
+                    roof_test_done = true
 
     print("DIAG facade_material_surfaces=", facade_count, " roof_candidates=", roof_candidates)
     if facade_count == 0:
@@ -91,20 +96,18 @@ func _inspect_import_srgb() -> void:
                 print("IMPORT_SRGB line=", line.strip_edges())
     else:
         print("IMPORT_SRGB result=NO_EXPLICIT_SRGB_KEY_IN_GODOT_4_IMPORT")
-        print("IMPORT_SRGB note=ResourceImporterTexture in Godot 4.7 does not expose a serialized 'srgb=true' import parameter; this diagnostic records the actual .import state without changing it.")
+        print("IMPORT_SRGB note=Godot 4.7 ResourceImporterTexture does not serialize a literal 'srgb=true' key; diagnostic records the actual .import state without changing it.")
 
 func _apply_facade_texture_to_roof(sm: StandardMaterial3D) -> void:
     var facade_texture: Texture2D = load(FACADE_TEXTURE_PATH) as Texture2D
     if facade_texture == null:
         print("ROOF_TEXTURE_TEST texture_load=<failed>")
-        _roof_test_done = true
         return
     var before_color: String = sm.albedo_color.to_html(true)
     sm.albedo_texture = facade_texture
     sm.albedo_color = Color.WHITE
     print("ROOF_TEXTURE_TEST applied facade texture temporarily; before_color=", before_color, " texture=", facade_texture.resource_path, " repeat=", sm.texture_repeat, " filter=", sm.texture_filter)
     print("ROOF_TEXTURE_TEST RESULT roof_should_render_facade_texture_if_visible_in_capture=true")
-    _roof_test_done = true
 
 func _is_facade(mi: MeshInstance3D, sm: StandardMaterial3D) -> bool:
     var node_name: String = mi.name.to_lower()
