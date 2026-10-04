@@ -86,21 +86,15 @@ jobs:
           if git diff --cached --quiet; then exit 0; fi
           git commit -m 'chore: persist reusable baked 587 city [skip ci]'
 
-          # Godot/import tooling can leave generated working-tree changes behind.
-          # Ensure any generated baked files are part of the commit before rebasing.
-          if ! git diff --quiet -- baked_city || ! git diff --cached --quiet -- baked_city; then
-            git add baked_city/roma_city_587.tscn baked_city/archetypes_587
-            git commit --amend --no-edit
-          fi
-
+          # Merge the latest main instead of rebasing the generated baked tree.
+          # -X ours keeps the freshly generated 587 city when the same baked
+          # files changed on main, avoiding the 27-archetype conflict storm.
           for attempt in 1 2 3; do
             git fetch origin main
-            # Autostash makes the rebase safe even if Godot left tracked changes.
-            git -c rebase.autoStash=true rebase origin/main
+            git merge origin/main -X ours --no-edit || {
+              git merge --abort
+              exit 1
+            }
             if git push origin HEAD:main; then exit 0; fi
-            git reset --hard origin/main
-            git clean -fd baked_city
-            rm -rf baked_city/archetypes_587
-            exit 1
           done
           exit 1
