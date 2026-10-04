@@ -32,6 +32,7 @@ func _run() -> void:
     var total_triangles: int = 0
     var max_nodes: int = 0
     var textures: Dictionary = {}
+    var min_textures_per_building: int = 999999
 
     for i in range(count):
         var path: String = str(entries[i]["archetype"])
@@ -50,9 +51,12 @@ func _run() -> void:
             return
         node.transform = entries[i]["transform"]
         root.add_child(node)
-        var stats: Dictionary = _inspect_node(node, textures)
+        var local_textures: Dictionary = {}
+        var stats: Dictionary = _inspect_node(node, textures, local_textures)
         total_triangles += int(stats["triangles"])
         max_nodes = max(max_nodes, int(stats["nodes"]))
+        min_textures_per_building = min(min_textures_per_building, local_textures.size())
+        print("[V11 SCALE] edificio=%d nodi=%d triangoli=%d texture=%d" % [i + 1, stats["nodes"], stats["triangles"], local_textures.size()])
         await process_frame
 
     var final_memory: float = _memory_mb()
@@ -61,6 +65,7 @@ func _run() -> void:
     print("Edifici: %d" % count)
     print("Triangoli totali: %d" % total_triangles)
     print("Nodi max per edificio: %d" % max_nodes)
+    print("Texture minime per edificio: %d" % min_textures_per_building)
     print("Texture uniche: %d" % textures.size())
     for key in textures.keys():
         print("Texture path: %s" % str(key))
@@ -69,16 +74,25 @@ func _run() -> void:
     print("Memoria delta: %.2f MB" % delta)
     print("Media delta/edificio: %.2f MB" % (delta / float(count)))
 
-    # The hard node/texture checks are structural. Memory is reported rather than
-    # made a hard CI gate because the Terrain3D/editor process is part of the same
-    # allocator and is not a device-equivalent Android measurement.
     if max_nodes >= 10:
         push_error("V11 SCALE FAIL: node count %d >= 10" % max_nodes)
         quit(6)
         return
+    if min_textures_per_building < 3:
+        push_error("V11 SCALE FAIL: at least one building exposes only %d textures; expected >= 3" % min_textures_per_building)
+        quit(7)
+        return
     if textures.is_empty():
         push_error("V11 SCALE FAIL: no textures discovered through materials/shaders")
-        quit(7)
+        quit(8)
+        return
+    if count == 5 and delta >= 30.0:
+        push_error("V11 SCALE FAIL: 5-building memory delta %.2f MB >= 30 MB target" % delta)
+        quit(9)
+        return
+    if count == 40 and delta >= 250.0:
+        push_error("V11 SCALE FAIL: 40-building memory delta %.2f MB >= 250 MB target" % delta)
+        quit(10)
         return
     quit(0)
 
@@ -136,7 +150,7 @@ func _parse_transform(line: String) -> Transform3D:
 func _memory_mb() -> float:
     return float(Performance.get_monitor(Performance.MEMORY_STATIC)) / 1048576.0
 
-func _inspect_node(root: Node, textures: Dictionary) -> Dictionary:
+func _inspect_node(root: Node, textures: Dictionary, local_textures: Dictionary) -> Dictionary:
     var triangles: int = 0
     var nodes: int = 0
     var stack: Array[Node] = [root]
@@ -150,9 +164,9 @@ func _inspect_node(root: Node, textures: Dictionary) -> Dictionary:
             if mi.mesh != null:
                 triangles += _mesh_triangles(mi.mesh)
                 for s in range(mi.mesh.get_surface_count()):
-                    _collect_material_textures(mi.mesh.surface_get_material(s), textures)
+                    _collect_material_textures(mi.mesh.surface_get_material(s), textures, local_textures)
             for s in range(mi.get_surface_override_material_count()):
-                _collect_material_textures(mi.get_surface_override_material(s), textures)
+                _collect_material_textures(mi.get_surface_override_material(s), textures, local_textures)
     return {"triangles": triangles, "nodes": nodes}
 
 func _mesh_triangles(mesh: Mesh) -> int:
@@ -170,14 +184,13 @@ func _mesh_triangles(mesh: Mesh) -> int:
                 triangles += int(vertices.size() / 3)
     return triangles
 
-func _collect_material_textures(material: Material, textures: Dictionary) -> void:
+func _collect_material_textures(material: Material, textures: Dictionary, local_textures: Dictionary) -> void:
     if material == null:
         return
     for prop in material.get_property_list():
         var value = material.get(str(prop.get("name", "")))
         if value is Texture2D:
-            var path: String = value.resource_path
-            textures[path if not path.is_empty() else "<embedded/subresource>"] = true
+            _register_texture(value, textures, local_textures)
     if material is ShaderMaterial:
         var shader_material: ShaderMaterial = material as ShaderMaterial
         var shader: Shader = shader_material.shader
@@ -186,5 +199,13 @@ func _collect_material_textures(material: Material, textures: Dictionary) -> voi
                 var uniform_name: String = str(uniform.get("name", ""))
                 var value = shader_material.get_shader_parameter(uniform_name)
                 if value is Texture2D:
-                    var path: String = value.resource_path
-                    textures[path if not path.is_empty() else "<embedded/subresource>"] = true
+                    _register_texture(value, textures, local_textures)
+
+func _register_texture(texture: Texture2D, textures: Dictionary, local_textures: Dictionary) -> void:
+    if texture == null:
+        return
+    var path: String = texture.resource_path
+    if path.is_empty():
+        path = "<embedded/subresource>"
+    textures[path] = true
+    local_textures[path] = true
