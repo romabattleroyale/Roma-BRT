@@ -72,8 +72,9 @@ func setup_materials() -> void:
     plant.roughness = 0.96
     mats["plant"] = plant
 
-    mats["facade_ochre"] = _weathered_facade(Color("#FFF0C9"), TEX_ROOT + "roman_plaster_weathered_albedo.jpg", TEX_ROOT + "roman_plaster_weathered_normal.jpg", TEX_ROOT + "roman_plaster_weathered_roughness.jpg")
-    mats["facade_yellow"] = _weathered_facade(Color("#FFF2B8"), TEX_ROOT + "roman_plaster_weathered_albedo.jpg", TEX_ROOT + "roman_plaster_weathered_normal.jpg", TEX_ROOT + "roman_plaster_weathered_roughness.jpg")
-    mats["facade_beige"] = _weathered_facade(Color("#FFF2DA"), TEX_ROOT + "roman_plaster_weathered_albedo.jpg", TEX_ROOT + "roman_plaster_weathered_normal.jpg", TEX_ROOT + "roman_plaster_weathered_roughness.jpg")
-    mats["facade_terracotta"] = _weathered_facade(Color("#FFD0B2"), TEX_ROOT + "roman_plaster_weathered_albedo.jpg", TEX_ROOT + "roman_plaster_weathered_normal.jpg", TEX_ROOT + "roman_plaster_weathered_roughness.jpg")
-    mats["facade_rose"] = _weathered_facade(Color("#FFE0D4"), TEX_ROOT + "roman_plaster_weathered_albedo.jpg", TEX_ROOT + "roman_plaster_weathered_normal.jpg", TEX_ROOT + "roman_plaster_weathered_roughness.jpg")
+    # Roman facades: warm Roman palette + real plaster texture + normal + roughness.
+    mats["facade_ochre"] = _weathered_facade(Color("#B97845"), TEX_ROOT + "roman_plaster_weathered_albedo.jpg", TEX_ROOT + "roman_plaster_weathered_normal.jpg", TEX_ROOT + "roman_plaster_weathered_roughness.jpg")
+    mats["facade_yellow"] = _weathered_facade(Color("#D3A63A"), TEX_ROOT + "roman_plaster_weathered_albedo.jpg", TEX_ROOT + "roman_plaster_weathered_normal.jpg", TEX_ROOT + "roman_plaster_weathered_roughness.jpg")
+    mats["facade_beige"] = _weathered_facade(Color("#C7AA83"), TEX_ROOT + "roman_plaster_weathered_albedo.jpg", TEX_ROOT + "roman_plaster_weathered_normal.jpg", TEX_ROOT + "roman_plaster_weathered_roughness.jpg")
+    mats["facade_terracotta"] = _weathered_facade(Color("#A9573B"), TEX_ROOT + "roman_plaster_weathered_albedo.jpg", TEX_ROOT + "roman_plaster_weathered_normal.jpg", TEX_ROOT + "roman_plaster_weathered_roughness.jpg")
+    mats["facade_rose"] = _weathered_facade(Color("#B96F73"), TEX_ROOT + "roman_plaster_weathered_albedo.jpg", TEX_ROOT + "roman_plaster_weathered_normal.jpg", TEX_ROOT + "roman_plaster_weathered_roughness.jpg")
