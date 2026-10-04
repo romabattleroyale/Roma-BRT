@@ -80,6 +80,8 @@ jobs:
           .runtime/godot/godot --headless --path . --script res://tools/simplify_v11_collisions.gd
           test "$(find baked_city/archetypes_587 -maxdepth 1 -type f -name 'archetype_*.tscn' | wc -l)" -eq 27
           echo 'V11 COLLISION SIMPLIFICATION OK'
+      - name: Validate V11 collision at 5 buildings - hard gate
+        run: .runtime/godot/godot --headless --path . --script res://tools/validate_v11_collision_5.gd
       - name: Validate V11 at 5 buildings
         run: .runtime/godot/godot --headless --path . --script res://tools/validate_v11_scale.gd -- 5
       - name: Validate V11 at 10 buildings
