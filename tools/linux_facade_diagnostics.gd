@@ -17,20 +17,20 @@ func _initialize() -> void:
     call_deferred("_wait_for_scene")
 
 func _wait_for_scene() -> void:
-    await get_tree().process_frame
-    await get_tree().process_frame
-    await get_tree().create_timer(8.0).timeout
+    await process_frame
+    await process_frame
+    await create_timer(8.0).timeout
     _run_diagnostics("T+8s")
-    await get_tree().create_timer(8.0).timeout
+    await create_timer(8.0).timeout
     _run_diagnostics("T+16s")
-    await get_tree().create_timer(10.0).timeout
+    await create_timer(10.0).timeout
     print("=== LINUX FACADE DIAGNOSTICS — END ===")
     quit(0)
 
 func _run_diagnostics(label: String) -> void:
     print("--- FACADE DIAGNOSTICS ", label, " ---")
     _inspect_import_srgb()
-    var root: Node = get_tree().current_scene
+    var root: Node = current_scene
     if root == null:
         print("DIAG scene=<null>")
         return
@@ -60,9 +60,9 @@ func _run_diagnostics(label: String) -> void:
                 print("FACADE UV_REPEAT raw=", sm.texture_repeat, " name=", _repeat_name(sm.texture_repeat), " UV_FILTER raw=", sm.texture_filter, " name=", _filter_name(sm.texture_filter))
                 print("FACADE ALBEDO_COLOR=", sm.albedo_color.to_html(true), " expected=#D3A63AFF target_match=", sm.albedo_color.is_equal_approx(TARGET_COLOR))
                 print("FACADE ALBEDO_TEXTURE=", sm.albedo_texture.resource_path if sm.albedo_texture != null else "<null>")
-                if sm.texture_repeat != 1:
+                if not sm.texture_repeat:
                     print("FACADE TEMP_TEST: setting texture_repeat=ENABLED for runtime-only diagnostic")
-                    sm.texture_repeat = 1
+                    sm.texture_repeat = true
                     print("FACADE TEMP_TEST RESULT repeat=", sm.texture_repeat, " name=", _repeat_name(sm.texture_repeat))
             if is_roof:
                 roof_candidates += 1
@@ -122,33 +122,23 @@ func _node_material_desc(mi: MeshInstance3D, surface: int, sm: StandardMaterial3
     var texture_path: String = sm.albedo_texture.resource_path if sm.albedo_texture != null else "<null>"
     return "node=%s surface=%d material=%s color=%s texture=%s" % [mi.get_path(), surface, sm.resource_name, sm.albedo_color.to_html(true), texture_path]
 
-func _repeat_name(value: int) -> String:
-    match value:
-        0:
-            return "DEFAULT"
-        1:
-            return "ENABLED"
-        2:
-            return "DISABLED"
-        _:
-            return "UNKNOWN"
+func _repeat_name(value: bool) -> String:
+    return "ENABLED" if value else "DISABLED"
 
 func _filter_name(value: int) -> String:
     match value:
         0:
-            return "DEFAULT"
-        1:
             return "NEAREST"
-        2:
+        1:
             return "LINEAR"
+        2:
+            return "NEAREST_WITH_MIPMAPS"
         3:
-            return "NEAREST_MIPMAP"
+            return "LINEAR_WITH_MIPMAPS"
         4:
-            return "LINEAR_MIPMAP"
+            return "NEAREST_WITH_MIPMAPS_ANISOTROPIC"
         5:
-            return "NEAREST_MIPMAP_ANISOTROPIC"
-        6:
-            return "LINEAR_MIPMAP_ANISOTROPIC"
+            return "LINEAR_WITH_MIPMAPS_ANISOTROPIC"
         _:
             return "UNKNOWN"
 
