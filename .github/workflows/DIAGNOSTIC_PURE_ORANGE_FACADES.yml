@@ -49,7 +49,8 @@ jobs:
           end = s.index('        var err := ResourceSaver.save(material, path)', start)
           replacement = '''        var test_mat := StandardMaterial3D.new()\n        test_mat.albedo_color = Color(1.0, 0.5, 0.0)\n        test_mat.albedo_texture = null\n        test_mat.normal_texture = null\n        test_mat.roughness_texture = null\n        test_mat.roughness = 1.0\n        material = test_mat\n\n'''
           s = s[:start] + replacement + s[end:]
-          s = s.replace('        var err := ResourceSaver.save(material, path)', '        var err := ResourceSaver.save(material, path)')
+          s = s.replace('        material.resource_name = "Muro_Romano"\n', '        material.resource_name = "Muro_Romano"\n')
+          s = s.replace('        print("V11 ART FINAL: %s -> %s + weathered albedo + normal + roughness" % [path, color.to_html(false)])', '        print("DIAGNOSTIC PURE ORANGE: %s -> albedo_color=1.0,0.5,0.0 textures=NONE" % path)')
           s = s.replace('print("V11 ART FINAL PASS: facade_materials=%d palette=6 textures=weathered" % facade_count)', 'print("DIAGNOSTIC PURE ORANGE PASS: facade_materials=%d texture=NONE normal=NONE roughness_texture=NONE" % facade_count)')
           p.write_text(s)
           PY
