@@ -1,7 +1,8 @@
 extends Node
 ## Android V11 memory diagnostics.
 ## Observes the existing V11 bridge without changing terrain, roads, Tevere or building generation.
-## Logs process memory after each newly placed V11 building and performs a safe unused-resource cleanup after each 5-building block.
+## Logs process memory after each newly placed V11 building and records a cleanup boundary after each 5-building block.
+## Godot 4.7.2 has no ResourceLoader.unload_unused_resources() API; unused Resources are released by normal reference counting.
 
 const POLL_FRAMES := 1
 const BLOCK_SIZE := 5
@@ -33,7 +34,7 @@ func _process(_delta: float) -> void:
     var completed_blocks := int(count / BLOCK_SIZE)
     if completed_blocks > last_cleanup_block:
         for block_number in range(last_cleanup_block + 1, completed_blocks + 1):
-            _cleanup_after_block(block_number, count)
+            await _cleanup_after_block(block_number, count)
         last_cleanup_block = completed_blocks
 
 func _find_v11_buildings() -> Array[Node3D]:
@@ -54,7 +55,7 @@ func _log_building_memory(building: Node3D, number: int) -> void:
     var memory_bytes := float(Performance.get_monitor(Performance.MEMORY_STATIC))
     var memory_mb := memory_bytes / (1024.0 * 1024.0)
     var stats := _resource_stats(building)
-    print("[MEM] Edificio #", number, " piazzato - Memoria processo: %.2f MB - Risorse in cache: %d - Nodi: %d - Mesh: %d - Materiali: %d - Texture: %d" % [memory_mb, stats["resources"], stats["nodes"], stats["meshes"], stats["materials"], stats["textures"]])
+    print("[MEM] Edificio #", number, " piazzato - Memoria processo: %.2f MB - Risorse referenziate: %d - Nodi: %d - Mesh: %d - Materiali: %d - Texture: %d" % [memory_mb, stats["resources"], stats["nodes"], stats["meshes"], stats["materials"], stats["textures"]])
 
 func _resource_stats(root: Node) -> Dictionary:
     var stats := _collect_resources(root)
@@ -118,8 +119,7 @@ func _collect_material_textures(material: Material, textures: Dictionary, resour
                 resources[id] = true
 
 func _cleanup_after_block(block_number: int, building_count: int) -> void:
-    print("[MEM] Cleanup dopo isolato #", block_number, " - edifici V11 attivi: ", building_count)
-    ResourceLoader.unload_unused_resources()
+    print("[MEM] Cleanup boundary dopo isolato #", block_number, " - edifici V11 attivi: ", building_count)
     await get_tree().process_frame
     var memory_bytes := float(Performance.get_monitor(Performance.MEMORY_STATIC))
     var memory_mb := memory_bytes / (1024.0 * 1024.0)
