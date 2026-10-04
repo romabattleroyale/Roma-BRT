@@ -24,10 +24,12 @@ jobs:
           test -s "$FILE"
           stat -c 'BYTES=%s' "$FILE"
           file "$FILE"
-          identify -verbose "$FILE" > texture_identify.txt
           identify -format 'WIDTH=%w HEIGHT=%h CHANNELS=%[channels] DEPTH=%z\n' "$FILE"
-          convert "$FILE" -format 'MEAN=%[fx:mean.r],%[fx:mean.g],%[fx:mean.b] MIN=%[fx:min.r],%[fx:min.g],%[fx:min.b] MAX=%[fx:max.r],%[fx:max.g],%[fx:max.b]\n' info:
-          convert "$FILE" -colorspace Gray -format 'GRAY_MEAN=%[fx:mean]\nGRAY_MIN=%[fx:min]\nGRAY_MAX=%[fx:max]\n' info:
+          echo -n 'RGB_MEAN='; convert "$FILE" -format '%[fx:mean]' info:
+          echo
+          echo -n 'GRAY_MEAN='; convert "$FILE" -colorspace Gray -format '%[fx:mean]' info:
+          echo
+          identify -verbose "$FILE" > texture_identify.txt
           convert "$FILE" -resize 512x512 /tmp/roman_plaster_weathered_albedo.png
           mkdir -p build/texture_inspect
           cp /tmp/roman_plaster_weathered_albedo.png build/texture_inspect/roman_plaster_weathered_albedo.png
