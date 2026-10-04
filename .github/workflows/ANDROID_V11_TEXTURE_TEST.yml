@@ -24,7 +24,7 @@ jobs:
   android-texture-test:
     name: Android V11 texture visual test
     runs-on: ubuntu-24.04
-    timeout-minutes: 30
+    timeout-minutes: 15
     steps:
       - name: Checkout Roma-BRT
         uses: actions/checkout@v4
@@ -65,15 +65,15 @@ jobs:
           if [ ! -f "$HOME/.android/debug.keystore" ]; then keytool -genkeypair -v -keystore "$HOME/.android/debug.keystore" -storepass android -alias androiddebugkey -keypass android -keyalg RSA -keysize 2048 -validity 10000 -dname 'CN=Android Debug,O=Android,C=US'; fi
       - name: Import project resources
         run: .runtime/godot/godot --headless --editor --path . --quit
-      - name: Switch temporary Android test scene and x86_64 export
+      - name: Switch temporary Android test scene and x86 export
         run: |
           set -euo pipefail
           cp project.godot /tmp/project.godot.original
           cp export_presets.cfg /tmp/export_presets.cfg.original
           sed -i 's#run/main_scene="res://main.tscn"#run/main_scene="res://mobile_texture_test.tscn"#' project.godot
-          sed -i 's#architectures/x86_64=false#architectures/x86_64=true#' export_presets.cfg
+          sed -i 's#architectures/x86=false#architectures/x86=true#' export_presets.cfg
           grep -F 'run/main_scene="res://mobile_texture_test.tscn"' project.godot
-          grep -F 'architectures/x86_64=true' export_presets.cfg
+          grep -F 'architectures/x86=true' export_presets.cfg
       - name: Export Android texture test APK
         run: |
           set -euo pipefail
@@ -88,9 +88,9 @@ jobs:
       - name: Run APK on Android emulator and capture screenshot
         uses: reactivecircus/android-emulator-runner@v2
         with:
-          api-level: 35
-          target: google_apis
-          arch: x86_64
+          api-level: 30
+          target: default
+          arch: x86
           profile: pixel_2
           force-avd-creation: true
           disable-animations: true
