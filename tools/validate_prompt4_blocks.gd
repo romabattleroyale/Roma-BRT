@@ -28,11 +28,6 @@ func _run() -> void:
     var grid: Node = root.get_node_or_null("Urban_Grid")
     print("Urban_Grid node: ", "OK" if grid != null else "MISSING")
     var rects: Array = []
-    if grid != null:
-        await process_frame
-        await process_frame
-        rects = grid.get_meta("lot_rects", []) as Array
-    print("Urban_Grid: %d rettangoli trovati" % rects.size())
 
     var bridge: Node = root.get_node_or_null("V11BuildingBridge")
     print("Bridge V11: ", "OK" if bridge != null else "MISSING")
@@ -51,6 +46,15 @@ func _run() -> void:
         root.queue_free()
         quit(3)
         return
+
+    # Urban_Grid publishes lot_rects during scene initialization. Read it only
+    # after the bridge has finished so the gate cannot race _ready() metadata.
+    var rect_deadline := Time.get_ticks_msec() + int(WAIT_SECONDS * 1000.0)
+    while grid != null and rects.size() < EXPECTED_BLOCKS and Time.get_ticks_msec() < rect_deadline:
+        rects = grid.get_meta("lot_rects", []) as Array
+        if rects.size() < EXPECTED_BLOCKS:
+            await process_frame
+    print("Urban_Grid: %d rettangoli trovati" % rects.size())
 
     var city_root: Node = null
     var v37: Node = root.get_node_or_null("V37Integration")
