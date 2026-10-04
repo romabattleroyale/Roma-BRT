@@ -90,6 +90,10 @@ jobs:
         run: |
           set -euo pipefail
           .runtime/godot/godot --headless --path . --script res://tools/enforce_v11_facade_style.gd
+      - name: HARD GATE — Prompt 4 urban blocks before any scale test
+        run: |
+          set -euo pipefail
+          .runtime/godot/godot --headless --path . --script res://tools/validate_prompt4_blocks.gd
       - name: Simplify V11 building collisions only
         run: .runtime/godot/godot --headless --path . --script res://tools/simplify_v11_collisions.gd
       - name: Validate V11 collision at 5 buildings - hard gate
