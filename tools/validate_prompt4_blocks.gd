@@ -58,12 +58,20 @@ func _run() -> void:
 
     var city_root: Node = null
     var v37: Node = root.get_node_or_null("V37Integration")
-    if v37 != null:
-        city_root = v37.get("city_root") as Node
+    # V37Integration exposes city_root during its own deferred initialization.
+    # Wait for that node explicitly; bridge.built alone does not guarantee that
+    # the gate can already traverse the final city hierarchy.
+    var city_deadline := Time.get_ticks_msec() + int(WAIT_SECONDS * 1000.0)
+    while city_root == null and Time.get_ticks_msec() < city_deadline:
+        if v37 == null:
+            v37 = root.get_node_or_null("V37Integration")
+        if v37 != null:
+            city_root = v37.get("city_root") as Node
+        if city_root == null:
+            await process_frame
 
     # The bridge sets built after its placement loop, but the scene tree can
     # still need a frame to expose the final hierarchy to the gate traversal.
-    # Wait for the actual Prompt 4 population, not only the bridge flag.
     var building_deadline := Time.get_ticks_msec() + int(WAIT_SECONDS * 1000.0)
     var buildings: Array[Node] = []
     while city_root != null and buildings.size() < EXPECTED_BLOCKS * BUILDINGS_PER_BLOCK and Time.get_ticks_msec() < building_deadline:
