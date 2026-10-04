@@ -1,0 +1,53 @@
+name: V11 Material Debug Trace
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - 'tools/debug_v11_material_trace.gd'
+      - 'city_library/buildings/houses/roma_architecture_library_v11/scripts/**'
+      - 'v37_integration/mobile_visual_variation.gd'
+      - 'baked_city/v11_shared_materials/**'
+      - 'project.godot'
+
+permissions:
+  contents: read
+
+jobs:
+  material-debug:
+    name: Godot 4.7.2 Material Lifecycle Trace
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Checkout Roma-BRT
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+      - name: Download Godot 4.7.2
+        run: |
+          set -euo pipefail
+          mkdir -p .runtime/godot
+          curl -L --fail --retry 3 -o .runtime/godot/godot.zip 'https://github.com/godotengine/godot/releases/download/4.7.2-stable/Godot_v4.7.2-stable_linux.x86_64.zip'
+          unzip -q .runtime/godot/godot.zip -d .runtime/godot
+          GODOT_BIN=$(find .runtime/godot -maxdepth 2 -type f -name 'Godot_v4.7.2-stable_linux.x86_64' | head -n 1)
+          test -n "$GODOT_BIN"
+          chmod +x "$GODOT_BIN"
+          ln -sf "$(realpath "$GODOT_BIN")" .runtime/godot/godot
+          .runtime/godot/godot --version
+      - name: Import project
+        run: |
+          set -euo pipefail
+          .runtime/godot/godot --headless --editor --path . --quit
+      - name: Run material lifecycle trace
+        run: |
+          set -euo pipefail
+          .runtime/godot/godot --headless --verbose --path . --script res://tools/debug_v11_material_trace.gd 2>&1 | tee material_debug.log
+          test "${PIPESTATUS[0]}" -eq 0
+      - name: Upload trace log
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: V11-Material-Debug-Trace
+          path: material_debug.log
+          retention-days: 14
