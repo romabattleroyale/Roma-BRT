@@ -29,7 +29,6 @@ func _run() -> void:
     get_root().add_child(root)
 
     var cache: Dictionary = {}
-    var shared_materials: Dictionary = {}
     var total_triangles: int = 0
     var max_nodes: int = 0
     var textures: Dictionary = {}
@@ -51,7 +50,6 @@ func _run() -> void:
             quit(5)
             return
         node.transform = entries[i]["transform"]
-        _share_instance_materials(node, shared_materials)
         root.add_child(node)
         var local_textures: Dictionary = {}
         var stats: Dictionary = _inspect_node(node, textures, local_textures)
@@ -71,7 +69,6 @@ func _run() -> void:
     print("Texture uniche: %d" % textures.size())
     for key in textures.keys():
         print("Texture path: %s" % str(key))
-    print("Materiali condivisi: %d" % shared_materials.size())
     print("Memoria baseline: %.2f MB" % baseline)
     print("Memoria finale: %.2f MB" % final_memory)
     print("Memoria delta: %.2f MB" % delta)
@@ -98,53 +95,6 @@ func _run() -> void:
         quit(10)
         return
     quit(0)
-
-func _share_instance_materials(root: Node3D, shared_materials: Dictionary) -> void:
-    var stack: Array[Node] = [root]
-    while not stack.is_empty():
-        var current: Node = stack.pop_back()
-        for child in current.get_children():
-            stack.append(child)
-        if not (current is MeshInstance3D):
-            continue
-        var mi: MeshInstance3D = current as MeshInstance3D
-        if mi.mesh != null:
-            for s in range(mi.mesh.get_surface_count()):
-                var material: Material = mi.mesh.surface_get_material(s)
-                if material != null:
-                    mi.set_surface_override_material(s, _canonical_material(material, shared_materials))
-        if mi.material_override != null:
-            mi.material_override = _canonical_material(mi.material_override, shared_materials)
-
-func _canonical_material(material: Material, shared_materials: Dictionary) -> Material:
-    var key: String = _material_signature(material)
-    var existing: Material = shared_materials.get(key) as Material
-    if existing != null:
-        return existing
-    if material is Resource:
-        (material as Resource).resource_local_to_scene = false
-    shared_materials[key] = material
-    return material
-
-func _material_signature(material: Material) -> String:
-    var parts: PackedStringArray = [material.get_class()]
-    for prop in material.get_property_list():
-        var prop_name: String = str(prop.get("name", ""))
-        if prop_name.is_empty() or prop_name == "resource_local_to_scene" or prop_name == "resource_path" or prop_name == "resource_name":
-            continue
-        var value = material.get(prop_name)
-        if value is Texture2D:
-            var texture: Texture2D = value as Texture2D
-            var texture_path: String = texture.resource_path
-            if texture_path.is_empty():
-                texture_path = "<embedded:%d>" % texture.get_instance_id()
-            parts.append("%s=tex:%s" % [prop_name, texture_path])
-        elif value is Resource:
-            var resource: Resource = value as Resource
-            parts.append("%s=res:%s:%s" % [prop_name, resource.get_class(), resource.resource_path])
-        elif value is bool or value is int or value is float or value is String or value is Color or value is Vector2 or value is Vector2i or value is Vector3 or value is Vector3i:
-            parts.append("%s=%s" % [prop_name, str(value)])
-    return "|".join(parts)
 
 func _read_entries() -> Array[Dictionary]:
     var out: Array[Dictionary] = []
