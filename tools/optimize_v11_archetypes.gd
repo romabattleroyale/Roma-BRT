@@ -3,9 +3,12 @@ extends SceneTree
 ## Goal: flatten each baked archetype to one visual MeshInstance3D and one
 ## StaticBody3D/ConcavePolygonShape3D, while preserving materials and transforms.
 ## V11 material resources are externalized once and reused by all archetypes.
+## Mesh attribute compression is enabled only for surfaces that satisfy Godot 4.7
+## compression requirements (vertices+normals+tangents).
 
 const ARCH_DIR: String = "res://baked_city/archetypes_587"
 const MATERIAL_DIR: String = "res://baked_city/v11_shared_materials"
+const COMPRESS_FLAGS: int = Mesh.ARRAY_FLAG_COMPRESS_ATTRIBUTES | Mesh.ARRAY_FLAG_FORMAT_VERSION_2
 var _shared_materials: Dictionary = {}
 
 func _initialize() -> void:
@@ -44,6 +47,7 @@ func _optimize_one(path: String) -> bool:
         return true
 
     var tools: Dictionary = {}
+    var tool_compressible: Dictionary = {}
     var merged_count: int = 0
     var merged_faces: PackedVector3Array = PackedVector3Array()
 
@@ -68,6 +72,9 @@ func _optimize_one(path: String) -> bool:
                 if material != null:
                     st.set_material(material)
                 tools[key] = st
+                tool_compressible[key] = true
+            if not _surface_supports_compression(mesh, surface):
+                tool_compressible[key] = false
             var tool: SurfaceTool = tools[key]
             tool.append_from(mesh, surface, local_to_root)
             merged_count += 1
@@ -79,9 +86,16 @@ func _optimize_one(path: String) -> bool:
         return true
 
     var merged_mesh: ArrayMesh = ArrayMesh.new()
+    var compressed_tools: int = 0
+    var uncompressed_tools: int = 0
     for key in tools.keys():
         var tool: SurfaceTool = tools[key]
-        tool.commit(merged_mesh)
+        if bool(tool_compressible.get(key, false)):
+            tool.commit(merged_mesh, COMPRESS_FLAGS)
+            compressed_tools += 1
+        else:
+            tool.commit(merged_mesh)
+            uncompressed_tools += 1
 
     # Remove every visual mesh node, not only leaves. This is the important
     # flattening step that eliminates hundreds of intermediate MeshInstance3D nodes.
@@ -127,8 +141,23 @@ func _optimize_one(path: String) -> bool:
         push_error("V11 OPTIMIZER: save failed for %s: %s" % [path, save_error])
         return false
 
-    print("V11 OPTIMIZER: %s mesh_nodes=%d surfaces=%d collision_vertices=%d" % [path, meshes.size(), merged_count, merged_faces.size()])
+    print("V11 OPTIMIZER: %s mesh_nodes=%d surfaces=%d collision_vertices=%d compressed_tools=%d uncompressed_tools=%d" % [path, meshes.size(), merged_count, merged_faces.size(), compressed_tools, uncompressed_tools])
     return true
+
+func _surface_supports_compression(mesh: Mesh, surface: int) -> bool:
+    var arrays: Array = mesh.surface_get_arrays(surface)
+    if arrays.is_empty():
+        return false
+    var vertices = arrays[Mesh.ARRAY_VERTEX]
+    if not (vertices is PackedVector3Array):
+        return false
+    var normals = arrays[Mesh.ARRAY_NORMAL]
+    var tangents = arrays[Mesh.ARRAY_TANGENT]
+    var has_normals: bool = normals is PackedVector3Array and (normals as PackedVector3Array).size() > 0
+    var has_tangents: bool = (tangents is PackedFloat32Array or tangents is PackedFloat64Array) and tangents.size() > 0
+    # Godot 4.7 compressed attributes require vertices+normals+tangents,
+    # or a vertex-only surface. Do not force compression on incompatible data.
+    return (has_normals and has_tangents) or (not has_normals and not has_tangents)
 
 func _get_shared_material(material: Material) -> Material:
     if material == null:
