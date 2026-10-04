@@ -1,0 +1,13 @@
+[gd_resource type="StandardMaterial3D" format=3]
+
+[ext_resource type="Texture2D" path="res://city_library/buildings/houses/roma_architecture_library_v11/assets/textures/cotto_tiles.jpg" id="1_kju80"]
+[ext_resource type="Texture2D" path="res://city_library/buildings/houses/roma_architecture_library_v11/assets/textures/cotto_tiles_normal.jpg" id="2_honw4"]
+
+[resource]
+albedo_color = Color(0.9411765, 0.70980394, 0.5411765, 1)
+albedo_texture = ExtResource("1_kju80")
+roughness = 0.91
+normal_enabled = true
+normal_scale = 0.48
+normal_texture = ExtResource("2_honw4")
+uv1_scale = Vector3(2.2, 2.2, 2.2)

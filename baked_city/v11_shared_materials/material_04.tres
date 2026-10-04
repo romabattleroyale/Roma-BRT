@@ -1,0 +1,12 @@
+[gd_resource type="StandardMaterial3D" format=3]
+
+[ext_resource type="Texture2D" path="res://city_library/buildings/houses/roma_architecture_library_v11/assets/textures/dark_wood.jpg" id="1_csr3k"]
+[ext_resource type="Texture2D" path="res://city_library/buildings/houses/roma_architecture_library_v11/assets/textures/dark_wood_normal.jpg" id="2_ofc8o"]
+
+[resource]
+albedo_texture = ExtResource("1_csr3k")
+roughness = 0.78
+normal_enabled = true
+normal_scale = 0.55
+normal_texture = ExtResource("2_ofc8o")
+uv1_scale = Vector3(2, 2, 2)

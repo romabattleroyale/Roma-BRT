@@ -1,0 +1,15 @@
+[gd_resource type="StandardMaterial3D" format=3]
+
+[ext_resource type="Texture2D" path="res://city_library/buildings/houses/roma_architecture_library_v11/assets/textures/coppi_romani_albedo.jpg" id="1_sup2c"]
+[ext_resource type="Texture2D" path="res://city_library/buildings/houses/roma_architecture_library_v11/assets/textures/coppi_romani_normal.jpg" id="2_rpn6f"]
+[ext_resource type="Texture2D" path="res://city_library/buildings/houses/roma_architecture_library_v11/assets/textures/coppi_romani_roughness.jpg" id="3_twc1s"]
+
+[resource]
+albedo_color = Color(0.89411765, 0.35686275, 0.18431373, 1)
+albedo_texture = ExtResource("1_sup2c")
+roughness = 0.88
+roughness_texture = ExtResource("3_twc1s")
+normal_enabled = true
+normal_scale = 0.72
+normal_texture = ExtResource("2_rpn6f")
+uv1_scale = Vector3(3.5, 3.5, 3.5)

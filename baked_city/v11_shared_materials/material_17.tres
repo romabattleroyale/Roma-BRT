@@ -1,0 +1,12 @@
+[gd_resource type="StandardMaterial3D" format=3]
+
+[ext_resource type="Texture2D" path="res://city_library/buildings/houses/roma_architecture_library_v11/assets/textures/painted_wood.jpg" id="1_l5buy"]
+[ext_resource type="Texture2D" path="res://city_library/buildings/houses/roma_architecture_library_v11/assets/textures/painted_wood_normal.jpg" id="2_gkvys"]
+
+[resource]
+albedo_texture = ExtResource("1_l5buy")
+roughness = 0.8
+normal_enabled = true
+normal_scale = 0.55
+normal_texture = ExtResource("2_gkvys")
+uv1_scale = Vector3(2, 2, 2)

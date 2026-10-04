@@ -1,0 +1,14 @@
+[gd_resource type="StandardMaterial3D" format=3]
+
+[ext_resource type="Texture2D" path="res://city_library/buildings/houses/roma_architecture_library_v11/assets/textures/travertine_weathered_albedo.jpg" id="1_2wci6"]
+[ext_resource type="Texture2D" path="res://city_library/buildings/houses/roma_architecture_library_v11/assets/textures/travertine_weathered_normal.jpg" id="2_om82s"]
+[ext_resource type="Texture2D" path="res://city_library/buildings/houses/roma_architecture_library_v11/assets/textures/travertine_weathered_roughness.jpg" id="3_clinw"]
+
+[resource]
+albedo_texture = ExtResource("1_2wci6")
+roughness = 0.86
+roughness_texture = ExtResource("3_clinw")
+normal_enabled = true
+normal_scale = 0.52
+normal_texture = ExtResource("2_om82s")
+uv1_scale = Vector3(2.8, 2.8, 2.8)

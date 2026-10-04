@@ -1,0 +1,14 @@
+[gd_resource type="StandardMaterial3D" format=3]
+
+[ext_resource type="Texture2D" path="res://city_library/buildings/houses/roma_architecture_library_v11/assets/textures/brick_weathered_albedo.jpg" id="1_v3vep"]
+[ext_resource type="Texture2D" path="res://city_library/buildings/houses/roma_architecture_library_v11/assets/textures/brick_weathered_normal.jpg" id="2_fey04"]
+[ext_resource type="Texture2D" path="res://city_library/buildings/houses/roma_architecture_library_v11/assets/textures/brick_weathered_roughness.jpg" id="3_chjqd"]
+
+[resource]
+albedo_texture = ExtResource("1_v3vep")
+roughness = 0.88
+roughness_texture = ExtResource("3_chjqd")
+normal_enabled = true
+normal_scale = 0.55
+normal_texture = ExtResource("2_fey04")
+uv1_scale = Vector3(4, 4, 4)
