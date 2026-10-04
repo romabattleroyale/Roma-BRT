@@ -7,28 +7,20 @@ const FACADE_TEXTURE_PATH := "res://city_library/buildings/houses/roma_architect
 const IMPORT_PATH := FACADE_TEXTURE_PATH + ".import"
 const TARGET_COLOR := Color(0.827451, 0.65098, 0.227451, 1.0) # #D3A63A
 
-var _elapsed: float = 0.0
-var _ran_t8: bool = false
-var _ran_t16: bool = false
-
 func _initialize() -> void:
     print("=== LINUX FACADE DIAGNOSTICS — START ===")
     print("DIAG renderer=", ProjectSettings.get_setting("renderer/rendering_method", "<unset>"))
     var err: Error = change_scene_to_file(MAIN_SCENE)
     print("DIAG change_scene_to_file error=", err)
-
-func _process(delta: float) -> bool:
-    _elapsed += delta
-    if not _ran_t8 and _elapsed >= 8.0:
-        _ran_t8 = true
-        _run_diagnostics("T+8s")
-    if not _ran_t16 and _elapsed >= 16.0:
-        _ran_t16 = true
-        _run_diagnostics("T+16s")
-    if _elapsed >= 30.0:
+    var timer8: SceneTreeTimer = create_timer(8.0)
+    timer8.timeout.connect(func() -> void: _run_diagnostics("T+8s"))
+    var timer16: SceneTreeTimer = create_timer(16.0)
+    timer16.timeout.connect(func() -> void: _run_diagnostics("T+16s"))
+    var timer30: SceneTreeTimer = create_timer(30.0)
+    timer30.timeout.connect(func() -> void:
         print("=== LINUX FACADE DIAGNOSTICS — END ===")
-        return true
-    return false
+        quit(0)
+    )
 
 func _run_diagnostics(label: String) -> void:
     print("--- FACADE DIAGNOSTICS ", label, " ---")
