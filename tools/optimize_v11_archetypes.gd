@@ -8,7 +8,7 @@ extends SceneTree
 
 const ARCH_DIR: String = "res://baked_city/archetypes_587"
 const MATERIAL_DIR: String = "res://baked_city/v11_shared_materials"
-const COMPRESS_FLAGS: int = Mesh.ARRAY_FLAG_COMPRESS_ATTRIBUTES | Mesh.ARRAY_FLAG_FORMAT_VERSION_2
+const COMPRESS_FLAGS: int = Mesh.ARRAY_FLAG_COMPRESS_ATTRIBUTES
 var _shared_materials: Dictionary = {}
 
 func _initialize() -> void:
@@ -155,7 +155,7 @@ func _surface_supports_compression(mesh: Mesh, surface: int) -> bool:
     var tangents = arrays[Mesh.ARRAY_TANGENT]
     var has_normals: bool = normals is PackedVector3Array and (normals as PackedVector3Array).size() > 0
     var has_tangents: bool = (tangents is PackedFloat32Array or tangents is PackedFloat64Array) and tangents.size() > 0
-    # Godot 4.7 compressed attributes require vertices+normals+tangents,
+    # Godot compressed attributes require vertices+normals+tangents,
     # or a vertex-only surface. Do not force compression on incompatible data.
     return (has_normals and has_tangents) or (not has_normals and not has_tangents)
 
