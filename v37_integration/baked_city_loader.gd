@@ -188,8 +188,6 @@ func _instantiate_entry_diagnostic(entry: Dictionary) -> void:
             return
         _archetype_cache[path] = packed
 
-    # Inspect the PackedScene resource before instantiation. This gives the
-    # expected mesh/texture/node counts without changing the V11 asset.
     var pre_stats := _inspect_packed_scene(packed)
     print("[EDIFICIO #%d] Triangoli mesh: %d" % [building_number, pre_stats["triangles"]])
     print("[EDIFICIO #%d] Texture: %d (formato: %s)" % [building_number, pre_stats["textures"], pre_stats["texture_format"]])
@@ -212,8 +210,6 @@ func _instantiate_entry_diagnostic(entry: Dictionary) -> void:
     print("[EDIFICIO #%d] Memoria dopo istanziazione: %.2f MB" % [building_number, _memory_mb()])
     print("[EDIFICIO #%d] Verifica runtime: triangoli=%d texture=%d nodi=%d" % [building_number, post_stats["triangles"], post_stats["textures"], post_stats["nodes"]])
 
-    # Deliberately yield after every building so the last successfully
-    # instantiated V11 building is visible in the console before any crash.
     await get_tree().process_frame
 
 func _inspect_packed_scene(packed: PackedScene) -> Dictionary:
@@ -297,7 +293,7 @@ func _collect_material_textures(material: Material, ids: Dictionary, formats: Di
             continue
         var value = material.get(prop_name)
         if value is Texture2D:
-            var id := value.get_instance_id()
+            var id: int = value.get_instance_id()
             ids[id] = true
             if formats != null:
                 formats[_texture_format(value)] = true
