@@ -1,0 +1,40 @@
+name: TEMP Texture Inspect
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/TEMP_TEXTURE_INSPECT.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  inspect:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install image tools
+        run: sudo apt-get update && sudo apt-get install -y imagemagick
+      - name: Inspect texture
+        run: |
+          set -euo pipefail
+          FILE='city_library/buildings/houses/roma_architecture_library_v11/assets/textures/roman_plaster_weathered_albedo.jpg'
+          test -s "$FILE"
+          stat -c 'BYTES=%s' "$FILE"
+          file "$FILE"
+          identify -verbose "$FILE" > texture_identify.txt
+          identify -format 'WIDTH=%w HEIGHT=%h CHANNELS=%[channels] DEPTH=%z\n' "$FILE"
+          convert "$FILE" -format 'MEAN=%[fx:mean.r],%[fx:mean.g],%[fx:mean.b] MIN=%[fx:min.r],%[fx:min.g],%[fx:min.b] MAX=%[fx:max.r],%[fx:max.g],%[fx:max.b]\n' info:
+          convert "$FILE" -colorspace Gray -format 'GRAY_MEAN=%[fx:mean]\nGRAY_MIN=%[fx:min]\nGRAY_MAX=%[fx:max]\n' info:
+          convert "$FILE" -resize 512x512 /tmp/roman_plaster_weathered_albedo.png
+          mkdir -p build/texture_inspect
+          cp /tmp/roman_plaster_weathered_albedo.png build/texture_inspect/roman_plaster_weathered_albedo.png
+          cp texture_identify.txt build/texture_inspect/texture_identify.txt
+      - name: Upload inspection
+        uses: actions/upload-artifact@v4
+        with:
+          name: TEMP-Roman-Plaster-Texture-Inspection
+          path: build/texture_inspect
+          retention-days: 2
