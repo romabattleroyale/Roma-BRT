@@ -1,0 +1,186 @@
+extends SceneTree
+## Targeted V11 collision validation. Must pass before larger scale tests.
+
+const BAKED_SCENE := "res://baked_city/roma_city_587.tscn"
+const BUILDINGS := 5
+const MEMORY_TARGET_MB := 20.0
+const MAX_COLLISION_TRIANGLES_PER_BUILDING := 200
+const MAX_COLLISION_SHAPES_PER_BUILDING := 8
+
+func _initialize() -> void:
+    call_deferred("_run")
+
+func _run() -> void:
+    var entries := _read_entries()
+    if entries.size() < BUILDINGS:
+        push_error("V11 COLLISION FAIL: only %d entries" % entries.size())
+        quit(2)
+        return
+
+    var baseline := _memory_mb()
+    var root := Node3D.new()
+    root.name = "V11CollisionValidation"
+    get_root().add_child(root)
+    var cache: Dictionary = {}
+    var visual_total := 0
+    var collision_total := 0
+    var concave_total := 0
+    var max_shapes := 0
+    var max_nodes := 0
+
+    for i in range(BUILDINGS):
+        var path := str(entries[i]["archetype"])
+        var packed := cache.get(path) as PackedScene
+        if packed == null:
+            packed = load(path) as PackedScene
+            if packed == null:
+                push_error("V11 COLLISION FAIL: cannot load %s" % path)
+                quit(3)
+                return
+            cache[path] = packed
+        var node := packed.instantiate() as Node3D
+        if node == null:
+            push_error("V11 COLLISION FAIL: instantiate %s" % path)
+            quit(4)
+            return
+        node.transform = entries[i]["transform"]
+        root.add_child(node)
+        var stats := _inspect(node)
+        visual_total += stats["visual_triangles"]
+        collision_total += stats["collision_triangles"]
+        concave_total += stats["concave_faces"]
+        max_shapes = max(max_shapes, stats["collision_shapes"])
+        max_nodes = max(max_nodes, stats["nodes"])
+        print("[V11 COLLISION SCALE] edificio=%d visual_triangles=%d collision_triangles=%d concave_faces=%d collision_shapes=%d nodes=%d" % [i + 1, stats["visual_triangles"], stats["collision_triangles"], stats["concave_faces"], stats["collision_shapes"], stats["nodes"]])
+        await process_frame
+
+    var delta := _memory_mb() - baseline
+    print("=== V11 COLLISION 5 ===")
+    print("Edifici: %d" % BUILDINGS)
+    print("Triangoli visivi totali: %d" % visual_total)
+    print("Triangoli collisione totali: %d" % collision_total)
+    print("Facce Concave residue: %d" % concave_total)
+    print("CollisionShape3D max/edificio: %d" % max_shapes)
+    print("Nodi max/edificio: %d" % max_nodes)
+    print("Memoria delta: %.2f MB" % delta)
+
+    if visual_total != 81456:
+        push_error("V11 COLLISION FAIL: visual triangles changed: %d (expected 81456)" % visual_total)
+        quit(5)
+        return
+    if concave_total != 0:
+        push_error("V11 COLLISION FAIL: ConcavePolygonShape3D residue: %d faces" % concave_total)
+        quit(6)
+        return
+    if collision_total > BUILDINGS * MAX_COLLISION_TRIANGLES_PER_BUILDING:
+        push_error("V11 COLLISION FAIL: collision triangles %d > %d target" % [collision_total, BUILDINGS * MAX_COLLISION_TRIANGLES_PER_BUILDING])
+        quit(7)
+        return
+    if max_shapes > MAX_COLLISION_SHAPES_PER_BUILDING:
+        push_error("V11 COLLISION FAIL: %d CollisionShape3D > %d target" % [max_shapes, MAX_COLLISION_SHAPES_PER_BUILDING])
+        quit(8)
+        return
+    if delta >= MEMORY_TARGET_MB:
+        push_error("V11 COLLISION FAIL: memory delta %.2f MB >= %.2f MB target" % [delta, MEMORY_TARGET_MB])
+        quit(9)
+        return
+    print("V11 COLLISION 5 PASS: memory < 20 MB, visual geometry unchanged, collision <= 200 triangles/building")
+    quit(0)
+
+func _inspect(root: Node) -> Dictionary:
+    var visual_triangles := 0
+    var collision_triangles := 0
+    var concave_faces := 0
+    var collision_shapes := 0
+    var nodes := 0
+    var stack: Array[Node] = [root]
+    while not stack.is_empty():
+        var current: Node = stack.pop_back()
+        nodes += 1
+        if current is MeshInstance3D:
+            var mi := current as MeshInstance3D
+            if mi.mesh != null:
+                visual_triangles += _mesh_triangles(mi.mesh)
+        if current is CollisionShape3D:
+            collision_shapes += 1
+            var cs := current as CollisionShape3D
+            if cs.shape is BoxShape3D:
+                collision_triangles += 12
+            elif cs.shape is ConcavePolygonShape3D:
+                var cp := cs.shape as ConcavePolygonShape3D
+                concave_faces += int(cp.get_faces().size() / 3)
+                collision_triangles += int(cp.get_faces().size() / 3)
+            elif cs.shape is ConvexPolygonShape3D:
+                var cv := cs.shape as ConvexPolygonShape3D
+                collision_triangles += int(cv.get_points().size())
+        for child in current.get_children():
+            stack.append(child)
+    return {"visual_triangles": visual_triangles, "collision_triangles": collision_triangles, "concave_faces": concave_faces, "collision_shapes": collision_shapes, "nodes": nodes}
+
+func _mesh_triangles(mesh: Mesh) -> int:
+    var triangles := 0
+    for s in range(mesh.get_surface_count()):
+        var arrays := mesh.surface_get_arrays(s)
+        if arrays.is_empty():
+            continue
+        var indices = arrays[Mesh.ARRAY_INDEX]
+        if indices is PackedInt32Array and indices.size() > 0:
+            triangles += indices.size() / 3
+        else:
+            var vertices = arrays[Mesh.ARRAY_VERTEX]
+            if vertices is PackedVector3Array:
+                triangles += vertices.size() / 3
+    return triangles
+
+func _memory_mb() -> float:
+    return float(Performance.get_monitor(Performance.MEMORY_STATIC)) / 1048576.0
+
+func _read_entries() -> Array[Dictionary]:
+    var out: Array[Dictionary] = []
+    var f := FileAccess.open(BAKED_SCENE, FileAccess.READ)
+    if f == null:
+        return out
+    var lines := f.get_as_text().split("\n")
+    f.close()
+    var ext_paths: Dictionary = {}
+    for raw in lines:
+        var line: String = raw.strip_edges()
+        if line.begins_with("[ext_resource") and line.contains("type=\"PackedScene\""):
+            var path := _between(line, "path=\"", "\" id=\"")
+            var id := _between(line, "id=\"", "\"]")
+            if not path.is_empty() and not id.is_empty():
+                ext_paths[id] = path
+    for i in range(lines.size() - 1):
+        var line: String = lines[i].strip_edges()
+        if not line.begins_with("[node name=\"building_") or not line.contains("instance=ExtResource(\""):
+            continue
+        var id := _between(line, "instance=ExtResource(\"", "\")")
+        var path := str(ext_paths.get(id, ""))
+        if path.is_empty():
+            continue
+        var transform_line: String = lines[i + 1].strip_edges()
+        if not transform_line.begins_with("transform = Transform3D("):
+            continue
+        out.append({"archetype": path, "transform": _parse_transform(transform_line)})
+    return out
+
+func _between(line: String, left: String, right: String) -> String:
+    var a := line.find(left)
+    if a < 0:
+        return ""
+    a += left.length()
+    var b := line.find(right, a)
+    if b < 0:
+        return ""
+    return line.substr(a, b - a)
+
+func _parse_transform(line: String) -> Transform3D:
+    var body := line.trim_prefix("transform = Transform3D(").trim_suffix(")")
+    var parts := body.split(",")
+    if parts.size() < 12:
+        return Transform3D.IDENTITY
+    var v: Array[float] = []
+    for i in range(12):
+        v.append(float(parts[i].strip_edges()))
+    var basis := Basis(Vector3(v[0], v[1], v[2]), Vector3(v[3], v[4], v[5]), Vector3(v[6], v[7], v[8]))
+    return Transform3D(basis, Vector3(v[9], v[10], v[11]))
