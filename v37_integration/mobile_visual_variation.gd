@@ -16,15 +16,36 @@ const ROOF_COLORS = [
     Color("#8F6B4E")
 ]
 
+var _facade_materials: Dictionary = {}
+var _roof_materials: Dictionary = {}
+
+func _facade_material(color: Color) -> StandardMaterial3D:
+    var key := color.to_html(true)
+    var cached := _facade_materials.get(key) as StandardMaterial3D
+    if cached != null:
+        return cached
+    var material := StandardMaterial3D.new()
+    material.albedo_color = color
+    material.roughness = 0.88
+    _facade_materials[key] = material
+    return material
+
+func _roof_material(color: Color) -> StandardMaterial3D:
+    var key := color.to_html(true)
+    var cached := _roof_materials.get(key) as StandardMaterial3D
+    if cached != null:
+        return cached
+    var material := StandardMaterial3D.new()
+    material.albedo_color = color
+    material.roughness = 0.90
+    _roof_materials[key] = material
+    return material
+
 func apply(root: Node3D, variant: int, floors: int) -> void:
     var facade_color: Color = FACADE_COLORS[posmod(variant * 7 + 1, FACADE_COLORS.size())]
     var roof_color: Color = ROOF_COLORS[posmod(variant * 5 + 2, ROOF_COLORS.size())]
-    var facade_mat := StandardMaterial3D.new()
-    facade_mat.albedo_color = facade_color
-    facade_mat.roughness = 0.88
-    var roof_mat := StandardMaterial3D.new()
-    roof_mat.albedo_color = roof_color
-    roof_mat.roughness = 0.90
+    var facade_mat := _facade_material(facade_color)
+    var roof_mat := _roof_material(roof_color)
 
     var merged_applied := false
     for node in _mesh_nodes(root):
