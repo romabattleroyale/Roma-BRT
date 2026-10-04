@@ -15,6 +15,10 @@ config/name="Roma Heightmap Beta 2000x2000"
 run/main_scene="res://main.tscn"
 config/features=PackedStringArray("4.7")
 
+[autoload]
+
+MobileMemoryWatch="*res://tools/mobile_memory_watch.gd"
+
 [display]
 
 window/size/viewport_width=1280
