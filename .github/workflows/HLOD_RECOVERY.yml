@@ -1,0 +1,100 @@
+name: Roma HLOD Recovery
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/HLOD_RECOVERY.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  rebuild-hlod:
+    runs-on: ubuntu-latest
+    timeout-minutes: 240
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Download Godot 4.7.2
+        run: |
+          set -euo pipefail
+          mkdir -p .runtime/godot
+          curl -L --fail --retry 3 -o .runtime/godot/godot.zip 'https://github.com/godotengine/godot/releases/download/4.7.2-stable/Godot_v4.7.2-stable_linux.x86_64.zip'
+          unzip -q .runtime/godot/godot.zip -d .runtime/godot
+          GODOT_BIN=$(find .runtime/godot -maxdepth 2 -type f -name 'Godot_v4.7.2-stable_linux.x86_64' | head -n 1)
+          chmod +x "$GODOT_BIN"
+          ln -sf "$(realpath "$GODOT_BIN")" .runtime/godot/godot
+          .runtime/godot/godot --version
+      - name: Import
+        run: .runtime/godot/godot --headless --path . --quit-after 8
+      - name: Prepare materials
+        run: |
+          set -euo pipefail
+          .runtime/godot/godot --headless --path . --script res://tools/normalize_v11_texture_paths.gd
+          .runtime/godot/godot --headless --path . --script res://tools/optimize_v11_textures_mobile.gd
+          .runtime/godot/godot --headless --path . --script res://tools/enforce_v11_facade_style.gd
+      - name: Bake 120 and distribute 587
+        run: |
+          set -euo pipefail
+          rm -rf baked_city/ready_buildings baked_city/ready_templates baked_city/hlod
+          .runtime/godot/godot --headless --path . --script res://v37_integration/bake_ready_buildings_120.gd
+          .runtime/godot/godot --headless --path . --script res://v37_integration/distribute_ready_buildings_quarters.gd
+          test "$(find baked_city/ready_templates -maxdepth 1 -type f -name 'template_*.tscn' | wc -l)" -eq 120
+      - name: Generate 36 HLOD
+        run: |
+          set -euo pipefail
+          .runtime/godot/godot --headless --path . --script res://v37_integration/generate_quarter_hlod.gd
+          test "$(find baked_city/hlod -maxdepth 1 -type f -name 'quartiere_*_*.res' | wc -l)" -eq 36
+          test -f baked_city/hlod/report.json
+      - name: Validate HLOD
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import json, glob
+          m=json.load(open('baked_city/ready_templates/manifest.json'))
+          assert m['placement_count']==587 and m['district_count']==12
+          assert len(glob.glob('baked_city/hlod/quartiere_*_*.res'))==36
+          r=json.load(open('baked_city/hlod/report.json'))
+          assert r['districts']==12 and r['placement_count']==587
+          for d,v in r['levels'].items():
+              assert 0 < v['hlod2_tri'] <= 2200
+              assert 0 < v['hlod1_tri'] <= 10200
+              assert 0 < v['hlod0_tri'] <= 50000
+          print('HLOD_STRUCTURE=PASS')
+          PY
+      - name: Real Godot runtime Output
+        run: |
+          set -euo pipefail
+          mkdir -p build/runtime
+          set +e
+          timeout 120s xvfb-run -a .runtime/godot/godot --path . --rendering-method gl_compatibility --rendering-driver opengl3 --scene res://main.tscn 2>&1 | tee build/runtime/runtime_output.log
+          code=${PIPESTATUS[0]}
+          set -e
+          if [ "$code" -ne 0 ] && [ "$code" -ne 124 ]; then exit "$code"; fi
+          grep -q 'V11 READY BAKE: COMPLETE loaded=587' build/runtime/runtime_output.log
+          if grep -Eq 'ERROR:|SCRIPT ERROR|Parse Error|Invalid call|Nonexistent function|Cannot open file|Failed loading resource|V11 HLOD: missing' build/runtime/runtime_output.log; then
+            echo 'GODOT_RUNTIME_OUTPUT=FAIL'
+            grep -E 'ERROR:|SCRIPT ERROR|Parse Error|Invalid call|Nonexistent function|Cannot open file|Failed loading resource|V11 HLOD: missing' build/runtime/runtime_output.log || true
+            exit 1
+          fi
+          echo 'GODOT_RUNTIME_OUTPUT=CLEAN'
+      - name: Persist
+        run: |
+          set -euo pipefail
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add baked_city/ready_templates baked_city/hlod
+          git commit -m 'feat: persist ready buildings and three-level HLOD [skip ci]'
+          git push origin HEAD:main
+      - name: Upload runtime log
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: hlod-recovery-runtime-output
+          path: build/runtime/runtime_output.log
+          if-no-files-found: error
+          retention-days: 30
