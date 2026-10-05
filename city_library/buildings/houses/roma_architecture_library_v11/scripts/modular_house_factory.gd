@@ -10,8 +10,6 @@ var catalog: Array[Dictionary] = []
 var by_id: Dictionary = {}
 var system: RomaLibraryBuildingSystem
 var visual_variation = null
-# Geometry is built once per real archetype/floor/roof combination, then duplicated
-# shallowly so ArrayMesh/Material resources remain shared between mobile instances.
 var mobile_prototypes: Dictionary = {}
 
 func initialize() -> bool:
@@ -58,14 +56,12 @@ func build_by_id(id: String, variant: int = 0) -> Node3D:
 func build_mobile_by_id(id: String, variant: int = 0) -> Node3D:
     if not initialize() or not by_id.has(id):
         return null
-
     var source: Dictionary = by_id[id]
     var height_pattern: Array[int] = [3, 4, 5, 4, 3, 5]
     var floors: int = height_pattern[posmod(variant, height_pattern.size())]
     var roof_variant: int = int(variant / 10) * 10
     if posmod(variant, 2) == 1:
         roof_variant += 7
-
     var cache_key := "%s|f%d|r%d" % [id, floors, roof_variant]
     var prototype: Node3D = mobile_prototypes.get(cache_key) as Node3D
     if prototype == null:
@@ -84,7 +80,6 @@ func build_mobile_by_id(id: String, variant: int = 0) -> Node3D:
         print("V11 MOBILE GEOMETRY CACHE: new prototype ", cache_key)
     else:
         print("V11 MOBILE GEOMETRY CACHE: reuse prototype ", cache_key)
-
     var root: Node3D = prototype.duplicate() as Node3D
     if root == null:
         return null
@@ -93,20 +88,14 @@ func build_mobile_by_id(id: String, variant: int = 0) -> Node3D:
     return root
 
 func clear_mobile_prototypes() -> void:
-    # Prototypes are intentionally kept outside the SceneTree for bake-time reuse.
-    # They must be explicitly freed before process exit; otherwise their duplicated
-    # mesh/collision ObjectDB entries and server RIDs survive the bake process.
     for value in mobile_prototypes.values():
         var prototype := value as Node
         if is_instance_valid(prototype):
             prototype.free()
     mobile_prototypes.clear()
-
-func release_bake_resources() -> void:
-    clear_mobile_prototypes()
-    # The building system is also a Node3D created outside the SceneTree. Its
-    # material dictionary owns the StandardMaterial3D resources and their texture
-    # references, so release that graph explicitly before the headless process exits.
+    # The factory system is a Node3D outside the SceneTree. Release its material
+    # graph as part of the same cleanup call so headless bake shutdown cannot retain
+    # StandardMaterial3D/Texture resources or their server RIDs.
     if is_instance_valid(system):
         system.mats.clear()
         system.free()
@@ -146,16 +135,13 @@ func _merge_mobile_geometry(root: Node3D, floors: int) -> Node3D:
     _collect_mesh_nodes(root, mesh_nodes)
     if mesh_nodes.is_empty():
         return root
-
     var top_y: float = float(floors) * 3.2
     var max_mesh_y: float = -INF
     for node in mesh_nodes:
         max_mesh_y = maxf(max_mesh_y, node.position.y)
-
     var tools: Dictionary = {}
     var roles: Array[String] = []
     var merged_nodes: Array[MeshInstance3D] = []
-
     for node in mesh_nodes:
         var mesh: Mesh = node.mesh
         if mesh == null or not node.skeleton.is_empty():
@@ -178,10 +164,8 @@ func _merge_mobile_geometry(root: Node3D, floors: int) -> Node3D:
                 tools[key] = st
             st.append_from(mesh, surface, local_transform)
         merged_nodes.append(node)
-
     if tools.is_empty():
         return root
-
     var merged_mesh := ArrayMesh.new()
     for key in tools.keys():
         var st: SurfaceTool = tools[key] as SurfaceTool
@@ -192,10 +176,8 @@ func _merge_mobile_geometry(root: Node3D, floors: int) -> Node3D:
         var role := str(key).split("|", false, 1)[0]
         for _i in range(merged_mesh.get_surface_count() - before):
             roles.append(role)
-
     if merged_mesh.get_surface_count() == 0:
         return root
-
     var merged_instance := MeshInstance3D.new()
     merged_instance.name = "MobileMergedMesh"
     merged_instance.mesh = merged_mesh
@@ -203,7 +185,6 @@ func _merge_mobile_geometry(root: Node3D, floors: int) -> Node3D:
     merged_instance.set_meta("mobile_merged", true)
     merged_instance.set_meta("mobile_surface_roles", roles)
     root.add_child(merged_instance)
-
     for node in merged_nodes:
         node.free()
     return root
