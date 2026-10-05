@@ -9,6 +9,9 @@ concurrency:
   group: roma-roads-gridmap-full
   cancel-in-progress: true
 
+permissions:
+  contents: write
+
 jobs:
   road-full:
     runs-on: ubuntu-latest
@@ -16,6 +19,8 @@ jobs:
     steps:
       - name: Checkout Roma-BRT
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
       - name: Download Godot 4.7.2
         uses: chickensoft-games/setup-godot@v2
@@ -39,6 +44,30 @@ jobs:
           for name in ponte_sisto ponte_santangelo ponte_vittorio ponte_garibaldi; do test -s "roads/generated/${name}.tscn"; done
           grep -q 'cell_size = Vector3(4, 0.15, 4)' roads/generated/district_01_roads.tscn
           echo 'ROMA ROADS VALIDATION: PASS districts=12 bridges=4'
+
+      - name: Persist GridMap roads to main
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add roads/roma_road_mesh_library.tres roads/generated
+          if git diff --cached --quiet; then
+            echo 'ROMA ROADS PERSIST: no changes'
+            exit 0
+          fi
+          git commit -m 'feat: persist GridMap road system [skip ci]'
+          for attempt in 1 2 3; do
+            git fetch origin main
+            git rebase origin/main || { git rebase --abort; git reset --hard origin/main; git add roads/roma_road_mesh_library.tres roads/generated; git commit -m 'feat: persist GridMap road system [skip ci]'; }
+            if git push origin HEAD:main; then
+              echo 'ROMA ROADS PERSIST: PASS'
+              exit 0
+            fi
+            sleep 3
+          done
+          echo 'ROMA ROADS PERSIST: FAIL push after retries'
+          exit 1
 
       - name: Capture actual full district + memory report
         run: timeout 60s xvfb-run -a godot --path . --display-driver x11 --rendering-method gl_compatibility --audio-driver Dummy --script res://roads/capture_road_pilot.gd
