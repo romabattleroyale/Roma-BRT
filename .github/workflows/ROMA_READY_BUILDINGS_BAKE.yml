@@ -13,6 +13,11 @@ on:
 permissions:
   contents: write
 
+env:
+  READY_TEMPLATE_TARGET: '120'
+  READY_VIRTUAL_TARGET: '587'
+  READY_RUNTIME_MAX_ACTIVE: '50'
+
 jobs:
   bake-and-validate:
     name: Bake 120 reusable building templates
@@ -45,7 +50,7 @@ jobs:
           set -euo pipefail
           rm -rf baked_city/ready_buildings baked_city/ready_templates
           .runtime/godot/godot --headless --path . --script res://v37_integration/bake_ready_buildings_120.gd
-          test "$(find baked_city/ready_templates -maxdepth 1 -type f -name 'template_*.tscn' | wc -l)" -eq 120
+          test "$(find baked_city/ready_templates -maxdepth 1 -type f -name 'template_*.tscn' | wc -l)" -eq "$READY_TEMPLATE_TARGET"
           test -f baked_city/ready_templates/manifest.json
           test "$(find baked_city/ready_templates/materials -maxdepth 1 -type f -name '*.tres' | wc -l)" -eq 9
       - name: Validate 120 templates and 587 virtual placements
