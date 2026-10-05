@@ -14,20 +14,6 @@ on:
       - 'tools/optimize_v11_textures_mobile.gd'
       - '.github/workflows/ROMA_READY_BUILDINGS_BAKE.yml'
 
-actions:
-  workflow_dispatch:
-  push:
-    branches: [main]
-    paths:
-      - 'v37_integration/bake_ready_buildings_120.gd'
-      - 'v37_integration/validate_ready_templates_memory.gd'
-      - 'v37_integration/v11_building_bridge.gd'
-      - 'v37_integration/distribute_ready_buildings_quarters.gd'
-      - 'v37_integration/generate_quarter_hlod.gd'
-      - 'city_library/buildings/houses/roma_architecture_library_v11/scripts/modular_house_factory.gd'
-      - 'tools/optimize_v11_textures_mobile.gd'
-      - '.github/workflows/ROMA_READY_BUILDINGS_BAKE.yml'
-
 permissions:
   contents: write
 
