@@ -97,7 +97,12 @@ func _write_shared_texture()->void:
 
 func _apply_material(mesh:ArrayMesh,level:int)->void:
     var mat:StandardMaterial3D=StandardMaterial3D.new(); mat.roughness=1.0
-    if level==1: mat.albedo_texture=load(OUT_DIR+"/roma_palette_512.png") as Texture2D
+    if level==1:
+        var image:Image=Image.load_from_file(ProjectSettings.globalize_path(OUT_DIR+"/roma_palette_512.png"))
+        if image != null and not image.is_empty():
+            mat.albedo_texture=ImageTexture.create_from_image(image)
+        else:
+            mat.albedo_color=Color("#c9ad82")
     elif level==2: mat.albedo_color=Color("#b98b6b")
     else: mat.albedo_color=Color("#c8aa82")
     for s:int in range(mesh.get_surface_count()): mesh.surface_set_material(s,mat)
