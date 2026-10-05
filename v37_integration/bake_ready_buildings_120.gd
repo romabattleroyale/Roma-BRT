@@ -17,14 +17,20 @@ func _run() -> void:
     var positions_script := load(POSITIONS_SCRIPT) as Script
     var variation_script := load(VARIATION_SCRIPT) as Script
     if factory_script == null or positions_script == null or variation_script == null:
-        push_error("READY TEMPLATE BAKE: dependency load failed"); quit(1); return
+        push_error("READY TEMPLATE BAKE: dependency load failed")
+        quit(1)
+        return
     var factory = factory_script.new()
     if factory == null or not factory.initialize():
-        push_error("READY TEMPLATE BAKE: factory initialize failed"); quit(1); return
+        push_error("READY TEMPLATE BAKE: factory initialize failed")
+        quit(1)
+        return
     var catalog: Array[Dictionary] = factory.get_catalog()
     var source: Array = positions_script.get_buildings()
     if catalog.size() != 27 or source.size() != 587:
-        push_error("READY TEMPLATE BAKE: catalog=%d source=%d" % [catalog.size(), source.size()]); quit(1); return
+        push_error("READY TEMPLATE BAKE: catalog=%d source=%d" % [catalog.size(), source.size()])
+        quit(1)
+        return
 
     var groups := {"case": [], "palazzi": [], "angolo": [], "botteghe": [], "ville": [], "portici": []}
     for ci in range(catalog.size()):
@@ -41,7 +47,8 @@ func _run() -> void:
         var candidates: Array = groups[g].duplicate()
         if candidates.is_empty():
             candidates = []
-            for ci in range(catalog.size()): candidates.append(ci)
+            for ci in range(catalog.size()):
+                candidates.append(ci)
         for k in range(int(quotas[g])):
             var ci := int(candidates[posmod(k + gi * 3, candidates.size())])
             var fl := floors[posmod(k + gi, floors.size())]
@@ -55,16 +62,18 @@ func _run() -> void:
                 key = "%d|%d|%d" % [ci, fl, roof]
                 attempts += 1
             if used.has(key):
-                push_error("READY TEMPLATE BAKE: unable to create unique template category=%s index=%d" % [g, k]); quit(1); return
+                push_error("READY TEMPLATE BAKE: unable to create unique template category=%s index=%d" % [g, k])
+                quit(1)
+                return
             used[key] = true
             templates.append({"catalog_index": ci, "category": g, "floors": fl, "roof_variant": roof})
     if templates.size() != TEMPLATE_COUNT:
-        push_error("READY TEMPLATE BAKE: template count=%d" % templates.size()); quit(1); return
+        push_error("READY TEMPLATE BAKE: template count=%d" % templates.size())
+        quit(1)
+        return
 
     _write_shared_materials()
     var cache := _load_shared_materials()
-    # Keep generated nodes in the SceneTree and use queue_free + multiple frames so
-    # PhysicsServer/RenderingServer receive the normal lifecycle notifications.
     var runtime_root := Node3D.new()
     runtime_root.name = "ReadyTemplateBakeRuntime"
     get_root().add_child(runtime_root)
@@ -79,7 +88,8 @@ func _run() -> void:
             push_error("READY TEMPLATE BAKE: build failed template=%d id=%s" % [t, id])
             factory.clear_mobile_prototypes()
             await _release_node(runtime_root)
-            quit(1); return
+            quit(1)
+            return
         root.name = "ReadyTemplate_%03d" % (t + 1)
         root.position = Vector3.ZERO
         root.rotation = Vector3.ZERO
@@ -101,18 +111,17 @@ func _run() -> void:
             factory.clear_mobile_prototypes()
             await _release_node(runtime_root)
             push_error("READY TEMPLATE BAKE: pack failed %d" % t)
-            quit(1); return
+            quit(1)
+            return
         await _release_node(root)
         err = ResourceSaver.save(packed, "%s/template_%03d.tscn" % [OUT_DIR, t + 1])
         if err != OK:
             factory.clear_mobile_prototypes()
             await _release_node(runtime_root)
             push_error("READY TEMPLATE BAKE: save failed %d" % t)
-            quit(1); return
+            quit(1)
+            return
 
-    # The factory cache contains prototype Nodes that intentionally live outside
-    # the SceneTree for reuse. They are not part of the saved scenes and must be
-    # explicitly destroyed before process exit to avoid ObjectDB/RID leaks.
     factory.clear_mobile_prototypes()
     await _release_node(runtime_root)
     await process_frame
@@ -144,13 +153,16 @@ func _write_manifest(source: Array, catalog: Array[Dictionary], templates: Array
         var category := _category(text)
         var candidates: Array[int] = []
         for t in range(templates.size()):
-            if str(templates[t]["category"]) == category: candidates.append(t)
-        if candidates.is_empty(): candidates.append(posmod(i, templates.size()))
+            if str(templates[t]["category"]) == category:
+                candidates.append(t)
+        if candidates.is_empty():
+            candidates.append(posmod(i, templates.size()))
         var template := candidates[posmod(i * 17 + ai, candidates.size())]
         entries.append({"template": template, "x": float(source[i].get("x", 0.0)), "z": float(source[i].get("z", 0.0)), "rotation": float(source[i].get("rotation", 0.0)), "seed": int(v.get("seed", i)), "facade_index": posmod(i * 7 + 1, 6), "roof_index": posmod(i * 5 + 2, 3), "floors": int(v.get("height_floors", 3)), "shutters": posmod(i, 2), "balcony": posmod(i + 1, 2), "wear": posmod(i, 4)})
     var payload: Dictionary = {"template_count": TEMPLATE_COUNT, "placement_count": 587, "chunk_size": 200.0, "max_active": 50, "placements": entries}
     var f := FileAccess.open(MANIFEST, FileAccess.WRITE)
-    f.store_string(JSON.stringify(payload)); f.close()
+    f.store_string(JSON.stringify(payload))
+    f.close()
 
 func _write_shared_materials() -> void:
     var colors = [Color("#B97845"), Color("#D3A63A"), Color("#B96F73"), Color("#C7AA83"), Color("#A9573B"), Color("#A99A7E")]
@@ -158,47 +170,87 @@ func _write_shared_materials() -> void:
     var normal := load("res://city_library/buildings/houses/roma_architecture_library_v11/assets/textures/roman_plaster_weathered_normal.jpg") as Texture2D
     var rough := load("res://city_library/buildings/houses/roma_architecture_library_v11/assets/textures/roman_plaster_weathered_roughness.jpg") as Texture2D
     for i in range(6):
-        var m := StandardMaterial3D.new(); m.albedo_color = colors[i]; m.albedo_texture = albedo; m.normal_enabled = normal != null; m.normal_texture = normal; m.normal_scale = 0.58; m.roughness_texture = rough; m.roughness = 0.88; m.uv1_scale = Vector3(3.6, 3.6, 3.6); m.texture_repeat = true; ResourceSaver.save(m, "%s/facade_%d.tres" % [MATERIAL_DIR, i])
+        var m := StandardMaterial3D.new()
+        m.albedo_color = colors[i]
+        m.albedo_texture = albedo
+        m.normal_enabled = normal != null
+        m.normal_texture = normal
+        m.normal_scale = 0.58
+        m.roughness_texture = rough
+        m.roughness = 0.88
+        m.uv1_scale = Vector3(3.6, 3.6, 3.6)
+        m.texture_repeat = true
+        ResourceSaver.save(m, "%s/facade_%d.tres" % [MATERIAL_DIR, i])
     for i in range(3):
-        var m := StandardMaterial3D.new(); m.albedo_color = [Color("#B84D32"), Color("#C9783F"), Color("#8F6B4E")][i]; m.roughness = 0.90; ResourceSaver.save(m, "%s/roof_%d.tres" % [MATERIAL_DIR, i])
+        var roof_colors = [Color("#B84D32"), Color("#C9783F"), Color("#8F6B4E")]
+        var m := StandardMaterial3D.new()
+        m.albedo_color = roof_colors[i]
+        m.roughness = 0.90
+        ResourceSaver.save(m, "%s/roof_%d.tres" % [MATERIAL_DIR, i])
 
 func _load_shared_materials() -> Dictionary:
-    var c = {}
-    for i in range(6): c["f%d" % i] = load("%s/facade_%d.tres" % (MATERIAL_DIR, i))
-    for i in range(3): c["r%d" % i] = load("%s/roof_%d.tres" % (MATERIAL_DIR, i))
+    var c: Dictionary = {}
+    for i in range(6):
+        c["f%d" % i] = load("%s/facade_%d.tres" % [MATERIAL_DIR, i])
+    for i in range(3):
+        c["r%d" % i] = load("%s/roof_%d.tres" % [MATERIAL_DIR, i])
     return c
 
 func _apply_shared_materials(root: Node3D, variant: int, cache: Dictionary) -> void:
-    for node in _mesh_nodes(root):
-        if not bool(node.get_meta("mobile_merged", false)) or node.mesh == null: continue
+    var nodes: Array[MeshInstance3D] = _mesh_nodes(root)
+    for node in nodes:
+        if not bool(node.get_meta("mobile_merged", false)):
+            continue
+        if node.mesh == null:
+            continue
         var mesh := node.mesh as ArrayMesh
-        if mesh == null: continue
-        var roles: Array = mesh.get_meta("surface_roles", []) as Array
+        if mesh == null:
+            continue
+        var roles: Array = mesh.get_meta("surface_roles", [])
         var fi := posmod(variant * 7 + 1, 6)
         var ri := posmod(variant * 5 + 2, 3)
         for s in range(mesh.get_surface_count()):
-            var role := str(roles[s]) if s < roles.size() else "other"
-            if role == "facade": mesh.surface_set_material(s, cache["f%d" % fi])
-            elif role == "roof": mesh.surface_set_material(s, cache["r%d" % ri])
+            var role := "other"
+            if s < roles.size():
+                role = str(roles[s])
+            if role == "facade":
+                mesh.surface_set_material(s, cache["f%d" % fi])
+            elif role == "roof":
+                mesh.surface_set_material(s, cache["r%d" % ri])
 
 func _mesh_nodes(root: Node3D) -> Array[MeshInstance3D]:
-    var a: Array[MeshInstance3D] = []; _collect(root, a); return a
+    var a: Array[MeshInstance3D] = []
+    _collect(root, a)
+    return a
 
 func _collect(n: Node, a: Array[MeshInstance3D]) -> void:
-    if n is MeshInstance3D: a.append(n as MeshInstance3D)
-    for c in n.get_children(): _collect(c, a)
+    if n is MeshInstance3D:
+        a.append(n as MeshInstance3D)
+    for c in n.get_children():
+        _collect(c, a)
 
 func _strip_collision_nodes(n: Node) -> void:
-    for c in n.get_children():
-        if c is StaticBody3D or c is CollisionShape3D or c is CollisionPolygon3D: c.free()
-        else: _strip_collision_nodes(c)
+    var children := n.get_children()
+    for c in children:
+        if c is StaticBody3D or c is CollisionShape3D or c is CollisionPolygon3D:
+            c.free()
+        else:
+            _strip_collision_nodes(c)
 
 func _add_box_collision(root: Node3D, w: float, d: float, floors: int) -> void:
-    var b := StaticBody3D.new(); b.name = "Collision"
-    var s := CollisionShape3D.new(); s.name = "BoxCollision"
-    var box := BoxShape3D.new(); box.size = Vector3(maxf(w, 2.0), maxf(2.0, float(floors) * 3.2), maxf(d, 2.0))
-    s.shape = box; b.add_child(s); s.position.y = box.size.y * 0.5; root.add_child(b)
+    var b := StaticBody3D.new()
+    b.name = "Collision"
+    var s := CollisionShape3D.new()
+    s.name = "BoxCollision"
+    var box := BoxShape3D.new()
+    box.size = Vector3(maxf(w, 2.0), maxf(2.0, float(floors) * 3.2), maxf(d, 2.0))
+    s.shape = box
+    b.add_child(s)
+    s.position.y = box.size.y * 0.5
+    root.add_child(b)
 
 func _set_owner_recursive(n: Node, o: Node) -> void:
-    if n != o: n.owner = o
-    for c in n.get_children(): _set_owner_recursive(c, o)
+    if n != o:
+        n.owner = o
+    for c in n.get_children():
+        _set_owner_recursive(c, o)
