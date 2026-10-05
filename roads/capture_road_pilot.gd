@@ -12,7 +12,8 @@ func _initialize() -> void:
     var camera := Camera3D.new(); root.add_child(camera); camera.position = Vector3(-800,420,-650); camera.look_at(Vector3(-800,0,-650),Vector3.UP); camera.current = true; camera.fov = 50.0; camera.far = 2000.0
     get_root().add_child(root)
     await process_frame; await process_frame; await process_frame
-    var img := get_viewport().get_texture().get_image(); img.save_png(SCREEN)
+    var viewport: Viewport = get_root()
+    var img: Image = viewport.get_texture().get_image(); img.save_png(SCREEN)
     var static_mem := Performance.get_monitor(Performance.MEMORY_STATIC)
     var report := "ROMA ROADS PILOT MEMORY\nGridMap cell=4x0.15x4\nMeshLibrary items=25\nPilot=CentroStorico 9x9\nStatic memory after load=%d bytes (%.2f MB)\nTarget additional memory < 50 MB\nNOTE: this is a CI smoke measurement, not a device RSS measurement.\n" % [int(static_mem), float(static_mem)/1048576.0]
     var f := FileAccess.open(REPORT,FileAccess.WRITE); f.store_string(report); f.close()
