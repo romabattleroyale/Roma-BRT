@@ -37,7 +37,8 @@ func _wait_for_v37() -> void:
                 if _load_manifest():
                     _load_hlods()
                     await _load_all_templates()
-                    var player:=_find_player();var p:=player.global_position if player!=null else Vector3.ZERO
+                    var player:=_find_player()
+                    var p:=player.global_position if player!=null else Vector3.ZERO
                     await _refresh_chunks(p)
                     built=true
                     print("V11 READY BAKE: COMPLETE loaded=587 templates=120 active=%d HLOD=12x3"%_active.size())
@@ -56,7 +57,7 @@ func _load_manifest()->bool:
 func _load_hlods()->void:
     if _city_root==null:return
     for district in range(12):
-        var center:=DISTRICT_CENTERS[district]
+        var center:Vector3=DISTRICT_CENTERS[district]
         for level in [2,1]:
             var path:=HLOD_DIR+"/quartiere_%02d_%d.res"%[district+1,level]
             var mesh:=ResourceLoader.load(path) as Mesh
@@ -101,7 +102,7 @@ func _process(_delta:float)->void:
 func _refresh_chunks(player_pos:Vector3)->void:
     if _refreshing:return
     _refreshing=true
-    var center:=_chunk_for(player_pos.x,player_pos.z);_last_chunk=center;var wanted={}
+    var center:Vector2i=_chunk_for(player_pos.x,player_pos.z);_last_chunk=center;var wanted={}
     for i in range(_placements.size()):
         var d:Dictionary=_placements[i];var c:=_chunk_for(float(d.get("x",0)),float(d.get("z",0)))
         if abs(c.x-center.x)<=LOAD_RADIUS_CHUNKS and abs(c.y-center.y)<=LOAD_RADIUS_CHUNKS:wanted[i]=true
