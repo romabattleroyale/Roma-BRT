@@ -8,6 +8,9 @@ on:
       - 'v37_integration/bake_ready_buildings_120.gd'
       - 'v37_integration/validate_ready_templates_memory.gd'
       - 'v37_integration/v11_building_bridge.gd'
+      - 'v37_integration/distribute_ready_buildings_quarters.gd'
+      - 'city_library/buildings/houses/roma_architecture_library_v11/scripts/modular_house_factory.gd'
+      - 'tools/optimize_v11_textures_mobile.gd'
       - '.github/workflows/ROMA_READY_BUILDINGS_BAKE.yml'
 
 permissions:
@@ -53,6 +56,11 @@ jobs:
           test "$(find baked_city/ready_templates -maxdepth 1 -type f -name 'template_*.tscn' | wc -l)" -eq "$READY_TEMPLATE_TARGET"
           test -f baked_city/ready_templates/manifest.json
           test "$(find baked_city/ready_templates/materials -maxdepth 1 -type f -name '*.tres' | wc -l)" -eq 9
+      - name: Distribute 587 placements across 12 districts
+        run: |
+          set -euo pipefail
+          .runtime/godot/godot --headless --path . --script res://v37_integration/distribute_ready_buildings_quarters.gd
+          test -f baked_city/ready_templates/manifest.json
       - name: Validate 120 templates and 587 virtual placements
         run: |
           set -euo pipefail
@@ -71,9 +79,9 @@ jobs:
           set -euo pipefail
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-          git add -A baked_city/ready_templates v37_integration/bake_ready_buildings_120.gd v37_integration/validate_ready_templates_memory.gd v37_integration/v11_building_bridge.gd .github/workflows/ROMA_READY_BUILDINGS_BAKE.yml
+          git add -A baked_city/ready_templates v37_integration/bake_ready_buildings_120.gd v37_integration/validate_ready_templates_memory.gd v37_integration/v11_building_bridge.gd v37_integration/distribute_ready_buildings_quarters.gd city_library/buildings/houses/roma_architecture_library_v11/scripts/modular_house_factory.gd tools/optimize_v11_textures_mobile.gd .github/workflows/ROMA_READY_BUILDINGS_BAKE.yml
           if git diff --cached --quiet; then exit 0; fi
-          git commit -m 'feat: persist 120 ready building templates [skip ci]'
+          git commit -m 'feat: persist ready building district layout [skip ci]'
           git push origin HEAD:main
       - name: Upload roma_ready_buildings.zip
         if: always()
@@ -100,3 +108,4 @@ jobs:
 
 # Validator fix retrigger marker: 2026-10-05T06:00
 # Retrigger after bake parser/cleanup fix: 2026-10-05T08:00
+# District layout + resource lifecycle fixes: 2026-10-05T08:30
