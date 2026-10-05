@@ -83,6 +83,9 @@ jobs:
           path: build/roma_ready_buildings.zip
           if-no-files-found: error
           retention-days: 30
+          compression-level: 6
+          overwrite: false
+          include-hidden-files: false
       - name: Upload memory report
         if: always()
         uses: actions/upload-artifact@v4
@@ -91,5 +94,8 @@ jobs:
           path: build/ready_template_memory.log
           if-no-files-found: error
           retention-days: 30
+          compression-level: 6
+          overwrite: false
+          include-hidden-files: false
 
-# Validator fix retrigger marker: 2026-10-05
+# Validator fix retrigger marker: 2026-10-05T06:00
