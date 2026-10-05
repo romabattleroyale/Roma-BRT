@@ -70,7 +70,7 @@ jobs:
           set -euo pipefail
           .runtime/godot/godot --headless --path . --script res://v37_integration/generate_quarter_hlod.gd
           test "$(find baked_city/hlod -maxdepth 1 -type f -name 'quartiere_*_*.res' | wc -l)" -eq "$HLOD_MESH_TARGET"
-          test -f baked_city/hlod/roma_palette_512.res
+          test -f baked_city/hlod/roma_palette_512.png
           test -f baked_city/hlod/report.json
       - name: Validate 120 templates, 587 placements and HLOD
         run: |
