@@ -78,6 +78,7 @@ func _run() -> void:
             return
         root.position = Vector3(x, h, z)
         _apply_shared_materials(root, i, material_cache)
+        _optimize_mobile_meshes(root)
         _remove_factory_collisions(root)
         _add_box_collision(root, float(entry.get("w", 10.0)), float(entry.get("d", 10.0)), floors)
         _set_owner_recursive(root, root)
@@ -150,6 +151,26 @@ func _apply_shared_materials(root: Node3D, variant: int, cache: Dictionary) -> v
                 mesh.surface_set_material(s, cache["r%d" % roof_index])
         for s in range(mesh.get_surface_count()):
             node.set_surface_override_material(s, null)
+
+func _optimize_mobile_meshes(root: Node3D) -> void:
+    for node in _mesh_nodes(root):
+        if not bool(node.get_meta("mobile_merged", false)) or node.mesh == null:
+            continue
+        var source := node.mesh as ArrayMesh
+        if source == null:
+            continue
+        var optimized := ArrayMesh.new()
+        optimized.resource_name = "ReadyCompressed_%s" % source.resource_name
+        for s in range(source.get_surface_count()):
+            var arrays := source.surface_get_arrays(s)
+            if arrays.is_empty():
+                continue
+            var primitive := source.surface_get_primitive_type(s)
+            optimized.add_surface_from_arrays(primitive, arrays, [], {}, Mesh.ARRAY_COMPRESS_DEFAULT)
+            optimized.surface_set_material(optimized.get_surface_count() - 1, source.surface_get_material(s))
+        optimized.set_meta("surface_roles", source.get_meta("surface_roles", []))
+        if optimized.get_surface_count() > 0:
+            node.mesh = optimized
 
 func _remove_factory_collisions(root: Node3D) -> void:
     _strip_collision_nodes(root)
