@@ -1,6 +1,7 @@
 extends SceneTree
 ## Three-level district HLOD bake derived from the actual 120 ready building templates.
 ## Locked systems are not touched: Terrain3D, Tevere, roads, graph, palette and district layout.
+## CI/runtime repair: keep the persisted HLOD bake as the authoritative runtime asset.
 const READY_DIR := "res://baked_city/ready_templates"
 const MANIFEST := READY_DIR + "/manifest.json"
 const OUT_DIR := "res://baked_city/hlod"
