@@ -20,7 +20,7 @@ permissions:
 jobs:
   godot-editor-live-debug:
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 20
     steps:
       - name: Checkout Roma-BRT
         uses: actions/checkout@v4
@@ -45,16 +45,30 @@ jobs:
           ln -sf "$(realpath "$GODOT_BIN")" .runtime/godot/godot
           .runtime/godot/godot --version
 
+      - name: Pre-import all project resources with Godot editor
+        run: |
+          set -euo pipefail
+          mkdir -p build/live_debug
+          set +e
+          .runtime/godot/godot --headless --editor --path . --import --verbose >build/live_debug/preimport.log 2>&1
+          preimport_status=$?
+          set -e
+          echo "PREIMPORT_EXIT=$preimport_status"
+          # Import completion is the purpose of this step; preserve all diagnostics for inspection.
+          test -d .godot/imported
+          find .godot/imported -type f | wc -l | awk '{print "IMPORTED_RESOURCES=" $1}'
+
       - name: Open main.tscn in real Godot editor under Xvfb
         run: |
           set -euo pipefail
           export DISPLAY=:99
           Xvfb :99 -screen 0 1920x1080x24 -ac +extension GLX +render -noreset >/tmp/xvfb.log 2>&1 &
           XVFB_PID=$!
+          GODOT_PID=0
           trap 'kill "$GODOT_PID" 2>/dev/null || true; kill "$XVFB_PID" 2>/dev/null || true' EXIT
           sleep 2
 
-          .runtime/godot/godot --editor --path . main.tscn --rendering-method gl_compatibility --rendering-driver opengl3 --verbose --log-file="$PWD/build/live_debug/godot_editor.log" >/tmp/godot_editor_stdout.log 2>&1 &
+          .runtime/godot/godot --editor --path . main.tscn --rendering-method gl_compatibility --rendering-driver opengl3 --verbose >/tmp/godot_editor_stdout.log 2>&1 &
           GODOT_PID=$!
 
           for i in $(seq 1 60); do
@@ -64,9 +78,10 @@ jobs:
           test -s /tmp/godot_windows
           GODOT_WIN=$(head -n 1 /tmp/godot_windows)
           echo "GODOT_WINDOW=$GODOT_WIN"
+          sleep 8
 
-          # No window manager is required: send keys directly to the Godot editor window.
-          xdotool key --window "$GODOT_WIN" F6
+          # F5 is deliberately used: it runs the project main scene configured in project.godot.
+          xdotool key --window "$GODOT_WIN" F5
           sleep 45
           xdotool key --window "$GODOT_WIN" F8
           sleep 3
@@ -89,10 +104,10 @@ jobs:
 
           echo '=== GODOT EDITOR OUTPUT CAPTURE COMPLETE ==='
           echo "EDITOR_EXIT_RUNNING=$(kill -0 "$GODOT_PID" 2>/dev/null && echo yes || echo no)"
-          echo '=== ERRORS FROM EDITOR LOG ==='
-          grep -nEi 'ERROR:|SCRIPT ERROR|Parse Error|Invalid call|Nonexistent function|Cannot open file|Failed loading resource|V11 HLOD: missing' build/live_debug/godot_editor.log || true
-          echo '=== ERRORS FROM STDOUT ==='
+          echo '=== ERRORS FROM EDITOR STDOUT ==='
           grep -nEi 'ERROR:|SCRIPT ERROR|Parse Error|Invalid call|Nonexistent function|Cannot open file|Failed loading resource|V11 HLOD: missing' build/live_debug/godot_editor_stdout.log || true
+          echo '=== PREIMPORT DIAGNOSTICS ==='
+          grep -nEi 'ERROR:|SCRIPT ERROR|Parse Error|Invalid call|Nonexistent function|Cannot open file|Failed loading resource|V11 HLOD: missing' build/live_debug/preimport.log || true
 
       - name: Upload real Godot editor evidence
         if: always()
