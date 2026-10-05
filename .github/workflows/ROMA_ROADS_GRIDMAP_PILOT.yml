@@ -41,7 +41,7 @@ jobs:
           test -s roads/roma_gridmap_pilot.tscn
           test -s roads/ponte_tevere_pilota.tscn
           grep -q 'GridMap' roads/roma_gridmap_pilot.tscn
-          grep -q 'cell_size = Vector3(4.0, 0.15, 4.0)' roads/roma_gridmap_pilot.tscn
+          grep -Eq 'cell_size = Vector3\(4(\.0)?, 0\.15, 4(\.0)?\)' roads/roma_gridmap_pilot.tscn
           echo 'ROMA ROADS VALIDATION: PASS'
 
       - name: Capture top-down pilot + memory report
