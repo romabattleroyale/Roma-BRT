@@ -17,7 +17,7 @@ func _run() -> void:
 
     var baseline := _memory_mb()
     var nodes: Array[Node3D] = []
-    var root := root
+    var scene_root: Node = get_root()
     for i in range(count):
         var path := "%s/building_%03d.tscn" % [READY_DIR, i + 1]
         var packed := load(path) as PackedScene
@@ -30,7 +30,7 @@ func _run() -> void:
             push_error("READY TEST: instantiate failed %s" % path)
             quit(1)
             return
-        root.add_child(node)
+        scene_root.add_child(node)
         nodes.append(node)
         if (i + 1) % 10 == 0:
             await process_frame
