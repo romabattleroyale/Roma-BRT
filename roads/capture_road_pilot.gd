@@ -14,18 +14,13 @@ func _initialize() -> void:
         quit(2)
         return
 
-    var viewport := SubViewport.new()
-    viewport.name = "RoadPilotViewport"
-    viewport.size = Vector2i(WIDTH, HEIGHT)
-    viewport.render_target_update_mode = SubViewport.UPDATE_ALWAYS
-    viewport.render_target_clear_mode = SubViewport.CLEAR_MODE_ALWAYS
-    viewport.transparent_bg = false
-    viewport.world_3d = World3D.new()
-    get_root().add_child(viewport)
+    var window: Window = get_root()
+    window.size = Vector2i(WIDTH, HEIGHT)
+    window.visible = true
 
     var root := Node3D.new()
     root.name = "RoadPilotCapture"
-    viewport.add_child(root)
+    window.add_child(root)
 
     var world := WorldEnvironment.new()
     var env := Environment.new()
@@ -49,7 +44,7 @@ func _initialize() -> void:
     camera.name = "TopDownCamera"
     camera.position = Vector3(-800.0, 420.0, -650.0)
     root.add_child(camera)
-    camera.look_at(Vector3(-800.0, 0.0, -650.0), Vector3.UP)
+    camera.look_at_from_position(camera.position, Vector3(-800.0, 0.0, -650.0), Vector3.UP)
     camera.fov = 50.0
     camera.far = 2000.0
     camera.current = true
@@ -58,8 +53,9 @@ func _initialize() -> void:
     await process_frame
     await process_frame
     await process_frame
+    await process_frame
 
-    var image: Image = viewport.get_texture().get_image()
+    var image: Image = window.get_texture().get_image()
     if image == null or image.is_empty():
         push_error("ROAD PILOT FAIL: rendered image is empty")
         quit(3)
