@@ -27,7 +27,6 @@ jobs:
           use-dotnet: false
           include-templates: false
 
-      # Headless initialization only; do not launch the editor in CI.
       - name: Initialize Godot project headless
         run: godot --headless --path . --quit-after 8
 
@@ -46,7 +45,7 @@ jobs:
           echo 'ROMA ROADS VALIDATION: PASS'
 
       - name: Capture top-down pilot + memory report
-        run: godot --headless --path . --script res://roads/capture_road_pilot.gd
+        run: timeout 60s godot --headless --path . --script res://roads/capture_road_pilot.gd
 
       - name: Package road pilot artifact
         run: |
