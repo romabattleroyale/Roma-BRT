@@ -3,9 +3,6 @@ name: Roma Roads GridMap Pilot
 on:
   push:
     branches: [main]
-    paths:
-      - 'roads/*.gd'
-      - '.github/workflows/ROMA_ROADS_GRIDMAP_PILOT.yml'
   workflow_dispatch:
 
 concurrency:
