@@ -4,7 +4,7 @@ extends SceneTree
 
 const FACTORY_SCRIPT := "res://city_library/buildings/houses/roma_architecture_library_v11/scripts/modular_house_factory.gd"
 const POSITIONS_SCRIPT := "res://v37_integration/v37_building_positions_blob.gd"
-const VARIATION_SCRIPT := "res://v37_integration/mobile_visual_variation.gd"
+const VARIATION_SCRIPT := "res://v37_integration/building_variation.gd"
 const READY_DIR := "res://baked_city/ready_buildings"
 const MATERIAL_DIR := READY_DIR + "/materials"
 const RAW_PATH := "res://assets/heightmap.raw"
