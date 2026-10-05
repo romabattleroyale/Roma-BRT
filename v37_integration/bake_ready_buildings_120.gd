@@ -51,8 +51,8 @@ func _run() -> void:
                 candidates.append(ci)
         for k in range(int(quotas[g])):
             var ci := int(candidates[posmod(k + gi * 3, candidates.size())])
-            var fl := floors[posmod(k + gi, floors.size())]
-            var roof := roofs[posmod(k + gi * 2, roofs.size())]
+            var fl: int = int(floors[posmod(k + gi, floors.size())])
+            var roof: int = int(roofs[posmod(k + gi * 2, roofs.size())])
             var key := "%d|%d|%d" % [ci, fl, roof]
             var attempts := 0
             while used.has(key) and attempts < 200:
