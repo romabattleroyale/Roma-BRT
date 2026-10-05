@@ -10,6 +10,7 @@ on:
       - 'v37_integration/v11_building_bridge.gd'
       - 'v37_integration/distribute_ready_buildings_quarters.gd'
       - 'v37_integration/generate_quarter_hlod.gd'
+      - 'tools/capture_hlod_visual_tests.gd'
       - 'city_library/buildings/houses/roma_architecture_library_v11/scripts/modular_house_factory.gd'
       - 'tools/optimize_v11_textures_mobile.gd'
       - '.github/workflows/ROMA_READY_BUILDINGS_BAKE.yml'
@@ -85,10 +86,21 @@ jobs:
           r=json.load(open('baked_city/hlod/report.json'))
           assert r['districts']==12 and r['placement_count']==587
           for d,v in r['levels'].items():
-              assert 0 < v['hlod2_tri'] <= 2400
-              assert 0 < v['hlod1_tri'] <= 12000
-          print('HLOD_STRUCTURE=PASS districts=12 meshes=36')
+              assert 0 < v['hlod2_tri'] <= 2200, (d,v['hlod2_tri'])
+              assert 0 < v['hlod1_tri'] <= 10200, (d,v['hlod1_tri'])
+              assert 0 < v['hlod0_tri'] <= 50000, (d,v['hlod0_tri'])
+          print('HLOD_STRUCTURE=PASS districts=12 meshes=36 targets=2000/10000')
           PY
+      - name: Capture HLOD visual tests and memory states
+        run: |
+          set -euo pipefail
+          mkdir -p build
+          .runtime/godot/godot --headless --path . --script res://tools/capture_hlod_visual_tests.gd 2>&1 | tee build/hlod_visual_test.log
+          test "$(find build/hlod_visual -maxdepth 1 -type f -name 'A_500m.png' | wc -l)" -eq 1
+          test "$(find build/hlod_visual -maxdepth 1 -type f -name 'B_250m.png' | wc -l)" -eq 1
+          test "$(find build/hlod_visual -maxdepth 1 -type f -name 'C_50m.png' | wc -l)" -eq 1
+          test "$(find build/hlod_visual -maxdepth 1 -type f -name 'D_*.png' | wc -l)" -eq 4
+          test -f build/hlod_visual/memory_report.json
       - name: Package roma_ready_buildings.zip
         run: |
           set -euo pipefail
@@ -103,7 +115,7 @@ jobs:
           set -euo pipefail
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-          git add -A baked_city/ready_templates baked_city/hlod v37_integration/bake_ready_buildings_120.gd v37_integration/validate_ready_templates_memory.gd v37_integration/v11_building_bridge.gd v37_integration/distribute_ready_buildings_quarters.gd v37_integration/generate_quarter_hlod.gd city_library/buildings/houses/roma_architecture_library_v11/scripts/modular_house_factory.gd tools/optimize_v11_textures_mobile.gd .github/workflows/ROMA_READY_BUILDINGS_BAKE.yml
+          git add -A baked_city/ready_templates baked_city/hlod v37_integration/bake_ready_buildings_120.gd v37_integration/validate_ready_templates_memory.gd v37_integration/v11_building_bridge.gd v37_integration/distribute_ready_buildings_quarters.gd v37_integration/generate_quarter_hlod.gd tools/capture_hlod_visual_tests.gd city_library/buildings/houses/roma_architecture_library_v11/scripts/modular_house_factory.gd tools/optimize_v11_textures_mobile.gd .github/workflows/ROMA_READY_BUILDINGS_BAKE.yml
           if git diff --cached --quiet; then exit 0; fi
           git commit -m 'feat: persist three-level district HLOD [skip ci]'
           git reset --hard HEAD
@@ -128,6 +140,17 @@ jobs:
         with:
           name: district-hlod-report
           path: baked_city/hlod/report.json
+          if-no-files-found: error
+          retention-days: 30
+          compression-level: 6
+          overwrite: false
+          include-hidden-files: false
+      - name: Upload HLOD visual tests
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: hlod-visual-tests
+          path: build/hlod_visual
           if-no-files-found: error
           retention-days: 30
           compression-level: 6
