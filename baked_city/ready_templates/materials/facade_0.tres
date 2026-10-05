@@ -1,0 +1,15 @@
+[gd_resource type="StandardMaterial3D" format=3]
+
+[ext_resource type="Texture2D" path="res://city_library/buildings/houses/roma_architecture_library_v11/assets/textures/roman_plaster_weathered_albedo.jpg" id="1_j7162"]
+[ext_resource type="Texture2D" path="res://city_library/buildings/houses/roma_architecture_library_v11/assets/textures/roman_plaster_weathered_normal.jpg" id="2_b284o"]
+[ext_resource type="Texture2D" path="res://city_library/buildings/houses/roma_architecture_library_v11/assets/textures/roman_plaster_weathered_roughness.jpg" id="3_q0dmq"]
+
+[resource]
+albedo_color = Color(0.7254902, 0.47058824, 0.27058825, 1)
+albedo_texture = ExtResource("1_j7162")
+roughness = 0.88
+roughness_texture = ExtResource("3_q0dmq")
+normal_enabled = true
+normal_scale = 0.58
+normal_texture = ExtResource("2_b284o")
+uv1_scale = Vector3(3.6, 3.6, 3.6)
