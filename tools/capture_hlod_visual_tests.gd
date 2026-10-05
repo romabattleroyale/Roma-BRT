@@ -67,14 +67,16 @@ func _add_hlod(viewport:SubViewport,district:int,level:int)->void:
 
 func _capture(viewport:SubViewport,pos:Vector3,target:Vector3,ortho:bool,name:String)->void:
     var camera := Camera3D.new()
-    camera.position = pos; camera.look_at(target,Vector3.UP)
+    viewport.add_child(camera)
+    camera.position = pos
+    camera.look_at(target,Vector3.UP)
     camera.projection = Camera3D.PROJECTION_ORTHOGONAL if ortho else Camera3D.PROJECTION_PERSPECTIVE
     if ortho:
         if name.begins_with("A_"): camera.size = 2200.0
         elif name.begins_with("B_"): camera.size = 1200.0
         else: camera.size = 300.0
     else: camera.fov = 70.0
-    viewport.add_child(camera); camera.current = true
+    camera.current = true
     await process_frame; await process_frame
     viewport.get_texture().get_image().save_png("%s/%s.png"%[OUT_DIR,name])
     camera.queue_free(); await process_frame
