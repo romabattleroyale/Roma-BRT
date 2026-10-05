@@ -13,6 +13,7 @@ on:
       - 'roads/**'
       - 'tools/**'
       - '.github/workflows/GODOT_EDITOR_LIVE_DEBUG.yml'
+      - '.github/live_debug_trigger.txt'
 
 permissions:
   contents: read
@@ -83,22 +84,18 @@ jobs:
           echo "GODOT_WINDOW=$GODOT_WIN"
           sleep 8
 
-          # Real editor interaction: focus Godot, press F5, let main.tscn run.
           xdotool windowactivate --sync "$GODOT_WIN"
           xdotool key --clearmodifiers F5
           sleep 45
           xdotool key --clearmodifiers F8
           sleep 3
 
-          # Actual Godot Output panel: Alt+O, then expand it.
           xdotool windowactivate --sync "$GODOT_WIN"
           xdotool key --clearmodifiers alt+o
           sleep 2
           xdotool key --clearmodifiers shift+F12
           sleep 2
           scrot -o build/live_debug/godot_editor_output.png
-
-          # Copy Output selection when possible.
           xdotool key --clearmodifiers ctrl+a || true
           xdotool key --clearmodifiers ctrl+c || true
           sleep 1
@@ -109,7 +106,6 @@ jobs:
           cp /tmp/openbox.log build/live_debug/openbox.log
 
           echo '=== GODOT EDITOR OUTPUT CAPTURE COMPLETE ==='
-          echo "EDITOR_EXIT_RUNNING=$(kill -0 "$GODOT_PID" 2>/dev/null && echo yes || echo no)"
           echo '=== RUNTIME MARKERS ==='
           grep -nE 'V11 READY|V11 HLOD|V37 edifici|ROMA ROADS RUNTIME' build/live_debug/godot_editor_stdout.log || true
           echo '=== GODOT ERRORS ==='
