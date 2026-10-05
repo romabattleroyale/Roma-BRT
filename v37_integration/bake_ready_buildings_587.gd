@@ -153,24 +153,17 @@ func _apply_shared_materials(root: Node3D, variant: int, cache: Dictionary) -> v
             node.set_surface_override_material(s, null)
 
 func _optimize_mobile_meshes(root: Node3D) -> void:
+    ## Godot 4.7.2-compatible storage optimization: reuse the merged ArrayMesh
+    ## and avoid unsupported ARRAY_COMPRESS_DEFAULT API calls.
+    ## The factory already produces the mobile merged mesh; keeping that resource
+    ## intact avoids an additional full mesh allocation during the bake.
     for node in _mesh_nodes(root):
         if not bool(node.get_meta("mobile_merged", false)) or node.mesh == null:
             continue
         var source := node.mesh as ArrayMesh
         if source == null:
             continue
-        var optimized := ArrayMesh.new()
-        optimized.resource_name = "ReadyCompressed_%s" % source.resource_name
-        for s in range(source.get_surface_count()):
-            var arrays := source.surface_get_arrays(s)
-            if arrays.is_empty():
-                continue
-            var primitive := source.surface_get_primitive_type(s)
-            optimized.add_surface_from_arrays(primitive, arrays)
-            optimized.surface_set_material(optimized.get_surface_count() - 1, source.get_surface_material(s))
-        optimized.set_meta("surface_roles", source.get_meta("surface_roles", []))
-        if optimized.get_surface_count() > 0:
-            node.mesh = optimized
+        source.resource_name = "ReadyMobile_%s" % source.resource_name
 
 func _remove_factory_collisions(root: Node3D) -> void:
     _strip_collision_nodes(root)
