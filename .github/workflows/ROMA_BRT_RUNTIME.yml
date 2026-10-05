@@ -60,64 +60,6 @@ jobs:
             echo 'Legacy V11 texture paths remain'
             exit 1
           fi
-      - name: Apply V11 mobile surface-role diagnostics and empty-path guard
-        run: |
-          set -euo pipefail
-          python3 - <<'PY'
-          from pathlib import Path
-          import re
-
-          bs = Path('city_library/buildings/houses/roma_architecture_library_v11/scripts/building_system.gd')
-          s = bs.read_text()
-          s2 = s.replace(
-              '    var normal: Texture2D = load(normal_path) as Texture2D\n    if normal:',
-              '    var normal: Texture2D = null\n    if not normal_path.is_empty():\n        normal = load(normal_path) as Texture2D\n    if normal:'
-          )
-          s2 = s2.replace(
-              '    var rough: Texture2D = load(roughness_path) as Texture2D\n    if rough:',
-              '    var rough: Texture2D = null\n    if not roughness_path.is_empty():\n        rough = load(roughness_path) as Texture2D\n    if rough:'
-          )
-          s2 = s2.replace(
-              '    var roughness_tex: Texture2D = load(roughness_path) as Texture2D\n    if roughness_tex:',
-              '    var roughness_tex: Texture2D = null\n    if not roughness_path.is_empty():\n        roughness_tex = load(roughness_path) as Texture2D\n    if roughness_tex:'
-          )
-          if s2 == s:
-              raise SystemExit('building_system.gd: empty-path guard pattern not found')
-          bs.write_text(s2)
-
-          mf = Path('city_library/buildings/houses/roma_architecture_library_v11/scripts/modular_house_factory.gd')
-          s = mf.read_text()
-          s = s.replace(
-              '        var node_role := _mesh_role(node, mesh, top_y, max_mesh_y)',
-              '        var node_role := _resolve_role(node, mesh, top_y, max_mesh_y)\n        node.set_meta("role", node_role)'
-          )
-          s = s.replace(
-              '    merged_instance.set_meta("mobile_merged", true)\n    merged_instance.set_meta("mobile_surface_roles", roles)',
-              '    merged_mesh.set_meta("surface_roles", roles)\n    merged_instance.set_meta("mobile_merged", true)\n    merged_instance.set_meta("mobile_surface_roles", roles)'
-          )
-          marker = 'func _mesh_role(node: MeshInstance3D, mesh: Mesh, top_y: float, max_mesh_y: float) -> String:\n'
-          helper = '''func _resolve_role(node: MeshInstance3D, mesh: Mesh, top_y: float, max_mesh_y: float) -> String:\n    var explicit_role := str(node.get_meta("role", "")).to_lower().strip_edges()\n    if not explicit_role.is_empty() and explicit_role != "unknown":\n        return explicit_role\n    var groups := node.get_groups()\n    for group in groups:\n        var group_name := str(group).to_lower()\n        if group_name.contains("facade"):\n            return "facade"\n        if group_name.contains("roof"):\n            return "roof"\n    var node_name := node.name.to_lower()\n    if node_name.begins_with("front_") or node_name.begins_with("back_") or node_name.begins_with("left_") or node_name.begins_with("right_"):\n        return "facade"\n    if node_name.contains("roof") or node_name.contains("coppi") or node_name.contains("tetto"):\n        return "roof"\n    return _mesh_role(node, mesh, top_y, max_mesh_y)\n\n'''
-          if marker not in s:
-              raise SystemExit('modular_house_factory.gd: role marker not found')
-          if 'func _resolve_role(' not in s:
-              s = s.replace(marker, helper + marker)
-          mf.write_text(s)
-
-          mv = Path('v37_integration/mobile_visual_variation.gd')
-          s = mv.read_text()
-          old = '            var roles: Array = node.get_meta("mobile_surface_roles", []) as Array\n'
-          new = '            var roles: Array = node.mesh.get_meta("surface_roles", []) as Array\n            if roles.is_empty():\n                roles = node.get_meta("mobile_surface_roles", []) as Array\n'
-          if old not in s:
-              raise SystemExit('mobile_visual_variation.gd: roles pattern not found')
-          s = s.replace(old, new)
-          old2 = '                if role == "facade":\n                    node.set_surface_override_material(surface, facade_mat)\n                    facade_surface_count += 1\n'
-          new2 = '                if role == "facade":\n                    node.set_surface_override_material(surface, facade_mat)\n                    var effective := node.get_surface_override_material(surface) as StandardMaterial3D\n                    print("[MAT-ROLE] surface=%d role=facade override=%s" % [surface, effective.albedo_color.to_html(false) if effective != null else "NULL"])\n                    facade_surface_count += 1\n'
-          if old2 not in s:
-              raise SystemExit('mobile_visual_variation.gd: facade assignment pattern not found')
-          s = s.replace(old2, new2)
-          mv.write_text(s)
-          print('ROLE_DIAGNOSTIC_PATCH_OK')
-          PY
       - name: Optimize V11 textures for Android memory
         run: |
           set -euo pipefail
@@ -157,15 +99,15 @@ jobs:
       - name: Validate V11 collision at 5 buildings - hard gate
         run: .runtime/godot/godot --headless --path . --script res://tools/validate_v11_collision_5_mobile.gd
       - name: Validate V11 at 5 buildings with mobile textures
-        run: .runtime/godot/godot --headless --path . --script res://tools/validate_v11_scale_mobile.gd -- 5
+        run: .runtime/godot/godot --headless --path . --script res://v37_integration/validate_v11_scale_mobile.gd -- 5
       - name: Validate V11 at 10 buildings with mobile textures
-        run: .runtime/godot/godot --headless --path . --script res://tools/validate_v11_scale_mobile.gd -- 10
+        run: .runtime/godot/godot --headless --path . --script res://v37_integration/validate_v11_scale_mobile.gd -- 10
       - name: Validate V11 at 20 buildings with mobile textures
-        run: .runtime/godot/godot --headless --path . --script res://tools/validate_v11_scale_mobile.gd -- 20
+        run: .runtime/godot/godot --headless --path . --script res://v37_integration/validate_v11_scale_mobile.gd -- 20
       - name: Validate V11 at 40 buildings with mobile textures
-        run: .runtime/godot/godot --headless --path . --script res://tools/validate_v11_scale_mobile.gd -- 40
+        run: .runtime/godot/godot --headless --path . --script res://v37_integration/validate_v11_scale_mobile.gd -- 40
       - name: Validate V11 gameplay at 40 buildings
-        run: .runtime/godot/godot --headless --path . --script res://tools/validate_v11_gameplay_40.gd
+        run: .runtime/godot/godot --headless --path . --script res://v37_integration/validate_v11_gameplay_40.gd
       - name: Diagnose Terrain3D after main scene initialization
         run: .runtime/godot/godot --headless --path . --script res://v37_integration/diagnose_bake_runtime.gd
       - name: Runtime smoke launch
@@ -185,9 +127,9 @@ jobs:
           set -euo pipefail
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-          git add baked_city/roma_city_587.tscn baked_city/archetypes_587 baked_city/v11_shared_materials city_library/buildings/houses/roma_architecture_library_v11/assets/textures city_library/buildings/houses/roma_architecture_library_v11/scripts/building_system.gd city_library/buildings/houses/roma_architecture_library_v11/scripts/modular_house_factory.gd v37_integration/mobile_visual_variation.gd
+          git add baked_city/roma_city_587.tscn baked_city/archetypes_587 baked_city/v11_shared_materials city_library/buildings/houses/roma_architecture_library_v11/assets/textures
           if git diff --cached --quiet; then exit 0; fi
-          git commit -m 'fix mobile facade surface roles and empty texture paths [skip ci]'
+          git commit -m 'persist mobile baked city assets [skip ci]'
           git fetch origin main
           git merge origin/main -X ours --no-edit || { git merge --abort; exit 1; }
           git push origin HEAD:main
