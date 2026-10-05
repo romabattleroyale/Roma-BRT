@@ -16,10 +16,10 @@ func _init() -> void:
 
 func _run() -> void:
     if not FileAccess.file_exists(MANIFEST): push_error("HLOD BAKE FAIL: manifest missing"); quit(2); return
-    var f:FileAccess = FileAccess.open(MANIFEST, FileAccess.READ)
-    var data:Variant = JSON.parse_string(f.get_as_text()); f.close()
+    var f:FileAccess=FileAccess.open(MANIFEST,FileAccess.READ)
+    var data:Variant=JSON.parse_string(f.get_as_text()); f.close()
     if not data is Dictionary: push_error("HLOD BAKE FAIL: invalid manifest"); quit(3); return
-    var placements:Array = data.get("placements",[])
+    var placements:Array=data.get("placements",[])
     if placements.size()!=587: push_error("HLOD BAKE FAIL: placements=%d"%placements.size()); quit(4); return
     DirAccess.make_dir_recursive_absolute(ProjectSettings.globalize_path(OUT_DIR))
     _write_shared_texture()
@@ -57,17 +57,19 @@ func _build_source_mesh(items:Array,district:int)->ArrayMesh:
         root.rotation.y=float(d.get("rotation",0.0))
         var template_floors:int=int(root.get_meta("template_floors",3)); var floors:int=clampi(int(d.get("floors",template_floors)),3,5)
         root.scale.y=float(floors)/float(maxi(1,template_floors))
-        var stack:Array=[root]
-        while not stack.is_empty():
-            var n:Node=stack.pop_back()
-            if n is MeshInstance3D:
-                var mi:MeshInstance3D=n as MeshInstance3D
-                if mi.mesh!=null:
-                    for s:int in range(mi.mesh.get_surface_count()): st.append_from(mi.mesh,s,mi.global_transform)
-            for child:Node in n.get_children(): stack.append(child)
+        _append_node_meshes(root,Transform3D.IDENTITY,st)
         root.free()
     var result:ArrayMesh=st.commit()
     return result if result!=null else ArrayMesh.new()
+
+func _append_node_meshes(node:Node,parent_transform:Transform3D,st:SurfaceTool)->void:
+    var current_transform:Transform3D=parent_transform
+    if node is Node3D: current_transform=parent_transform*(node as Node3D).transform
+    if node is MeshInstance3D:
+        var mi:MeshInstance3D=node as MeshInstance3D
+        if mi.mesh!=null:
+            for s:int in range(mi.mesh.get_surface_count()): st.append_from(mi.mesh,s,current_transform)
+    for child:Node in node.get_children(): _append_node_meshes(child,current_transform,st)
 
 func _reduce_mesh(source:ArrayMesh,target_tri:int,keep_uv:bool)->ArrayMesh:
     if source.get_surface_count()==0:return ArrayMesh.new()
