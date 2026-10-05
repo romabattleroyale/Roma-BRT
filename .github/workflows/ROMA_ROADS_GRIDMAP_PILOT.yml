@@ -1,0 +1,91 @@
+name: Roma Roads GridMap Pilot
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'roads/*.gd'
+      - '.github/workflows/ROMA_ROADS_GRIDMAP_PILOT.yml'
+  workflow_dispatch:
+
+concurrency:
+  group: roma-roads-gridmap-pilot
+  cancel-in-progress: true
+
+jobs:
+  road-pilot:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Checkout Roma-BRT
+        uses: actions/checkout@v4
+
+      - name: Download Godot 4.7.2
+        uses: chickensoft-games/setup-godot@v2
+        with:
+          version: '4.7.2'
+          use-dotnet: false
+          include-templates: false
+
+      - name: Import project
+        run: godot --headless --path . --editor --quit-after 8
+
+      - name: Build MeshLibrary + GridMap pilot + bridge
+        run: godot --headless --path . --script res://roads/build_road_gridmap_pilot.gd
+
+      - name: Validate generated road assets
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -s roads/roma_road_mesh_library.tres
+          test -s roads/roma_gridmap_pilot.tscn
+          test -s roads/ponte_tevere_pilota.tscn
+          grep -q 'GridMap' roads/roma_gridmap_pilot.tscn
+          grep -q 'cell_size = Vector3(4.0, 0.15, 4.0)' roads/roma_gridmap_pilot.tscn
+          echo 'ROMA ROADS VALIDATION: PASS'
+
+      - name: Capture top-down pilot + memory report
+        run: godot --headless --path . --script res://roads/capture_road_pilot.gd
+
+      - name: Package road pilot artifact
+        run: |
+          mkdir -p build/road_pilot_package
+          cp roads/roma_road_mesh_library.tres roads/roma_gridmap_pilot.tscn roads/ponte_tevere_pilota.tscn build/road_pilot_package/
+          cp build/road_pilot/road_pilot_topdown.png build/road_pilot/road_pilot_memory_report.txt build/road_pilot_package/
+          du -cb build/road_pilot_package/* | tail -1
+          cd build/road_pilot_package && zip -9 ../roma_roads_gridmap_pilot.zip *
+
+      - name: Persist road pilot assets to main
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add roads/roma_road_mesh_library.tres roads/roma_gridmap_pilot.tscn roads/ponte_tevere_pilota.tscn build/road_pilot/road_pilot_topdown.png build/road_pilot/road_pilot_memory_report.txt
+          if git diff --cached --quiet; then
+            echo 'No generated road assets changed.'
+          else
+            git commit -m 'feat: add GridMap road pilot assets'
+            git push origin HEAD:main
+          fi
+
+      - name: Upload road pilot package
+        uses: actions/upload-artifact@v4
+        with:
+          name: roma-roads-gridmap-pilot
+          path: build/roma_roads_gridmap_pilot.zip
+          if-no-files-found: error
+
+      - name: Upload road pilot screenshot
+        uses: actions/upload-artifact@v4
+        with:
+          name: roma-roads-gridmap-topdown
+          path: build/road_pilot/road_pilot_topdown.png
+          if-no-files-found: error
+
+      - name: Upload road memory report
+        uses: actions/upload-artifact@v4
+        with:
+          name: roma-roads-gridmap-memory
+          path: build/road_pilot/road_pilot_memory_report.txt
+          if-no-files-found: error
