@@ -2,24 +2,12 @@ name: Roma BRT Runtime
 
 on:
   workflow_dispatch:
-  push:
-    branches: [main]
-    paths:
-      - 'project.godot'
-      - '**/*.gd'
-      - '**/*.tscn'
-      - '**/*.tres'
-      - '**/*.res'
-      - '**/*.glb'
-      - '**/*.gltf'
-      - '**/*.godot'
-      - '**/*.jpg'
-      - '**/*.jpeg'
-      - '**/*.png'
-      - '.github/workflows/ROMA_BRT_RUNTIME.yml'
+  workflow_run:
+    workflows: ["Roma Ready Buildings Bake"]
+    types: [completed]
 
 permissions:
-  contents: write
+  contents: read
 
 concurrency:
   group: roma-brt-runtime
@@ -27,21 +15,37 @@ concurrency:
 
 jobs:
   runtime-smoke-test:
+    if: github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success'
     name: Godot 4.7.2 Runtime Smoke Test
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 30
     steps:
-      - name: Checkout Roma-BRT
+      - name: Checkout persisted ready-bake main
         uses: actions/checkout@v4
         with:
-          fetch-depth: 0
+          ref: main
+          fetch-depth: 1
+
+      - name: Verify persisted 587 ready buildings
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -d baked_city/ready_buildings
+          count=$(find baked_city/ready_buildings -maxdepth 1 -type f -name 'building_*.tscn' | wc -l)
+          echo "READY_BUILDINGS_COUNT=$count"
+          test "$count" -eq 587
+          test -f baked_city/ready_buildings/building_001.tscn
+          test -f baked_city/ready_buildings/building_587.tscn
+
       - name: Verify project metadata
         run: |
           set -euo pipefail
           test -f project.godot
           grep -q '^\[application\]' project.godot
           grep -q 'textures/vram_compression/import_etc2_astc=true' project.godot
+
       - name: Download Godot 4.7.2
+        shell: bash
         run: |
           set -euo pipefail
           mkdir -p .runtime/godot
@@ -52,92 +56,42 @@ jobs:
           chmod +x "$GODOT_BIN"
           ln -sf "$(realpath "$GODOT_BIN")" .runtime/godot/godot
           .runtime/godot/godot --version
-      - name: Normalize V11 texture paths for mobile bake
-        run: |
-          set -euo pipefail
-          .runtime/godot/godot --headless --path . --script res://tools/normalize_v11_texture_paths.gd
-          if grep -R 'res://assets/textures/' city_library/buildings/houses/roma_architecture_library_v11/scripts/building_system.gd; then
-            echo 'Legacy V11 texture paths remain'
-            exit 1
-          fi
-      - name: Optimize V11 textures for Android memory
-        run: |
-          set -euo pipefail
-          .runtime/godot/godot --headless --path . --script res://tools/optimize_v11_textures_mobile.gd
-      - name: Import Godot assets for headless CI
+
+      - name: Import Godot assets
         run: |
           set -euo pipefail
           .runtime/godot/godot --headless --editor --path . --quit
           test -d .godot/imported
           echo 'GODOT IMPORT CACHE OK'
-      - name: Diagnose 587 placement rejection path
-        run: .runtime/godot/godot --headless --path . --script res://v37_integration/diagnose_587_rejections.gd
-      - name: Bake 587 city in headless runtime
+
+      - name: Validate persisted ready-building structure
         run: |
           set -euo pipefail
-          rm -f baked_city/roma_city_587.tscn
-          rm -rf baked_city/archetypes_587 baked_city/v11_shared_materials
-          .runtime/godot/godot --headless --verbose --terrain3d-debug=INFO --path . --script res://v37_integration/bake_587_city_ci.gd
-          test -f baked_city/roma_city_587.tscn
-          test "$(stat -c%s baked_city/roma_city_587.tscn)" -gt 1000
-          test "$(find baked_city/archetypes_587 -maxdepth 1 -type f -name 'archetype_*.tscn' | wc -l)" -eq 27
-      - name: Optimize V11 building visuals and materials
+          .runtime/godot/godot --headless --path . --script res://v37_integration/validate_ready_building_structure.gd
+
+      - name: Runtime smoke launch using only pre-generated buildings
+        shell: bash
         run: |
           set -euo pipefail
-          .runtime/godot/godot --headless --path . --script res://tools/optimize_v11_archetypes.gd
-          test "$(find baked_city/v11_shared_materials -maxdepth 1 -type f -name '*.tres' | wc -l)" -gt 0
-      - name: Enforce final Roman facade art style
-        run: |
-          set -euo pipefail
-          .runtime/godot/godot --headless --path . --script res://tools/enforce_v11_facade_style.gd
-      - name: HARD GATE — Prompt 4 urban blocks before any scale test
-        run: |
-          set -euo pipefail
-          .runtime/godot/godot --headless --path . --script res://tools/validate_prompt4_blocks.gd
-      - name: Simplify V11 building collisions only
-        run: .runtime/godot/godot --headless --path . --script res://tools/simplify_v11_collisions.gd
-      - name: Validate V11 collision at 5 buildings - hard gate
-        run: .runtime/godot/godot --headless --path . --script res://tools/validate_v11_collision_5_mobile.gd
-      - name: Validate V11 at 5 buildings with mobile textures
-        run: .runtime/godot/godot --headless --path . --script res://v37_integration/validate_v11_scale_mobile.gd -- 5
-      - name: Validate V11 at 10 buildings with mobile textures
-        run: .runtime/godot/godot --headless --path . --script res://v37_integration/validate_v11_scale_mobile.gd -- 10
-      - name: Validate V11 at 20 buildings with mobile textures
-        run: .runtime/godot/godot --headless --path . --script res://v37_integration/validate_v11_scale_mobile.gd -- 20
-      - name: Validate V11 at 40 buildings with mobile textures
-        run: .runtime/godot/godot --headless --path . --script res://v37_integration/validate_v11_scale_mobile.gd -- 40
-      - name: Validate V11 gameplay at 40 buildings
-        run: .runtime/godot/godot --headless --path . --script res://v37_integration/validate_v11_gameplay_40.gd
-      - name: Diagnose Terrain3D after main scene initialization
-        run: .runtime/godot/godot --headless --path . --script res://v37_integration/diagnose_bake_runtime.gd
-      - name: Runtime smoke launch
-        run: |
-          set -euo pipefail
+          mkdir -p build/runtime
           code=0
-          timeout 20s .runtime/godot/godot --headless --path . --quit-after 10 || code=$?
-          if [ "$code" -ne 0 ] && [ "$code" -ne 124 ]; then exit "$code"; fi
-      - name: Package V11 mobile texture/archetype bundle
-        run: |
-          set -euo pipefail
-          mkdir -p build
-          zip -qr build/Roma-BRT-V11-Mobile-Textures.zip baked_city/roma_city_587.tscn baked_city/archetypes_587 baked_city/v11_shared_materials city_library/buildings/houses/roma_architecture_library_v11/assets/textures
-          unzip -tq build/Roma-BRT-V11-Mobile-Textures.zip
-      - name: Persist baked 587 city, mobile materials, optimized textures and normalized source to main branch
-        run: |
-          set -euo pipefail
-          git config user.name 'github-actions[bot]'
-          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-          git add baked_city/roma_city_587.tscn baked_city/archetypes_587 baked_city/v11_shared_materials city_library/buildings/houses/roma_architecture_library_v11/assets/textures
-          if git diff --cached --quiet; then exit 0; fi
-          git commit -m 'persist mobile baked city assets [skip ci]'
-          git fetch origin main
-          git merge origin/main -X ours --no-edit || { git merge --abort; exit 1; }
-          git push origin HEAD:main
-      - name: Upload V11 mobile texture bundle
+          timeout 45s .runtime/godot/godot --headless --path . --rendering-method gl_compatibility --scene res://main.tscn > build/runtime/godot_runtime.log 2>&1 || code=$?
+          if [ "$code" -ne 0 ] && [ "$code" -ne 124 ]; then
+            cat build/runtime/godot_runtime.log
+            exit "$code"
+          fi
+          grep -q 'V11 READY BAKE: COMPLETE loaded=587' build/runtime/godot_runtime.log
+          if grep -q 'V37 edifici:' build/runtime/godot_runtime.log; then
+            echo 'ERROR: procedural V11 building generation ran during runtime'
+            exit 1
+          fi
+          tail -n 250 build/runtime/godot_runtime.log
+
+      - name: Upload runtime log
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: Roma-BRT-V11-Mobile-Textures
-          path: build/Roma-BRT-V11-Mobile-Textures.zip
+          name: Roma-BRT-ready-bake-runtime-log
+          path: build/runtime/godot_runtime.log
           if-no-files-found: warn
-          retention-days: 14
+          retention-days: 30
