@@ -1,0 +1,114 @@
+name: Godot Editor Live Debug
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - 'main.tscn'
+      - 'project.godot'
+      - 'v37_integration/**'
+      - 'baked_city/**'
+      - 'city_library/**'
+      - 'roads/**'
+      - 'tools/**'
+      - '.github/workflows/GODOT_EDITOR_LIVE_DEBUG.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  godot-editor-live-debug:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Checkout Roma-BRT
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+
+      - name: Install Linux GUI debug tools
+        run: |
+          set -euo pipefail
+          sudo apt-get update
+          sudo apt-get install -y xdotool xclip scrot
+
+      - name: Download Godot 4.7.2 editor
+        run: |
+          set -euo pipefail
+          mkdir -p .runtime/godot build/live_debug
+          curl -L --fail --retry 3 -o .runtime/godot/godot.zip 'https://github.com/godotengine/godot/releases/download/4.7.2-stable/Godot_v4.7.2-stable_linux.x86_64.zip'
+          unzip -q .runtime/godot/godot.zip -d .runtime/godot
+          GODOT_BIN=$(find .runtime/godot -maxdepth 2 -type f -name 'Godot_v4.7.2-stable_linux.x86_64' | head -n 1)
+          test -n "$GODOT_BIN"
+          chmod +x "$GODOT_BIN"
+          ln -sf "$(realpath "$GODOT_BIN")" .runtime/godot/godot
+          .runtime/godot/godot --version
+
+      - name: Open main.tscn in real Godot editor under Xvfb
+        run: |
+          set -euo pipefail
+          export DISPLAY=:99
+          Xvfb :99 -screen 0 1920x1080x24 -ac +extension GLX +render -noreset >/tmp/xvfb.log 2>&1 &
+          XVFB_PID=$!
+          trap 'kill "$XVFB_PID" 2>/dev/null || true' EXIT
+          sleep 2
+
+          .runtime/godot/godot --editor --path . main.tscn --rendering-method gl_compatibility --rendering-driver opengl3 --verbose --log-file="$PWD/build/live_debug/godot_editor.log" >/tmp/godot_editor_stdout.log 2>&1 &
+          GODOT_PID=$!
+          trap 'kill "$GODOT_PID" 2>/dev/null || true; kill "$XVFB_PID" 2>/dev/null || true' EXIT
+
+          for i in $(seq 1 60); do
+            if xdotool search --onlyvisible --class Godot >/tmp/godot_windows 2>/dev/null; then
+              if test -s /tmp/godot_windows; then break; fi
+            fi
+            sleep 1
+          done
+          test -s /tmp/godot_windows
+          GODOT_WIN=$(head -n 1 /tmp/godot_windows)
+          xdotool windowactivate --sync "$GODOT_WIN"
+          xdotool key F6
+
+          # Let the real scene run long enough for startup/runtime errors to reach Output.
+          sleep 45
+
+          # Stop the running scene and return to the editor.
+          xdotool key F8
+          sleep 3
+
+          # Open the actual Godot Output bottom panel and expand it.
+          xdotool windowactivate --sync "$GODOT_WIN"
+          xdotool key alt+o
+          sleep 2
+          xdotool key shift+F12
+          sleep 2
+
+          # Capture exactly what is visible in the editor, including Output.
+          scrot -o build/live_debug/godot_editor_output.png
+
+          # Try to copy the Output panel contents through the real editor UI.
+          xdotool key ctrl+a
+          xdotool key ctrl+c
+          sleep 1
+          xclip -selection clipboard -o > build/live_debug/godot_output_clipboard.txt 2>/dev/null || true
+
+          # Preserve raw stdout/log as a second source of truth.
+          cp /tmp/godot_editor_stdout.log build/live_debug/godot_editor_stdout.log
+          cp /tmp/xvfb.log build/live_debug/xvfb.log
+
+          echo '=== GODOT EDITOR OUTPUT CAPTURE COMPLETE ==='
+          echo "EDITOR_EXIT_RUNNING=$(kill -0 "$GODOT_PID" 2>/dev/null && echo yes || echo no)"
+          echo '=== ERRORS FROM EDITOR LOG ==='
+          grep -nEi 'ERROR:|SCRIPT ERROR|Parse Error|Invalid call|Nonexistent function|Cannot open file|Failed loading resource|V11 HLOD: missing' build/live_debug/godot_editor.log || true
+          echo '=== ERRORS FROM STDOUT ==='
+          grep -nEi 'ERROR:|SCRIPT ERROR|Parse Error|Invalid call|Nonexistent function|Cannot open file|Failed loading resource|V11 HLOD: missing' build/live_debug/godot_editor_stdout.log || true
+
+      - name: Upload real Godot editor evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: godot-editor-live-debug
+          path: build/live_debug
+          if-no-files-found: error
+          retention-days: 30
+          compression-level: 6
