@@ -45,7 +45,7 @@ jobs:
           echo 'ROMA ROADS VALIDATION: PASS'
 
       - name: Capture top-down pilot + memory report
-        run: timeout 60s godot --headless --path . --script res://roads/capture_road_pilot.gd
+        run: timeout 60s xvfb-run -a godot --path . --display-driver x11 --rendering-method gl_compatibility --audio-driver Dummy --script res://roads/capture_road_pilot.gd
 
       - name: Package road pilot artifact
         run: |
