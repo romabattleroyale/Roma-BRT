@@ -20,11 +20,15 @@ func _ready() -> void:
 func _wait_for_v37() -> void:
     for _i in range(600):
         var v37 = get_parent().get_node_or_null("V37Integration")
-        if v37 != null and v37.get("city_root") != null:
-            _city_root = v37.get("city_root") as Node3D
-            await _yield_frames(START_DELAY_FRAMES)
-            await _load_ready_city()
-            return
+        if v37 != null:
+            # Disable the legacy procedural building path before V37 creates its world.
+            # Runtime buildings must come exclusively from the persisted ready bake.
+            v37.set("enable_buildings", false)
+            if v37.get("city_root") != null:
+                _city_root = v37.get("city_root") as Node3D
+                await _yield_frames(START_DELAY_FRAMES)
+                await _load_ready_city()
+                return
         await get_tree().create_timer(0.1).timeout
     push_error("V11 READY BAKE: V37 world non pronto entro 60 secondi")
 
