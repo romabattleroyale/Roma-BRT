@@ -29,9 +29,6 @@ jobs:
           use-dotnet: false
           include-templates: false
 
-      - name: Initialize Godot project headless
-        run: godot --headless --path . --quit-after 8
-
       - name: Build full GridMap road system
         run: godot --headless --path . --script res://roads/build_road_city_gridmap.gd
 
@@ -51,15 +48,21 @@ jobs:
           set -euo pipefail
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-          git add roads/roma_road_mesh_library.tres roads/generated
-          if git diff --cached --quiet; then
-            echo 'ROMA ROADS PERSIST: no changes'
-            exit 0
-          fi
-          git commit -m 'feat: persist GridMap road system [skip ci]'
+          tmp_dir="$(mktemp -d)"
+          cp roads/roma_road_mesh_library.tres "$tmp_dir/roma_road_mesh_library.tres"
+          cp -r roads/generated "$tmp_dir/generated"
           for attempt in 1 2 3; do
             git fetch origin main
-            git rebase origin/main || { git rebase --abort; git reset --hard origin/main; git add roads/roma_road_mesh_library.tres roads/generated; git commit -m 'feat: persist GridMap road system [skip ci]'; }
+            git reset --hard origin/main
+            rm -rf roads/generated roads/roma_road_mesh_library.tres
+            cp "$tmp_dir/roma_road_mesh_library.tres" roads/roma_road_mesh_library.tres
+            cp -r "$tmp_dir/generated" roads/generated
+            git add roads/roma_road_mesh_library.tres roads/generated
+            if git diff --cached --quiet; then
+              echo 'ROMA ROADS PERSIST: no changes'
+              exit 0
+            fi
+            git commit -m 'feat: persist GridMap road system [skip ci]'
             if git push origin HEAD:main; then
               echo 'ROMA ROADS PERSIST: PASS'
               exit 0
