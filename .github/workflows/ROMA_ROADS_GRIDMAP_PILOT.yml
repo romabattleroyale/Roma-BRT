@@ -27,6 +27,7 @@ jobs:
           use-dotnet: false
           include-templates: false
 
+      # Headless initialization only; do not launch the editor in CI.
       - name: Initialize Godot project headless
         run: godot --headless --path . --quit-after 8
 
