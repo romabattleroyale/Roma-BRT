@@ -40,10 +40,7 @@ jobs:
           grep -q 'cell_size = Vector3(4, 0.15, 4)' roads/generated/district_01_roads.tscn
           echo 'ROMA ROADS VALIDATION: PASS districts=12 bridges=4'
 
-      - name: Rebuild original pilot for visual smoke test
-        run: godot --headless --path . --script res://roads/build_road_gridmap_pilot.gd
-
-      - name: Capture pilot + memory report
+      - name: Capture actual full district + memory report
         run: timeout 60s xvfb-run -a godot --path . --display-driver x11 --rendering-method gl_compatibility --audio-driver Dummy --script res://roads/capture_road_pilot.gd
 
       - name: Package full road artifact
@@ -51,7 +48,6 @@ jobs:
           mkdir -p build/road_full_package
           cp roads/roma_road_mesh_library.tres build/road_full_package/
           cp -r roads/generated build/road_full_package/generated
-          cp roads/roma_gridmap_pilot.tscn roads/ponte_tevere_pilota.tscn build/road_full_package/
           cp build/road_pilot/road_pilot_topdown.png build/road_pilot/road_pilot_memory_report.txt build/road_full_package/
           du -cb build/road_full_package/* | tail -1
           cd build/road_full_package && zip -9 -r ../roma_roads_gridmap_full.zip *
