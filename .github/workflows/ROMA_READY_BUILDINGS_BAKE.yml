@@ -14,7 +14,9 @@ on:
       - 'v37_integration/generate_quarter_hlod.gd'
       - 'tools/capture_hlod_visual_tests.gd'
       - 'city_library/buildings/houses/roma_architecture_library_v11/scripts/modular_house_factory.gd'
+      - 'tools/normalize_v11_texture_paths.gd'
       - 'tools/optimize_v11_textures_mobile.gd'
+      - 'tools/enforce_v11_facade_style.gd'
       - 'main.tscn'
       - '.github/workflows/ROMA_READY_BUILDINGS_BAKE.yml'
 
@@ -128,7 +130,7 @@ jobs:
           set -euo pipefail
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-          git add -A baked_city/ready_templates baked_city/hlod v37_integration/bake_ready_buildings_120.gd v37_integration/validate_ready_templates_memory.gd v37_integration/v11_building_bridge.gd v37_integration/distribute_ready_buildings_quarters.gd v37_integration/generate_quarter_hlod.gd tools/capture_hlod_visual_tests.gd city_library/buildings/houses/roma_architecture_library_v11/scripts/modular_house_factory.gd tools/optimize_v11_textures_mobile.gd .github/workflows/ROMA_READY_BUILDINGS_BAKE.yml
+          git add -A baked_city/ready_templates baked_city/hlod v37_integration/bake_ready_buildings_120.gd v37_integration/validate_ready_templates_memory.gd v37_integration/v11_building_bridge.gd v37_integration/distribute_ready_buildings_quarters.gd v37_integration/generate_quarter_hlod.gd tools/capture_hlod_visual_tests.gd city_library/buildings/houses/roma_architecture_library_v11/scripts/modular_house_factory.gd tools/normalize_v11_texture_paths.gd tools/optimize_v11_textures_mobile.gd tools/enforce_v11_facade_style.gd .github/workflows/ROMA_READY_BUILDINGS_BAKE.yml
           if git diff --cached --quiet; then exit 0; fi
           git commit -m 'feat: persist three-level district HLOD [skip ci]'
           git fetch origin main
