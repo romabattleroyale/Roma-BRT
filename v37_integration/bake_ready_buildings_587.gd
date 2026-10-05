@@ -166,8 +166,8 @@ func _optimize_mobile_meshes(root: Node3D) -> void:
             if arrays.is_empty():
                 continue
             var primitive := source.surface_get_primitive_type(s)
-            optimized.add_surface_from_arrays(primitive, arrays, [], {}, Mesh.ARRAY_COMPRESS_DEFAULT)
-            optimized.surface_set_material(optimized.get_surface_count() - 1, source.surface_get_material(s))
+            optimized.add_surface_from_arrays(primitive, arrays)
+            optimized.surface_set_material(optimized.get_surface_count() - 1, source.get_surface_material(s))
         optimized.set_meta("surface_roles", source.get_meta("surface_roles", []))
         if optimized.get_surface_count() > 0:
             node.mesh = optimized
