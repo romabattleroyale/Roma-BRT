@@ -13,9 +13,9 @@ func _init() -> void:
 
 func _run() -> void:
     DirAccess.make_dir_recursive_absolute(ProjectSettings.globalize_path(MATERIAL_DIR))
-    var factory_script: Script = load(FACTORY_SCRIPT) as Script
-    var positions_script: Script = load(POSITIONS_SCRIPT) as Script
-    var variation_script: Script = load(VARIATION_SCRIPT) as Script
+    var factory_script := load(FACTORY_SCRIPT) as Script
+    var positions_script := load(POSITIONS_SCRIPT) as Script
+    var variation_script := load(VARIATION_SCRIPT) as Script
     if factory_script == null or positions_script == null or variation_script == null:
         push_error("READY TEMPLATE BAKE: dependency load failed"); quit(1); return
     var factory = factory_script.new()
@@ -29,46 +29,46 @@ func _run() -> void:
     var groups := {"case": [], "palazzi": [], "angolo": [], "botteghe": [], "ville": [], "portici": []}
     for ci in range(catalog.size()):
         var e: Dictionary = catalog[ci]
-        var text := (str(e.get("id", "")) + " " + str(e.get("name", "")) + " " + str(e.get("function", ""))).to_lower()
-        groups[_category(text)].append(ci)
-    print("READY TEMPLATE GROUPS: ", groups)
-
+        groups[_category((str(e.get("id", "")) + " " + str(e.get("name", "")) + " " + str(e.get("function", ""))).to_lower())].append(ci)
     var quotas := {"case": 40, "palazzi": 30, "angolo": 20, "botteghe": 15, "ville": 10, "portici": 5}
     var templates: Array[Dictionary] = []
     var used := {}
-    var group_order := ["case", "palazzi", "angolo", "botteghe", "ville", "portici"]
+    var order := ["case", "palazzi", "angolo", "botteghe", "ville", "portici"]
     var roofs := [0, 7, 10, 17, 20, 27]
     var floors := [3, 4, 5]
-
-    for gi in range(group_order.size()):
-        var g: String = group_order[gi]
+    for gi in range(order.size()):
+        var g: String = order[gi]
         var candidates: Array = groups[g].duplicate()
         if candidates.is_empty():
             candidates = []
             for ci in range(catalog.size()): candidates.append(ci)
-        var quota: int = int(quotas[g])
-        for k in range(quota):
-            var ci: int = int(candidates[posmod(k + gi * 3, candidates.size())])
-            var floor: int = floors[posmod(k + gi, floors.size())]
-            var roof: int = roofs[posmod(k + gi * 2, roofs.size())]
-            var key := "%d|%d|%d" % [ci, floor, roof]
+        for k in range(int(quotas[g])):
+            var ci := int(candidates[posmod(k + gi * 3, candidates.size())])
+            var fl := floors[posmod(k + gi, floors.size())]
+            var roof := roofs[posmod(k + gi * 2, roofs.size())]
+            var key := "%d|%d|%d" % [ci, fl, roof]
             var attempts := 0
             while used.has(key) and attempts < 200:
                 roof = roofs[posmod(roof + 7 + attempts, roofs.size())]
-                floor = floors[posmod(floor + attempts + 1, floors.size())]
+                fl = floors[posmod(fl + attempts + 1, floors.size())]
                 ci = int(candidates[posmod(k + gi * 3 + attempts + 1, candidates.size())])
-                key = "%d|%d|%d" % [ci, floor, roof]
+                key = "%d|%d|%d" % [ci, fl, roof]
                 attempts += 1
             if used.has(key):
-                push_error("READY TEMPLATE BAKE: unable to create unique template category=%s index=%d candidates=%d" % [g, k, candidates.size()]); quit(1); return
+                push_error("READY TEMPLATE BAKE: unable to create unique template category=%s index=%d" % [g, k]); quit(1); return
             used[key] = true
-            templates.append({"catalog_index": ci, "category": g, "floors": floor, "roof_variant": roof})
-
+            templates.append({"catalog_index": ci, "category": g, "floors": fl, "roof_variant": roof})
     if templates.size() != TEMPLATE_COUNT:
         push_error("READY TEMPLATE BAKE: template count=%d" % templates.size()); quit(1); return
 
     _write_shared_materials()
     var cache := _load_shared_materials()
+    # Keep generated nodes in the SceneTree and use queue_free + one frame so
+    # PhysicsServer/RenderingServer receive the normal lifecycle notifications.
+    var runtime_root := Node3D.new()
+    runtime_root.name = "ReadyTemplateBakeRuntime"
+    get_root().add_child(runtime_root)
+
     for t in range(TEMPLATE_COUNT):
         var spec: Dictionary = templates[t]
         var entry: Dictionary = catalog[int(spec["catalog_index"])]
@@ -76,7 +76,9 @@ func _run() -> void:
         var variant := int(spec["catalog_index"]) + int(spec["roof_variant"]) + t * 6
         var root := factory.build_mobile_by_id(id, variant) as Node3D
         if root == null:
-            push_error("READY TEMPLATE BAKE: build failed template=%d id=%s" % [t,id]); quit(1); return
+            push_error("READY TEMPLATE BAKE: build failed template=%d id=%s" % [t, id])
+            await _release_node(runtime_root)
+            quit(1); return
         root.name = "ReadyTemplate_%03d" % (t + 1)
         root.position = Vector3.ZERO
         root.rotation = Vector3.ZERO
@@ -86,22 +88,34 @@ func _run() -> void:
         root.set_meta("template_catalog_id", id)
         root.set_meta("template_floors", int(spec["floors"]))
         root.set_meta("template_roof_variant", int(spec["roof_variant"]))
+        runtime_root.add_child(root)
         _apply_shared_materials(root, t, cache)
         _strip_collision_nodes(root)
         _add_box_collision(root, float(entry.get("w", 10.0)), float(entry.get("d", 10.0)), int(spec["floors"]))
         _set_owner_recursive(root, root)
         var packed := PackedScene.new()
         var err := packed.pack(root)
-        root.free()
         if err != OK:
-            push_error("READY TEMPLATE BAKE: pack failed %d" % t); quit(1); return
+            await _release_node(root)
+            await _release_node(runtime_root)
+            push_error("READY TEMPLATE BAKE: pack failed %d" % t)
+            quit(1); return
+        await _release_node(root)
         err = ResourceSaver.save(packed, "%s/template_%03d.tscn" % [OUT_DIR, t + 1])
         if err != OK:
-            push_error("READY TEMPLATE BAKE: save failed %d" % t); quit(1); return
+            await _release_node(runtime_root)
+            push_error("READY TEMPLATE BAKE: save failed %d" % t)
+            quit(1); return
 
+    await _release_node(runtime_root)
     _write_manifest(source, catalog, templates, variation_script)
     print("READY TEMPLATE BAKE OK: templates=120 placements=587")
     quit(0)
+
+func _release_node(n: Node) -> void:
+    if is_instance_valid(n):
+        n.queue_free()
+        await process_frame
 
 func _category(text: String) -> String:
     if text.contains("portico"): return "portici"
@@ -126,8 +140,7 @@ func _write_manifest(source: Array, catalog: Array[Dictionary], templates: Array
         entries.append({"template": template, "x": float(source[i].get("x", 0.0)), "z": float(source[i].get("z", 0.0)), "rotation": float(source[i].get("rotation", 0.0)), "seed": int(v.get("seed", i)), "facade_index": posmod(i * 7 + 1, 6), "roof_index": posmod(i * 5 + 2, 3), "floors": int(v.get("height_floors", 3)), "shutters": posmod(i, 2), "balcony": posmod(i + 1, 2), "wear": posmod(i, 4)})
     var payload: Dictionary = {"template_count": TEMPLATE_COUNT, "placement_count": 587, "chunk_size": 200.0, "max_active": 50, "placements": entries}
     var f := FileAccess.open(MANIFEST, FileAccess.WRITE)
-    f.store_string(JSON.stringify(payload))
-    f.close()
+    f.store_string(JSON.stringify(payload)); f.close()
 
 func _write_shared_materials() -> void:
     var colors = [Color("#B97845"), Color("#D3A63A"), Color("#B96F73"), Color("#C7AA83"), Color("#A9573B"), Color("#A99A7E")]
@@ -159,9 +172,7 @@ func _apply_shared_materials(root: Node3D, variant: int, cache: Dictionary) -> v
             elif role == "roof": mesh.surface_set_material(s, cache["r%d" % ri])
 
 func _mesh_nodes(root: Node3D) -> Array[MeshInstance3D]:
-    var a: Array[MeshInstance3D] = []
-    _collect(root, a)
-    return a
+    var a: Array[MeshInstance3D] = []; _collect(root, a); return a
 
 func _collect(n: Node, a: Array[MeshInstance3D]) -> void:
     if n is MeshInstance3D: a.append(n as MeshInstance3D)
