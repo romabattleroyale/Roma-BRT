@@ -53,9 +53,39 @@ jobs:
           test "$(find baked_city/ready_buildings -maxdepth 1 -type f -name 'building_*.tscn' | wc -l)" -eq 587
           test "$(find baked_city/ready_buildings/materials -maxdepth 1 -type f -name '*.tres' | wc -l)" -eq 9
       - name: Validate every baked scene has one mesh and one box collision
+        id: validate_ready_structure
+        continue-on-error: true
+        run: |
+          set -uo pipefail
+          mkdir -p build
+          .runtime/godot/godot --headless --path . --script res://v37_integration/validate_ready_building_structure.gd 2>&1 | tee build/ready_structure_validator.log
+          status=${PIPESTATUS[0]}
+          echo "READY_STRUCTURE_VALIDATOR_EXIT=$status" | tee -a build/ready_structure_validator.log
+          exit "$status"
+      - name: Persist validator diagnostic report
+        if: always()
         run: |
           set -euo pipefail
-          .runtime/godot/godot --headless --path . --script res://v37_integration/validate_ready_building_structure.gd
+          test -f build/ready_structure_validator.log
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add build/ready_structure_validator.log
+          if git diff --cached --quiet; then exit 0; fi
+          git commit -m 'ci: persist ready-building validator diagnostic [skip ci]'
+          git push origin HEAD:main
+      - name: Upload validator diagnostic
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ready-building-validator-diagnostic
+          path: build/ready_structure_validator.log
+          if-no-files-found: error
+          retention-days: 30
+      - name: Stop if structure validation failed
+        if: steps.validate_ready_structure.outcome == 'failure'
+        run: |
+          echo 'READY STRUCTURE VALIDATION FAILED — progressive tests intentionally stopped.'
+          exit 1
       - name: Progressive ready-bake test — 40
         run: .runtime/godot/godot --headless --path . --script res://v37_integration/validate_ready_buildings_memory.gd -- 40
       - name: Progressive ready-bake test — 100
@@ -76,7 +106,7 @@ jobs:
         run: |
           set -euo pipefail
           git config user.name 'github-actions[bot]'
-          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git config user.email '41898282+github-actions[bot].com'
           git add baked_city/ready_buildings v37_integration/bake_ready_buildings_587.gd v37_integration/validate_ready_building_structure.gd v37_integration/validate_ready_buildings_memory.gd v37_integration/v11_building_bridge.gd .github/workflows/ROMA_READY_BUILDINGS_BAKE.yml
           if git diff --cached --quiet; then exit 0; fi
           git commit -m 'feat: bake 587 ready buildings for mobile [skip ci]'
