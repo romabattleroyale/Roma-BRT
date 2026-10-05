@@ -1,5 +1,6 @@
 extends SceneTree
 
+# CI trigger: capture uses Xvfb + Compatibility renderer on GitHub Actions.
 const OUT_DIR := "res://build/road_pilot"
 const SCREEN := "res://build/road_pilot/road_pilot_topdown.png"
 const REPORT := "res://build/road_pilot/road_pilot_memory_report.txt"
