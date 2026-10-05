@@ -28,15 +28,18 @@ func _run() -> void:
 
     var max_runtime_mb := 0.0
     var active: Array[Node3D] = []
+    var runtime_root := Node3D.new()
+    get_root().add_child(runtime_root)
     for i in range(PLACEMENT_COUNT):
         var template_index := posmod(i * 17 + 11, TEMPLATE_COUNT)
         var instance := templates[template_index].instantiate() as Node3D
         if instance == null:
             push_error("READY VIRTUAL TEST: instantiate failed %d" % i)
+            runtime_root.queue_free()
             quit(1)
             return
         instance.scale.y = [1.0, 1.333333, 1.666667][posmod(i, 3)]
-        get_root().add_child(instance)
+        runtime_root.add_child(instance)
         active.append(instance)
         if active.size() > MAX_ACTIVE:
             var old: Node3D = active.pop_front()
@@ -47,6 +50,8 @@ func _run() -> void:
 
     for node in active:
         node.queue_free()
+    await process_frame
+    runtime_root.queue_free()
     await process_frame
     print("READY VIRTUAL TEST 587 OK: max_active=%d max_delta_mb=%.2f total_virtual=587" % [MAX_ACTIVE, max_runtime_mb])
     if max_runtime_mb >= 150.0:
