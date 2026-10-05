@@ -154,17 +154,32 @@ func _apply_shared_materials(root: Node3D, variant: int, cache: Dictionary) -> v
             node.set_surface_override_material(s, null)
 
 func _optimize_mobile_meshes(root: Node3D) -> void:
-    ## Godot 4.7.2-compatible storage optimization: reuse the merged ArrayMesh
-    ## and avoid unsupported ARRAY_COMPRESS_DEFAULT API calls.
-    ## The factory already produces the mobile merged mesh; keeping that resource
-    ## intact avoids an additional full mesh allocation during the bake.
+    ## Keep positions, normals and primary UVs needed by the Roman materials.
+    ## Strip optional vertex channels that are not used by the mobile bake:
+    ## tangents, UV2/lightmap data, vertex colors and custom channels.
+    ## This is valid Godot 4.7.2 ArrayMesh storage and reduces per-building RAM.
     for node in _mesh_nodes(root):
         if not bool(node.get_meta("mobile_merged", false)) or node.mesh == null:
             continue
         var source := node.mesh as ArrayMesh
         if source == null:
             continue
-        source.resource_name = "ReadyMobile_%s" % source.resource_name
+        var optimized := ArrayMesh.new()
+        optimized.resource_name = "ReadyMobile_%s" % source.resource_name
+        for s in range(source.get_surface_count()):
+            var arrays: Array = source.surface_get_arrays(s)
+            if arrays.is_empty():
+                continue
+            arrays[Mesh.ARRAY_TANGENT] = PackedFloat32Array()
+            arrays[Mesh.ARRAY_TEX_UV2] = PackedVector2Array()
+            arrays[Mesh.ARRAY_COLOR] = PackedColorArray()
+            arrays[Mesh.ARRAY_CUSTOM0] = PackedByteArray()
+            arrays[Mesh.ARRAY_CUSTOM1] = PackedByteArray()
+            optimized.add_surface_from_arrays(Mesh.PRIMITIVE_TRIANGLES, arrays)
+            optimized.surface_set_material(optimized.get_surface_count() - 1, source.get_surface_material(s))
+        optimized.set_meta("surface_roles", source.get_meta("surface_roles", []))
+        if optimized.get_surface_count() > 0:
+            node.mesh = optimized
 
 func _remove_factory_collisions(root: Node3D) -> void:
     _strip_collision_nodes(root)
@@ -184,8 +199,8 @@ func _add_box_collision(root: Node3D, width: float, depth: float, floors: int) -
     var box := BoxShape3D.new()
     box.size = Vector3(maxf(width, 2.0), maxf(2.0, float(floors) * 3.2), maxf(depth, 2.0))
     shape.shape = box
-    shape.position.y = box.size.y * 0.5
     body.add_child(shape)
+    shape.position.y = box.size.y * 0.5
     root.add_child(body)
 
 func _mesh_nodes(root: Node3D) -> Array[MeshInstance3D]:
