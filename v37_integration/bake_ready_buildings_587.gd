@@ -56,7 +56,6 @@ func _run() -> void:
             push_error("READY BAKE: build failed index=%d id=%s" % [i, id])
             quit(1)
             return
-
         root.name = str(d.get("id", "building_%03d" % (i + 1)))
         root.set_meta("ready_bake", true)
         root.set_meta("ready_index", i)
@@ -71,7 +70,6 @@ func _run() -> void:
         if posmod(i, 2) == 1:
             roof_variant += 7
         root.set_meta("ready_signature", "%s|f%d|r%d|c%d|rc%d" % [id, floors, roof_variant, facade_index, roof_index])
-
         var x := float(d.get("x", 0.0))
         var z := float(d.get("z", 0.0))
         var h := _sample_height(heights, side, x, z)
@@ -84,7 +82,6 @@ func _run() -> void:
         _apply_shared_materials(root, i, material_cache)
         _add_box_collision(root, float(entry.get("w", 10.0)), float(entry.get("d", 10.0)), floors)
         _set_owner_recursive(root, root)
-
         var packed := PackedScene.new()
         var err := packed.pack(root)
         root.free()
@@ -101,7 +98,6 @@ func _run() -> void:
         baked += 1
         if baked % 25 == 0:
             print("READY BAKE: ", baked, "/587")
-
     print("READY BAKE OK: pre_generated=", baked, " dir=", READY_DIR)
     quit(0)
 
@@ -180,7 +176,8 @@ func _collect(node: Node, result: Array[MeshInstance3D]) -> void:
         _collect(child, result)
 
 func _set_owner_recursive(node: Node, owner: Node) -> void:
-    node.owner = owner
+    if node != owner:
+        node.owner = owner
     for child in node.get_children():
         _set_owner_recursive(child, owner)
 
