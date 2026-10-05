@@ -15,8 +15,6 @@ var _facade_roughness: Texture2D
 var _building_counter: int = 0
 
 func _safe_texture(path: String) -> Texture2D:
-    var tex := load(path) as Texture2D
-    if tex != null: return tex
     var image := Image.load_from_file(path)
     if image == null or image.is_empty(): return null
     return ImageTexture.create_from_image(image)
