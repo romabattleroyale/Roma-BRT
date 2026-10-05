@@ -15,6 +15,7 @@ on:
       - 'tools/capture_hlod_visual_tests.gd'
       - 'city_library/buildings/houses/roma_architecture_library_v11/scripts/modular_house_factory.gd'
       - 'tools/optimize_v11_textures_mobile.gd'
+      - 'main.tscn'
       - '.github/workflows/ROMA_READY_BUILDINGS_BAKE.yml'
 
 permissions:
@@ -161,6 +162,8 @@ jobs:
           path: build/hlod_visual
           if-no-files-found: error
           retention-days: 30
+          compression-level: 6
+          overwrite: false
           compression-level: 6
           overwrite: false
           include-hidden-files: false
