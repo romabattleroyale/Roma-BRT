@@ -82,26 +82,28 @@ jobs:
           test -s /tmp/godot_windows
           GODOT_WIN=$(head -n 1 /tmp/godot_windows)
           echo "GODOT_WINDOW=$GODOT_WIN"
-          sleep 8
+          xdotool getwindowgeometry "$GODOT_WIN" || true
+          sleep 20
 
-          # Godot 4.7.2 editor toolbar Play button. Click it instead of relying on F5 delivery.
+          # Xvfb is 1920x1080. Godot's toolbar Play/Stop buttons are near x=1698/1768.
           xdotool windowactivate --sync "$GODOT_WIN"
-          xdotool mousemove --window "$GODOT_WIN" 1459 35
+          xdotool mousemove --window "$GODOT_WIN" 1698 42
           xdotool click 1
-          echo 'PLAY_BUTTON_CLICKED=1459,35'
+          echo 'PLAY_BUTTON_CLICKED=1698,42'
+          sleep 8
+          echo '=== WINDOWS AFTER PLAY ==='
+          xdotool search --onlyvisible --class Godot -name '.*' 2>/dev/null || true
+          scrot -o build/live_debug/godot_editor_during_play.png
           sleep 45
 
-          # Godot 4.7.2 editor toolbar Stop button.
           xdotool windowactivate --sync "$GODOT_WIN"
-          xdotool mousemove --window "$GODOT_WIN" 1518 35
+          xdotool mousemove --window "$GODOT_WIN" 1768 42
           xdotool click 1
-          echo 'STOP_BUTTON_CLICKED=1518,35'
+          echo 'STOP_BUTTON_CLICKED=1768,42'
           sleep 3
 
           xdotool windowactivate --sync "$GODOT_WIN"
           xdotool key --clearmodifiers alt+o
-          sleep 2
-          xdotool key --clearmodifiers shift+F12
           sleep 2
           scrot -o build/live_debug/godot_editor_output.png
           xdotool key --clearmodifiers ctrl+a || true
