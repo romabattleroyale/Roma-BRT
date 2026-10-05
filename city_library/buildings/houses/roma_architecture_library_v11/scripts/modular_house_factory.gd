@@ -8,13 +8,20 @@ const VISUAL_VARIATION_SCRIPT := "res://v37_integration/mobile_visual_variation.
 
 var catalog: Array[Dictionary] = []
 var by_id: Dictionary = {}
-var system: RomaLibraryBuildingSystem
+# Do not type this as RomaLibraryBuildingSystem: headless Godot can load this
+# factory before the class_name registry has registered the inherited script.
+# Keeping the instance dynamic preserves the same runtime API without making
+# the bake depend on global class registration order.
+var system = null
 var visual_variation = null
 var mobile_prototypes: Dictionary = {}
 
 func initialize() -> bool:
     if system == null:
-        system = load(SYSTEM_SCRIPT).new() as RomaLibraryBuildingSystem
+        var system_script: Script = load(SYSTEM_SCRIPT) as Script
+        if system_script == null:
+            return false
+        system = system_script.new()
         if system == null:
             return false
         system.setup_materials()
