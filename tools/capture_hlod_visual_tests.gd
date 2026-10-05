@@ -69,7 +69,9 @@ func _capture(viewport:SubViewport,pos:Vector3,target:Vector3,ortho:bool,name:St
     var camera := Camera3D.new()
     viewport.add_child(camera)
     camera.position = pos
-    camera.look_at(target,Vector3.UP)
+    # All capture cameras are vertical. Use a horizontal up vector to avoid the
+    # target/up colinearity warning when looking straight down.
+    camera.look_at(target,Vector3(0,0,-1))
     camera.projection = Camera3D.PROJECTION_ORTHOGONAL if ortho else Camera3D.PROJECTION_PERSPECTIVE
     if ortho:
         if name.begins_with("A_"): camera.size = 2200.0
