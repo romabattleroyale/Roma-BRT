@@ -1,0 +1,13 @@
+[gd_scene format=3]
+
+[ext_resource type="MeshLibrary" path="res://roads/roma_road_mesh_library.tres" id="1_50i8v"]
+
+[node name="Ponte_Garibaldi" type="Node3D" unique_id=990756169]
+
+[node name="GridMap" type="GridMap" parent="." unique_id=1549962297]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 120, 0, 40)
+mesh_library = ExtResource("1_50i8v")
+cell_size = Vector3(4, 0.15, 4)
+data = {
+"cells": PackedInt32Array(65533, 65535, 24, 65533, 0, 24, 65533, 1, 24, 65534, 65535, 24, 65534, 0, 24, 65534, 1, 24, 65535, 65535, 24, 65535, 0, 24, 65535, 1, 24, 0, 65535, 24, 0, 0, 24, 0, 1, 24, 1, 65535, 24, 1, 0, 24, 1, 1, 24, 2, 65535, 24, 2, 0, 24, 2, 1, 24, 3, 65535, 24, 3, 0, 24, 3, 1, 24, 65533, 65534, 10, 65533, 2, 10, 65534, 65534, 10, 65534, 2, 10, 65535, 65534, 10, 65535, 2, 10, 0, 65534, 10, 0, 2, 10, 1, 65534, 10, 1, 2, 10, 2, 65534, 10, 2, 2, 10, 3, 65534, 10, 3, 2, 10)
+}
