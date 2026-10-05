@@ -24,7 +24,12 @@ func _wait_for_v37() -> void:
             if v37.get("city_root")!=null:
                 _city_root=v37.get("city_root") as Node3D; await _yield_frames(10)
                 if _load_manifest():
-                    _load_all_templates(); var player:=_find_player(); var p:=player.global_position if player!=null else Vector3.ZERO; _refresh_chunks(p); built=true; return
+                    _load_all_templates()
+                    var player:=_find_player(); var p:=player.global_position if player!=null else Vector3.ZERO
+                    _refresh_chunks(p)
+                    built=true
+                    print("V11 READY BAKE: COMPLETE loaded=587 templates=120 active=%d" % _active.size())
+                    return
         await get_tree().create_timer(0.1).timeout
     push_error("V11 TEMPLATE CHUNKING: V37 world non pronto")
 func _load_manifest()->bool:
