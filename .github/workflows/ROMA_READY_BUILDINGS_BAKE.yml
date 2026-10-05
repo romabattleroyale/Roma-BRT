@@ -164,8 +164,6 @@ jobs:
           retention-days: 30
           compression-level: 6
           overwrite: false
-          compression-level: 6
-          overwrite: false
           include-hidden-files: false
       - name: Upload memory report
         if: always()
