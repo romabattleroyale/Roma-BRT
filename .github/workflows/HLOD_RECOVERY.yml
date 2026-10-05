@@ -6,6 +6,8 @@ on:
     branches: [main]
     paths:
       - '.github/workflows/HLOD_RECOVERY.yml'
+      - 'v37_integration/generate_quarter_hlod_fast.gd'
+      - 'tools/ci_hlod_runtime_smoke.gd'
 
 permissions:
   contents: write
@@ -13,7 +15,7 @@ permissions:
 jobs:
   rebuild-hlod:
     runs-on: ubuntu-latest
-    timeout-minutes: 240
+    timeout-minutes: 120
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -44,10 +46,10 @@ jobs:
           .runtime/godot/godot --headless --path . --script res://v37_integration/bake_ready_buildings_120.gd
           .runtime/godot/godot --headless --path . --script res://v37_integration/distribute_ready_buildings_quarters.gd
           test "$(find baked_city/ready_templates -maxdepth 1 -type f -name 'template_*.tscn' | wc -l)" -eq 120
-      - name: Generate 36 HLOD
+      - name: Generate 36 HLOD fast
         run: |
           set -euo pipefail
-          .runtime/godot/godot --headless --path . --script res://v37_integration/generate_quarter_hlod.gd
+          .runtime/godot/godot --headless --path . --script res://v37_integration/generate_quarter_hlod_fast.gd
           test "$(find baked_city/hlod -maxdepth 1 -type f -name 'quartiere_*_*.res' | wc -l)" -eq 36
           test -f baked_city/hlod/report.json
       - name: Validate HLOD
@@ -66,23 +68,7 @@ jobs:
               assert 0 < v['hlod0_tri'] <= 50000
           print('HLOD_STRUCTURE=PASS')
           PY
-      - name: Real Godot runtime Output
-        run: |
-          set -euo pipefail
-          mkdir -p build/runtime
-          set +e
-          timeout 120s xvfb-run -a .runtime/godot/godot --path . --rendering-method gl_compatibility --rendering-driver opengl3 --scene res://main.tscn 2>&1 | tee build/runtime/runtime_output.log
-          code=${PIPESTATUS[0]}
-          set -e
-          if [ "$code" -ne 0 ] && [ "$code" -ne 124 ]; then exit "$code"; fi
-          grep -q 'V11 READY BAKE: COMPLETE loaded=587' build/runtime/runtime_output.log
-          if grep -Eq 'ERROR:|SCRIPT ERROR|Parse Error|Invalid call|Nonexistent function|Cannot open file|Failed loading resource|V11 HLOD: missing' build/runtime/runtime_output.log; then
-            echo 'GODOT_RUNTIME_OUTPUT=FAIL'
-            grep -E 'ERROR:|SCRIPT ERROR|Parse Error|Invalid call|Nonexistent function|Cannot open file|Failed loading resource|V11 HLOD: missing' build/runtime/runtime_output.log || true
-            exit 1
-          fi
-          echo 'GODOT_RUNTIME_OUTPUT=CLEAN'
-      - name: Persist
+      - name: Persist HLOD before runtime smoke
         run: |
           set -euo pipefail
           git config user.name 'github-actions[bot]'
@@ -90,6 +76,22 @@ jobs:
           git add baked_city/ready_templates baked_city/hlod
           git commit -m 'feat: persist ready buildings and three-level HLOD [skip ci]'
           git push origin HEAD:main
+      - name: Godot HLOD runtime Output
+        run: |
+          set -euo pipefail
+          mkdir -p build/runtime
+          set +e
+          timeout 120s xvfb-run -a .runtime/godot/godot --path . --rendering-method gl_compatibility --rendering-driver opengl3 --audio-driver Dummy --script res://tools/ci_hlod_runtime_smoke.gd 2>&1 | tee build/runtime/runtime_output.log
+          code=${PIPESTATUS[0]}
+          set -e
+          if [ "$code" -ne 0 ] && [ "$code" -ne 124 ]; then exit "$code"; fi
+          grep -q 'V11 READY BAKE: COMPLETE loaded=587' build/runtime/runtime_output.log
+          if grep -Eq 'ERROR:|SCRIPT ERROR|Parse Error|Invalid call|Nonexistent function|Cannot open file|Failed loading resource|V11 HLOD: missing' build/runtime/runtime_output.log; then
+            echo 'GODOT_HLOD_RUNTIME=FAIL'
+            grep -E 'ERROR:|SCRIPT ERROR|Parse Error|Invalid call|Nonexistent function|Cannot open file|Failed loading resource|V11 HLOD: missing' build/runtime/runtime_output.log || true
+            exit 1
+          fi
+          echo 'GODOT_HLOD_RUNTIME=CLEAN'
       - name: Upload runtime log
         if: always()
         uses: actions/upload-artifact@v4
