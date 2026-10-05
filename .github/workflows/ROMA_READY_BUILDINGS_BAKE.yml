@@ -64,6 +64,7 @@ jobs:
           exit "$status"
       - name: Persist validator diagnostic report
         if: always()
+        continue-on-error: true
         run: |
           set -euo pipefail
           test -f build/ready_structure_validator.log
