@@ -55,7 +55,7 @@ func _refresh_chunks(player_pos:Vector3)->void:
     for i in range(_placements.size()):
         var d:Dictionary=_placements[i]; var c:=_chunk_for(float(d.get("x",0)),float(d.get("z",0)))
         if abs(c.x-center.x)<=LOAD_RADIUS_CHUNKS and abs(c.y-center.y)<=LOAD_RADIUS_CHUNKS:wanted[i]=true
-    var ordered:Array[int]=wanted.keys()
+    var ordered: Array = wanted.keys()
     ordered.sort_custom(func(a:int,b:int)->bool:
         var da:Dictionary=_placements[a];var db:Dictionary=_placements[b]
         return Vector2(float(da.get("x",0))-player_pos.x,float(da.get("z",0))-player_pos.z).length_squared()<Vector2(float(db.get("x",0))-player_pos.x,float(db.get("z",0))-player_pos.z).length_squared())
