@@ -52,20 +52,6 @@ jobs:
           du -cb build/road_pilot_package/* | tail -1
           cd build/road_pilot_package && zip -9 ../roma_roads_gridmap_pilot.zip *
 
-      - name: Persist road pilot assets to main
-        shell: bash
-        run: |
-          set -euo pipefail
-          git config user.name 'github-actions[bot]'
-          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-          git add roads/roma_road_mesh_library.tres roads/roma_gridmap_pilot.tscn roads/ponte_tevere_pilota.tscn build/road_pilot/road_pilot_topdown.png build/road_pilot/road_pilot_memory_report.txt
-          if git diff --cached --quiet; then
-            echo 'No generated road assets changed.'
-          else
-            git commit -m 'feat: add GridMap road pilot assets'
-            git push origin HEAD:main
-          fi
-
       - name: Upload road pilot package
         uses: actions/upload-artifact@v4
         with:
