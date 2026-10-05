@@ -14,6 +14,8 @@ on:
       - 'v37_integration/generate_quarter_hlod.gd'
       - 'tools/capture_hlod_visual_tests.gd'
       - 'city_library/buildings/houses/roma_architecture_library_v11/scripts/modular_house_factory.gd'
+      - 'city_library/buildings/houses/roma_architecture_library_v11/scripts/library_building_system.gd'
+      - 'v37_integration/mobile_visual_variation.gd'
       - 'tools/normalize_v11_texture_paths.gd'
       - 'tools/optimize_v11_textures_mobile.gd'
       - 'tools/enforce_v11_facade_style.gd'
@@ -104,12 +106,17 @@ jobs:
           xvfb-run -a .runtime/godot/godot --path . --rendering-method gl_compatibility --rendering-driver opengl3 --script res://tools/capture_hlod_visual_tests.gd 2>&1 | tee build/hlod_visual_test.log
           capture_status=${PIPESTATUS[0]}
           set -e
-          test "$(find build/hlod_visual -maxdepth 1 -type f -name 'A_500m.png' | wc -l)" -eq 1
-          test "$(find build/hlod_visual -maxdepth 1 -type f -name 'B_250m.png' | wc -l)" -eq 1
-          test "$(find build/hlod_visual -maxdepth 1 -type f -name 'C_50m.png' | wc -l)" -eq 1
-          test "$(find build/hlod_visual -maxdepth 1 -type f -name 'D_*.png' | wc -l)" -eq 4
+          a=$(find build/hlod_visual -maxdepth 1 -type f -name 'A_500m.png' | wc -l)
+          b=$(find build/hlod_visual -maxdepth 1 -type f -name 'B_250m.png' | wc -l)
+          c=$(find build/hlod_visual -maxdepth 1 -type f -name 'C_50m.png' | wc -l)
+          d=$(find build/hlod_visual -maxdepth 1 -type f -name 'D_*.png' | wc -l)
+          test "$a" -eq 1
+          test "$b" -eq 1
+          test "$c" -eq 1
+          test "$d" -eq 4
           test -f build/hlod_visual/memory_report.json
-          echo "HLOD_CAPTURE_EXIT=${capture_status} OUTPUTS=PASS"
+          echo "HLOD_CAPTURE_EXIT=${capture_status} OUTPUTS=PASS A=$a B=$b C=$c D=$d"
+          exit 0
       - name: Runtime Godot smoke test
         run: |
           set -euo pipefail
@@ -130,7 +137,7 @@ jobs:
           set -euo pipefail
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-          git add -A baked_city/ready_templates baked_city/hlod v37_integration/bake_ready_buildings_120.gd v37_integration/validate_ready_templates_memory.gd v37_integration/v11_building_bridge.gd v37_integration/distribute_ready_buildings_quarters.gd v37_integration/generate_quarter_hlod.gd tools/capture_hlod_visual_tests.gd city_library/buildings/houses/roma_architecture_library_v11/scripts/modular_house_factory.gd tools/normalize_v11_texture_paths.gd tools/optimize_v11_textures_mobile.gd tools/enforce_v11_facade_style.gd .github/workflows/ROMA_READY_BUILDINGS_BAKE.yml
+          git add -A baked_city/ready_templates baked_city/hlod v37_integration/bake_ready_buildings_120.gd v37_integration/validate_ready_templates_memory.gd v37_integration/v11_building_bridge.gd v37_integration/distribute_ready_buildings_quarters.gd v37_integration/generate_quarter_hlod.gd tools/capture_hlod_visual_tests.gd city_library/buildings/houses/roma_architecture_library_v11/scripts/modular_house_factory.gd city_library/buildings/houses/roma_architecture_library_v11/scripts/library_building_system.gd v37_integration/mobile_visual_variation.gd tools/normalize_v11_texture_paths.gd tools/optimize_v11_textures_mobile.gd tools/enforce_v11_facade_style.gd .github/workflows/ROMA_READY_BUILDINGS_BAKE.yml
           if git diff --cached --quiet; then exit 0; fi
           git commit -m 'feat: persist three-level district HLOD [skip ci]'
           git fetch origin main
