@@ -1,6 +1,7 @@
 extends SceneTree
 ## One-time CI bake: 587 V11 buildings, merged mobile geometry, Roman materials,
 ## shared imported textures and one simplified BoxShape3D collision per building.
+## CI trigger marker: run the complete ready-building bake and progressive memory gates.
 
 const FACTORY_SCRIPT := "res://city_library/buildings/houses/roma_architecture_library_v11/scripts/modular_house_factory.gd"
 const POSITIONS_SCRIPT := "res://v37_integration/v37_building_positions_blob.gd"
