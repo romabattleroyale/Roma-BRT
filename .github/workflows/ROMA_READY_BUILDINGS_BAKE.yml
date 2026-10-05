@@ -95,12 +95,18 @@ jobs:
         run: |
           set -euo pipefail
           mkdir -p build
-          .runtime/godot/godot --headless --path . --script res://tools/capture_hlod_visual_tests.gd 2>&1 | tee build/hlod_visual_test.log
+          xvfb-run -a .runtime/godot/godot --path . --rendering-method gl_compatibility --rendering-driver opengl3 --script res://tools/capture_hlod_visual_tests.gd 2>&1 | tee build/hlod_visual_test.log
           test "$(find build/hlod_visual -maxdepth 1 -type f -name 'A_500m.png' | wc -l)" -eq 1
           test "$(find build/hlod_visual -maxdepth 1 -type f -name 'B_250m.png' | wc -l)" -eq 1
           test "$(find build/hlod_visual -maxdepth 1 -type f -name 'C_50m.png' | wc -l)" -eq 1
           test "$(find build/hlod_visual -maxdepth 1 -type f -name 'D_*.png' | wc -l)" -eq 4
           test -f build/hlod_visual/memory_report.json
+      - name: Runtime Godot smoke test
+        run: |
+          set -euo pipefail
+          timeout 120s xvfb-run -a .runtime/godot/godot --path . --rendering-method gl_compatibility --rendering-driver opengl3 --quit-after 900 2>&1 | tee build/runtime_smoke.log || test $? -eq 124
+          grep -q 'V11 READY BAKE: COMPLETE loaded=587' build/runtime_smoke.log
+          ! grep -q 'V37 edifici:' build/runtime_smoke.log
       - name: Package roma_ready_buildings.zip
         run: |
           set -euo pipefail
