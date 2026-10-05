@@ -31,6 +31,7 @@ func _run() -> void:
         var e: Dictionary = catalog[ci]
         var text := (str(e.get("id", "")) + " " + str(e.get("name", "")) + " " + str(e.get("function", ""))).to_lower()
         groups[_category(text)].append(ci)
+    print("READY TEMPLATE GROUPS: ", groups)
 
     var quotas := {"case": 40, "palazzi": 30, "angolo": 20, "botteghe": 15, "ville": 10, "portici": 5}
     var templates: Array[Dictionary] = []
@@ -59,7 +60,7 @@ func _run() -> void:
                 key = "%d|%d|%d" % [ci, floor, roof]
                 attempts += 1
             if used.has(key):
-                push_error("READY TEMPLATE BAKE: unable to create unique template category=%s index=%d" % [g, k]); quit(1); return
+                push_error("READY TEMPLATE BAKE: unable to create unique template category=%s index=%d candidates=%d" % [g, k, candidates.size()]); quit(1); return
             used[key] = true
             templates.append({"catalog_index": ci, "category": g, "floors": floor, "roof_variant": roof})
 
@@ -105,7 +106,7 @@ func _run() -> void:
 func _category(text: String) -> String:
     if text.contains("portico"): return "portici"
     if text.contains("villa"): return "ville"
-    if text.contains("angolo"): return "angolo"
+    if text.contains("angolo") or text.contains("angolare"): return "angolo"
     if text.contains("bottega") or text.contains("negozi") or text.contains("negozio") or text.contains("mercante"): return "botteghe"
     if text.contains("palazzo") or text.contains("palazzetto"): return "palazzi"
     return "case"
