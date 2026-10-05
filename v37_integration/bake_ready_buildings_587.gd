@@ -34,7 +34,6 @@ func _run() -> void:
         push_error("READY BAKE: source=%d catalog=%d" % [source.size(), catalog.size()])
         quit(1)
         return
-
     var heightmap := _load_raw_heightmap()
     if heightmap.is_empty():
         quit(1)
@@ -43,7 +42,6 @@ func _run() -> void:
     var heights: PackedFloat32Array = heightmap["values"]
     _write_shared_materials()
     var material_cache: Dictionary = _load_shared_materials()
-
     var baked := 0
     for i in range(source.size()):
         var d: Dictionary = source[i]
@@ -80,6 +78,7 @@ func _run() -> void:
             return
         root.position = Vector3(x, h, z)
         _apply_shared_materials(root, i, material_cache)
+        _remove_factory_collisions(root)
         _add_box_collision(root, float(entry.get("w", 10.0)), float(entry.get("d", 10.0)), floors)
         _set_owner_recursive(root, root)
         var packed := PackedScene.new()
@@ -151,6 +150,16 @@ func _apply_shared_materials(root: Node3D, variant: int, cache: Dictionary) -> v
                 mesh.surface_set_material(s, cache["r%d" % roof_index])
         for s in range(mesh.get_surface_count()):
             node.set_surface_override_material(s, null)
+
+func _remove_factory_collisions(root: Node3D) -> void:
+    _strip_collision_nodes(root)
+
+func _strip_collision_nodes(node: Node) -> void:
+    for child in node.get_children():
+        if child is StaticBody3D or child is CollisionShape3D or child is CollisionPolygon3D:
+            child.free()
+        else:
+            _strip_collision_nodes(child)
 
 func _add_box_collision(root: Node3D, width: float, depth: float, floors: int) -> void:
     var body := StaticBody3D.new()
