@@ -28,15 +28,26 @@ func _initialize() -> void:
         if ext != "jpg" and ext != "jpeg" and ext != "png":
             continue
         seen += 1
-        var image := Image.load_from_file(path)
+
+        # These files are project resources. Load them through Godot's resource
+        # loader so the imported texture/cache lifecycle is respected in headless
+        # CI as well as in the editor/runtime.
+        var texture := load(path) as Texture2D
+        if texture == null:
+            push_error("V11 TEXTURE OPT FAIL: cannot load resource %s" % path)
+            quit(3)
+            return
+        var image := texture.get_image()
         if image == null or image.is_empty():
-            push_error("V11 TEXTURE OPT FAIL: cannot load %s" % path)
+            push_error("V11 TEXTURE OPT FAIL: cannot read image %s" % path)
             quit(3)
             return
         var before := Vector2i(image.get_width(), image.get_height())
         var largest := maxi(before.x, before.y)
         if largest <= MAX_SIZE:
             print("V11 TEXTURE KEEP: %s %dx%d" % [name, before.x, before.y])
+            texture = null
+            image = null
             continue
         var scale := float(MAX_SIZE) / float(largest)
         var new_w := maxi(1, roundi(float(before.x) * scale))
@@ -53,6 +64,8 @@ func _initialize() -> void:
             return
         changed += 1
         print("V11 TEXTURE RESIZE: %s %dx%d -> %dx%d" % [name, before.x, before.y, new_w, new_h])
+        texture = null
+        image = null
     dir.list_dir_end()
     print("V11 TEXTURE OPT PASS: scanned=%d resized=%d max=%dpx" % [seen, changed, MAX_SIZE])
     quit(0)
