@@ -8,11 +8,12 @@ func _init() -> void:
 
 func _run() -> void:
     var count := 587
-    var args := OS.get_cmdline_args()
-    if not args.is_empty():
-        var last := str(args[args.size() - 1])
-        if last.is_valid_int():
-            count = int(last)
+    var args := OS.get_cmdline_user_args()
+    for arg in args:
+        var value := str(arg).strip_edges()
+        if value.is_valid_int():
+            count = int(value)
+            break
     count = clampi(count, 1, 587)
 
     var baseline := _memory_mb()
