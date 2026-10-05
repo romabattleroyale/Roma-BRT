@@ -17,6 +17,7 @@ func _run() -> void:
 
     var baseline := _memory_mb()
     var nodes: Array[Node3D] = []
+    var root := root
     for i in range(count):
         var path := "%s/building_%03d.tscn" % [READY_DIR, i + 1]
         var packed := load(path) as PackedScene
@@ -29,12 +30,12 @@ func _run() -> void:
             push_error("READY TEST: instantiate failed %s" % path)
             quit(1)
             return
-        add_child(node)
+        root.add_child(node)
         nodes.append(node)
         if (i + 1) % 10 == 0:
-            await get_tree().process_frame
+            await process_frame
 
-    await get_tree().process_frame
+    await process_frame
     var total := _memory_mb()
     var delta := total - baseline
     print("READY TEST %d OK: baseline=%.2f MB total=%.2f MB delta=%.2f MB" % [count, baseline, total, delta])
@@ -50,7 +51,7 @@ func _run() -> void:
 
     for node in nodes:
         node.queue_free()
-    await get_tree().process_frame
+    await process_frame
     quit(0)
 
 func _memory_mb() -> float:
