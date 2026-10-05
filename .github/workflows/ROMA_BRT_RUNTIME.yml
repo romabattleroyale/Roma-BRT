@@ -55,6 +55,9 @@ jobs:
               assert 'x' in entry and 'z' in entry, f'missing coordinates at placement {i}'
           print('READY_MANIFEST_STRUCTURE=PASS')
           PY
+          hlod_count=$(find baked_city/hlod -maxdepth 1 -type f -name 'quartiere_*_*.res' | wc -l)
+          echo "HLOD_MESH_COUNT=$hlod_count"
+          test "$hlod_count" -eq 36
 
       - name: Verify project metadata
         run: |
@@ -77,21 +80,33 @@ jobs:
           .runtime/godot/godot --version
 
       - name: Import Godot assets
+        shell: bash
         run: |
           set -euo pipefail
-          .runtime/godot/godot --headless --editor --path . --quit
+          mkdir -p build/runtime
+          set +e
+          .runtime/godot/godot --headless --editor --path . --quit 2>&1 | tee build/runtime/godot_import.log
+          code=${PIPESTATUS[0]}
+          set -e
+          if [ "$code" -ne 0 ]; then exit "$code"; fi
+          if grep -Eq 'SCRIPT ERROR|Parse Error|Invalid call|Nonexistent function|Cannot open file|Failed loading resource' build/runtime/godot_import.log; then
+            echo 'ERROR: Godot import Output is not clean'
+            grep -E 'SCRIPT ERROR|Parse Error|Invalid call|Nonexistent function|Cannot open file|Failed loading resource' build/runtime/godot_import.log || true
+            exit 1
+          fi
           test -d .godot/imported
-          echo 'GODOT IMPORT CACHE OK'
+          echo 'GODOT IMPORT OUTPUT=CLEAN'
 
       - name: Runtime smoke launch using only pre-generated buildings
         shell: bash
         run: |
           set -euo pipefail
           mkdir -p build/runtime
-          code=0
-          timeout 45s .runtime/godot/godot --headless --path . --rendering-method gl_compatibility --scene res://main.tscn > build/runtime/godot_runtime.log 2>&1 || code=$?
+          set +e
+          timeout 60s xvfb-run -a .runtime/godot/godot --path . --rendering-method gl_compatibility --rendering-driver opengl3 --scene res://main.tscn 2>&1 | tee build/runtime/godot_runtime.log
+          code=${PIPESTATUS[0]}
+          set -e
           if [ "$code" -ne 0 ] && [ "$code" -ne 124 ]; then
-            cat build/runtime/godot_runtime.log
             exit "$code"
           fi
           grep -q 'V11 READY BAKE: COMPLETE loaded=587' build/runtime/godot_runtime.log
@@ -100,17 +115,18 @@ jobs:
             exit 1
           fi
           if grep -Eq 'ERROR:|SCRIPT ERROR|Parse Error|Invalid call|Nonexistent function|Cannot open file|Failed loading resource|V11 HLOD: missing' build/runtime/godot_runtime.log; then
-            echo 'ERROR: Godot runtime log contains blocking errors'
+            echo 'ERROR: Godot runtime Output is not clean'
             grep -E 'ERROR:|SCRIPT ERROR|Parse Error|Invalid call|Nonexistent function|Cannot open file|Failed loading resource|V11 HLOD: missing' build/runtime/godot_runtime.log || true
             exit 1
           fi
+          echo 'GODOT_RUNTIME_OUTPUT=CLEAN'
           tail -n 250 build/runtime/godot_runtime.log
 
-      - name: Upload runtime log
+      - name: Upload runtime logs
         if: always()
         uses: actions/upload-artifact@v4
         with:
           name: Roma-BRT-ready-bake-runtime-log
-          path: build/runtime/godot_runtime.log
+          path: build/runtime
           if-no-files-found: warn
           retention-days: 30
