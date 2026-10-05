@@ -26,16 +26,33 @@ jobs:
           ref: main
           fetch-depth: 1
 
-      - name: Verify persisted 587 ready buildings
+      - name: Verify persisted ready-building templates and manifest
         shell: bash
         run: |
           set -euo pipefail
-          test -d baked_city/ready_buildings
-          count=$(find baked_city/ready_buildings -maxdepth 1 -type f -name 'building_*.tscn' | wc -l)
-          echo "READY_BUILDINGS_COUNT=$count"
-          test "$count" -eq 587
-          test -f baked_city/ready_buildings/building_001.tscn
-          test -f baked_city/ready_buildings/building_587.tscn
+          test -d baked_city/ready_templates
+          template_count=$(find baked_city/ready_templates -maxdepth 1 -type f -name 'template_*.tscn' | wc -l)
+          echo "READY_TEMPLATE_COUNT=$template_count"
+          test "$template_count" -eq 120
+          test -f baked_city/ready_templates/template_001.tscn
+          test -f baked_city/ready_templates/template_120.tscn
+          test -f baked_city/ready_templates/manifest.json
+          python3 - <<'PY'
+          import json
+          from pathlib import Path
+          p = Path('baked_city/ready_templates/manifest.json')
+          data = json.loads(p.read_text())
+          placements = data.get('placements', [])
+          print(f"READY_PLACEMENTS_COUNT={len(placements)}")
+          assert len(placements) == 587
+          assert data.get('placement_count') == 587
+          assert data.get('district_count') == 12
+          assert data.get('river_clearance_m') == 100.0
+          for i, entry in enumerate(placements, 1):
+              assert 'template' in entry, f'missing template at placement {i}'
+              assert 'x' in entry and 'z' in entry, f'missing coordinates at placement {i}'
+          print('READY_MANIFEST_STRUCTURE=PASS')
+          PY
 
       - name: Verify project metadata
         run: |
