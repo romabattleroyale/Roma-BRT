@@ -84,10 +84,18 @@ jobs:
           echo "GODOT_WINDOW=$GODOT_WIN"
           sleep 8
 
+          # Godot 4.7.2 editor toolbar Play button. Click it instead of relying on F5 delivery.
           xdotool windowactivate --sync "$GODOT_WIN"
-          xdotool key --clearmodifiers F5
+          xdotool mousemove --window "$GODOT_WIN" 1459 35
+          xdotool click 1
+          echo 'PLAY_BUTTON_CLICKED=1459,35'
           sleep 45
-          xdotool key --clearmodifiers F8
+
+          # Godot 4.7.2 editor toolbar Stop button.
+          xdotool windowactivate --sync "$GODOT_WIN"
+          xdotool mousemove --window "$GODOT_WIN" 1518 35
+          xdotool click 1
+          echo 'STOP_BUTTON_CLICKED=1518,35'
           sleep 3
 
           xdotool windowactivate --sync "$GODOT_WIN"
