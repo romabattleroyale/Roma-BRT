@@ -63,7 +63,7 @@ func _run() -> void:
 
     _write_shared_materials()
     var cache := _load_shared_materials()
-    # Keep generated nodes in the SceneTree and use queue_free + one frame so
+    # Keep generated nodes in the SceneTree and use queue_free + multiple frames so
     # PhysicsServer/RenderingServer receive the normal lifecycle notifications.
     var runtime_root := Node3D.new()
     runtime_root.name = "ReadyTemplateBakeRuntime"
@@ -77,6 +77,7 @@ func _run() -> void:
         var root := factory.build_mobile_by_id(id, variant) as Node3D
         if root == null:
             push_error("READY TEMPLATE BAKE: build failed template=%d id=%s" % [t, id])
+            factory.clear_mobile_prototypes()
             await _release_node(runtime_root)
             quit(1); return
         root.name = "ReadyTemplate_%03d" % (t + 1)
@@ -97,17 +98,25 @@ func _run() -> void:
         var err := packed.pack(root)
         if err != OK:
             await _release_node(root)
+            factory.clear_mobile_prototypes()
             await _release_node(runtime_root)
             push_error("READY TEMPLATE BAKE: pack failed %d" % t)
             quit(1); return
         await _release_node(root)
         err = ResourceSaver.save(packed, "%s/template_%03d.tscn" % [OUT_DIR, t + 1])
         if err != OK:
+            factory.clear_mobile_prototypes()
             await _release_node(runtime_root)
             push_error("READY TEMPLATE BAKE: save failed %d" % t)
             quit(1); return
 
+    # The factory cache contains prototype Nodes that intentionally live outside
+    # the SceneTree for reuse. They are not part of the saved scenes and must be
+    # explicitly destroyed before process exit to avoid ObjectDB/RID leaks.
+    factory.clear_mobile_prototypes()
     await _release_node(runtime_root)
+    await process_frame
+    await process_frame
     _write_manifest(source, catalog, templates, variation_script)
     print("READY TEMPLATE BAKE OK: templates=120 placements=587")
     quit(0)
@@ -115,6 +124,7 @@ func _run() -> void:
 func _release_node(n: Node) -> void:
     if is_instance_valid(n):
         n.queue_free()
+        await process_frame
         await process_frame
 
 func _category(text: String) -> String:
@@ -154,8 +164,8 @@ func _write_shared_materials() -> void:
 
 func _load_shared_materials() -> Dictionary:
     var c = {}
-    for i in range(6): c["f%d" % i] = load("%s/facade_%d.tres" % [MATERIAL_DIR, i])
-    for i in range(3): c["r%d" % i] = load("%s/roof_%d.tres" % [MATERIAL_DIR, i])
+    for i in range(6): c["f%d" % i] = load("%s/facade_%d.tres" % (MATERIAL_DIR, i))
+    for i in range(3): c["r%d" % i] = load("%s/roof_%d.tres" % (MATERIAL_DIR, i))
     return c
 
 func _apply_shared_materials(root: Node3D, variant: int, cache: Dictionary) -> void:
