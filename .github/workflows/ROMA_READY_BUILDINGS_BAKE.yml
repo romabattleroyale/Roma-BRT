@@ -83,13 +83,21 @@ jobs:
           if-no-files-found: error
           retention-days: 30
       - name: Progressive ready-bake test — 40
-        run: .runtime/godot/godot --headless --path . --script res://v37_integration/validate_ready_buildings_memory.gd -- 40
+        env:
+          READY_BUILDING_COUNT: '40'
+        run: .runtime/godot/godot --headless --path . --script res://v37_integration/validate_ready_buildings_memory.gd
       - name: Progressive ready-bake test — 100
-        run: .runtime/godot/godot --headless --path . --script res://v37_integration/validate_ready_buildings_memory.gd -- 100
+        env:
+          READY_BUILDING_COUNT: '100'
+        run: .runtime/godot/godot --headless --path . --script res://v37_integration/validate_ready_buildings_memory.gd
       - name: Progressive ready-bake test — 300
-        run: .runtime/godot/godot --headless --path . --script res://v37_integration/validate_ready_buildings_memory.gd -- 300
+        env:
+          READY_BUILDING_COUNT: '300'
+        run: .runtime/godot/godot --headless --path . --script res://v37_integration/validate_ready_buildings_memory.gd
       - name: Progressive ready-bake test — 587
-        run: .runtime/godot/godot --headless --path . --script res://v37_integration/validate_ready_buildings_memory.gd -- 587
+        env:
+          READY_BUILDING_COUNT: '587'
+        run: .runtime/godot/godot --headless --path . --script res://v37_integration/validate_ready_buildings_memory.gd
       - name: Package roma_ready_buildings.zip
         run: |
           set -euo pipefail
