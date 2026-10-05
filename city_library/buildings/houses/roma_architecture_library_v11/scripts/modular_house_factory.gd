@@ -92,6 +92,16 @@ func build_mobile_by_id(id: String, variant: int = 0) -> Node3D:
         visual_variation.apply(root, variant, floors)
     return root
 
+func clear_mobile_prototypes() -> void:
+    # Prototypes are intentionally kept outside the SceneTree for bake-time reuse.
+    # They must be explicitly freed before process exit; otherwise their duplicated
+    # mesh/collision ObjectDB entries and server RIDs survive the bake process.
+    for value in mobile_prototypes.values():
+        var prototype := value as Node
+        if is_instance_valid(prototype):
+            prototype.free()
+    mobile_prototypes.clear()
+
 func build_and_place(id: String, terrain_position: Vector3, terrain_height: float, rotation_y: float = 0.0, variant: int = 0) -> Node3D:
     if not terrain_position.is_finite() or not is_finite(terrain_height):
         return null
