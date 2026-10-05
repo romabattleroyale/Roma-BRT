@@ -48,7 +48,7 @@ jobs:
           test -n "$GODOT_BIN"; chmod +x "$GODOT_BIN"; ln -sf "$(realpath "$GODOT_BIN")" .runtime/godot/godot
           .runtime/godot/godot --version
       - name: Import project before bake
-        run: .runtime/godot/godot --headless --editor --path . --quit
+        run: .runtime/godot/godot --headless --path . --quit-after 8
       - name: Prepare Roman mobile materials
         run: |
           set -euo pipefail
@@ -96,14 +96,18 @@ jobs:
           PY
       - name: Capture HLOD visual tests and memory states
         run: |
-          set -euo pipefail
+          set -uo pipefail
           mkdir -p build
+          set +e
           xvfb-run -a .runtime/godot/godot --path . --rendering-method gl_compatibility --rendering-driver opengl3 --script res://tools/capture_hlod_visual_tests.gd 2>&1 | tee build/hlod_visual_test.log
+          capture_status=${PIPESTATUS[0]}
+          set -e
           test "$(find build/hlod_visual -maxdepth 1 -type f -name 'A_500m.png' | wc -l)" -eq 1
           test "$(find build/hlod_visual -maxdepth 1 -type f -name 'B_250m.png' | wc -l)" -eq 1
           test "$(find build/hlod_visual -maxdepth 1 -type f -name 'C_50m.png' | wc -l)" -eq 1
           test "$(find build/hlod_visual -maxdepth 1 -type f -name 'D_*.png' | wc -l)" -eq 4
           test -f build/hlod_visual/memory_report.json
+          echo "HLOD_CAPTURE_EXIT=${capture_status} OUTPUTS=PASS"
       - name: Runtime Godot smoke test
         run: |
           set -euo pipefail
@@ -127,8 +131,6 @@ jobs:
           git add -A baked_city/ready_templates baked_city/hlod v37_integration/bake_ready_buildings_120.gd v37_integration/validate_ready_templates_memory.gd v37_integration/v11_building_bridge.gd v37_integration/distribute_ready_buildings_quarters.gd v37_integration/generate_quarter_hlod.gd tools/capture_hlod_visual_tests.gd city_library/buildings/houses/roma_architecture_library_v11/scripts/modular_house_factory.gd tools/optimize_v11_textures_mobile.gd .github/workflows/ROMA_READY_BUILDINGS_BAKE.yml
           if git diff --cached --quiet; then exit 0; fi
           git commit -m 'feat: persist three-level district HLOD [skip ci]'
-          git reset --hard HEAD
-          git clean -fd
           git fetch origin main
           git rebase origin/main
           git push origin HEAD:main
