@@ -81,9 +81,9 @@ jobs:
           test -s baked_city/roma_city_587.tscn
           test "$(find baked_city/archetypes_587 -maxdepth 1 -name 'archetype_*.tscn' | wc -l)" -eq 27
           test -f v37_integration/baked_city_loader.gd
-          grep -F 'MAX_BUILDINGS_TO_LOAD := 5' v37_integration/baked_city_loader.gd
+          grep -F 'const MAX_BUILDINGS_TO_LOAD: int = 5' v37_integration/baked_city_loader.gd
           grep -F '=== PRE-LOAD LIBRERIA ===' v37_integration/baked_city_loader.gd
-          grep -F 'REPORT FINALE' v37_integration/baked_city_loader.gd
+          grep -F '=== REPORT FINALE ===' v37_integration/baked_city_loader.gd
           grep -F 'run/main_scene="res://main.tscn"' project.godot
           grep -F 'export_filter="all_resources"' export_presets.cfg
       - name: Export V11 diagnostic Android APK
