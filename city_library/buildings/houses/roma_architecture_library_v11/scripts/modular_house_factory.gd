@@ -102,6 +102,19 @@ func clear_mobile_prototypes() -> void:
             prototype.free()
     mobile_prototypes.clear()
 
+func release_bake_resources() -> void:
+    clear_mobile_prototypes()
+    # The building system is also a Node3D created outside the SceneTree. Its
+    # material dictionary owns the StandardMaterial3D resources and their texture
+    # references, so release that graph explicitly before the headless process exits.
+    if is_instance_valid(system):
+        system.mats.clear()
+        system.free()
+    system = null
+    visual_variation = null
+    catalog.clear()
+    by_id.clear()
+
 func build_and_place(id: String, terrain_position: Vector3, terrain_height: float, rotation_y: float = 0.0, variant: int = 0) -> Node3D:
     if not terrain_position.is_finite() or not is_finite(terrain_height):
         return null
@@ -147,10 +160,6 @@ func _merge_mobile_geometry(root: Node3D, floors: int) -> Node3D:
         var mesh: Mesh = node.mesh
         if mesh == null or not node.skeleton.is_empty():
             continue
-
-        # Godot 4.7 Mesh does not expose surface_get_primitive_type().
-        # The V11 procedural library emits triangle surfaces; SurfaceTool.commit()
-        # is therefore the authoritative validation path for the merge.
         var node_role := _resolve_role(node, mesh, top_y, max_mesh_y)
         node.set_meta("role", node_role)
         var local_transform: Transform3D = _transform_relative_to_root(node, root)
@@ -168,7 +177,6 @@ func _merge_mobile_geometry(root: Node3D, floors: int) -> Node3D:
                 st.set_material(material)
                 tools[key] = st
             st.append_from(mesh, surface, local_transform)
-
         merged_nodes.append(node)
 
     if tools.is_empty():
