@@ -8,6 +8,7 @@ on:
       - 'v37_integration/bake_ready_buildings_587.gd'
       - 'v37_integration/validate_ready_building_structure.gd'
       - 'v37_integration/validate_ready_buildings_memory.gd'
+      - 'v37_integration/v11_building_bridge.gd'
       - '.github/workflows/ROMA_READY_BUILDINGS_BAKE.yml'
 
 permissions:
@@ -62,7 +63,7 @@ jobs:
           echo "READY_STRUCTURE_VALIDATOR_EXIT=$status" | tee -a build/ready_structure_validator.log
           exit "$status"
       - name: Persist validator diagnostic report
-        if: always()
+        if: failure() && steps.validate_ready_structure.outcome == 'failure'
         continue-on-error: true
         run: |
           set -euo pipefail
