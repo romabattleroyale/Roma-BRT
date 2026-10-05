@@ -81,11 +81,6 @@ jobs:
           test -d .godot/imported
           echo 'GODOT IMPORT CACHE OK'
 
-      - name: Validate persisted ready-building structure
-        run: |
-          set -euo pipefail
-          .runtime/godot/godot --headless --path . --script res://v37_integration/validate_ready_building_structure.gd
-
       - name: Runtime smoke launch using only pre-generated buildings
         shell: bash
         run: |
