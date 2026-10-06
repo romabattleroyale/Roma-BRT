@@ -85,18 +85,35 @@ jobs:
           set -euo pipefail
           mkdir -p build/runtime
           set +e
+          .runtime/godot/godot --headless --editor --path . --quit 2>&1 | tee build/runtime/godot_import.log
+          code=${PIPESTATUS[0]}
+          set -e
+          if [ "$code" -ne 0 ]; then exit "$code"; fi
+          if grep -Eq 'ERROR:|SCRIPT ERROR|Parse Error|Invalid call|Nonexistent function|Cannot open file|Failed loading resource' build/runtime/godot_import.log; then
+            echo 'ERROR: Godot import Output is not clean'
+            grep -E 'ERROR:|SCRIPT ERROR|Parse Error|Invalid call|Nonexistent function|Cannot open file|Failed loading resource' build/runtime/godot_import.log || true
+            exit 1
+          fi
+          test -f terrain_runtime.gd
+          test -f terrain_runtime_android_safe.gd
+          test -d .godot/imported
+          echo 'GODOT IMPORT OUTPUT=CLEAN'
+
+      - name: Godot runtime preflight
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p build/runtime
+          set +e
           .runtime/godot/godot --headless --path . --quit-after 8 2>&1 | tee build/runtime/godot_preflight.log
           code=${PIPESTATUS[0]}
           set -e
           if [ "$code" -ne 0 ]; then exit "$code"; fi
           if grep -Eq 'ERROR:|SCRIPT ERROR|Parse Error|Invalid call|Nonexistent function|Cannot open file|Failed loading resource' build/runtime/godot_preflight.log; then
             echo 'ERROR: Godot preflight Output is not clean'
-            grep -E 'ERROR:|SCRIPT ERROR|Parse Error|Invalid call|Nonexistent function|Cannot open file|Failed loading resource' build/runtime/godot_preflight.log || true
+            grep -E 'ERROR:|SCRIPT ERROR|Parse Error|Invalid call|Nonexistent function|Cannot open file|Failed loading resource' build/runtime/godlight_preflight.log || true
             exit 1
           fi
-          test -f terrain_runtime.gd
-          test -f terrain_runtime_android_safe.gd
-          test -d .godot/imported
           echo 'GODOT PREFLIGHT OUTPUT=CLEAN'
 
       - name: Runtime smoke launch using the real main scene
