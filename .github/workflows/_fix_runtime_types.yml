@@ -16,6 +16,8 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
+          git fetch origin main
+          git reset --hard origin/main
           python3 - <<'PY'
           from pathlib import Path
 
@@ -55,6 +57,8 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
+          git fetch origin main
+          git reset --hard origin/main
           git rm .github/workflows/_fix_runtime_types.yml
           git commit -m 'chore: remove temporary runtime type fixer'
           git push origin main
