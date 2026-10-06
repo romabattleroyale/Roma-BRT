@@ -9,7 +9,7 @@
 [ext_resource type="Script" path="res://urban_grid.gd" id="7_grid"]
 [ext_resource type="Script" path="res://v37_integration/v11_building_bridge.gd" id="8_v11bridge"]
 [ext_resource type="Script" path="res://tools/mobile_memory_watch.gd" id="9_memwatch"]
-[ext_resource type="Script" path="res://roads/road_world.gd" id="10_roads"]
+[ext_resource type="Script" path="res://roads/simple_roads.gd" id="10_roads"]
 
 [sub_resource type="Environment" id="Env"]
 background_mode = 1
@@ -44,7 +44,9 @@ enable_technical_camera = false
 [node name="Urban_Grid" type="Node3D" parent="."]
 script = ExtResource("7_grid")
 
-[node name="RomaRoadsGridMap" type="Node3D" parent="."]
+; OLD GridMap road_world.gd intentionally disabled.
+; The active road system is the connected box-segment network below.
+[node name="SimpleRoads" type="Node3D" parent="."]
 script = ExtResource("10_roads")
 
 [node name="V11BuildingBridge" type="Node3D" parent="."]
