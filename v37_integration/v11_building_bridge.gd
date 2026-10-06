@@ -66,10 +66,12 @@ func _load_hlods()->void:
             push_error("V11 HLOD: missing "+path)
             continue
         var node:=MeshInstance3D.new()
-        node.name="V11_HLOD2_Q%02d"%(district+1);node.mesh=mesh;node.position=DISTRICT_CENTERS[district]
+        node.name="V11_HLOD2_Q%02d"%(district+1);node.mesh=mesh;node.position=Vector3.ZERO
         node.cast_shadow=GeometryInstance3D.SHADOW_CASTING_SETTING_OFF;node.gi_mode=GeometryInstance3D.GI_MODE_DISABLED
         node.visibility_range_fade_mode=GeometryInstance3D.VISIBILITY_RANGE_FADE_SELF;node.visibility_range_begin=HLOD2_BEGIN;node.visibility_range_end=HLOD2_END;node.visibility_range_begin_margin=40.0;node.visibility_range_end_margin=40.0
         _city_root.add_child(node);_hlod_nodes.append(node)
+        var aabb:=mesh.get_aabb()
+        print("[HLOD2] Q%02d pos=%s scale=%s aabb_center=%s aabb_size=%s"%[(district+1),node.position,node.scale,aabb.get_center(),aabb.size])
     if _hlod_nodes.size()!=12:push_error("V11 HLOD2: loaded=%d expected=12"%_hlod_nodes.size())
     else:print("V11 HLOD2: PASS districts=12 range=400-4000")
 
@@ -89,6 +91,7 @@ func _load_lod1_multimeshes()->void:
         var items:Array=buckets[ti]
         if items.is_empty():continue
         var mm:=MultiMesh.new();mm.transform_format=MultiMesh.TRANSFORM_3D;mm.use_colors=false;mm.mesh=_lod1_meshes[ti];mm.instance_count=items.size()
+        var flat_material:=_get_flat_lod1_material(mm.mesh)
         for j in range(items.size()):
             var d:Dictionary=items[j];var floors:=clampi(int(d.get("floors",3)),3,5)
             var template_floors:=3
@@ -98,9 +101,21 @@ func _load_lod1_multimeshes()->void:
             var t:=Transform3D(Basis(Vector3.UP,float(d.get("rotation",0.0))),Vector3(float(d.get("x",0)),float(d.get("y",0)),float(d.get("z",0))))
             t=t.scaled_local(Vector3(1.0,float(floors)/float(maxi(1,template_floors)),1.0));mm.set_instance_transform(j,t)
         var mmi:=MultiMeshInstance3D.new();mmi.name="V11_LOD1_Template_%03d"%(ti+1);mmi.multimesh=mm;mmi.cast_shadow=GeometryInstance3D.SHADOW_CASTING_SETTING_OFF;mmi.gi_mode=GeometryInstance3D.GI_MODE_DISABLED
+        if flat_material!=null:mmi.material_override=flat_material
         mmi.visibility_range_fade_mode=GeometryInstance3D.VISIBILITY_RANGE_FADE_SELF;mmi.visibility_range_begin=LOD1_BEGIN;mmi.visibility_range_end=LOD1_END;mmi.visibility_range_begin_margin=20.0;mmi.visibility_range_end_margin=30.0
         _city_root.add_child(mmi);_lod1_nodes.append(mmi)
+        print("[LOD1] MultiMesh istanze: ",mm.instance_count)
+        for j in range(min(5,mm.instance_count)):
+            print("[LOD1] Istanza ",j," transform: ",mm.get_instance_transform(j))
     print("V11 LOD1: PASS templates=120 range=150-400")
+
+func _get_flat_lod1_material(mesh:Mesh)->Material:
+    if mesh==null:return null
+    for s in range(mesh.get_surface_count()):
+        var existing:=mesh.surface_get_material(s)
+        if existing!=null:return existing
+    var mat:=StandardMaterial3D.new();mat.albedo_color=Color("#B88B68");mat.roughness=1.0
+    return mat
 
 func _load_all_templates() -> void:
     _templates.clear()
