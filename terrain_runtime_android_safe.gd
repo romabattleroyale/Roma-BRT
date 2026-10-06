@@ -13,9 +13,9 @@ func _setup() -> void:
 		_set_status("ERRORE: Terrain3D non disponibile")
 		return
 
-	terrain = Terrain3D.new()
+	terrain = ClassDB.instantiate("Terrain3D") as Node3D
 	terrain.name = "Terrain3D_HEIGHTMAP_2000x2000"
-	terrain.region_size = Terrain3D.SIZE_512
+	terrain.set("region_size", 512)
 	terrain.vertex_spacing = MAP_SIZE_M / 1080.0
 	terrain.mesh_lods = 7
 	terrain.show_checkered = false
@@ -23,7 +23,7 @@ func _setup() -> void:
 	terrain.show_grey = false
 	add_child(terrain, true)
 
-	var roman_assets: Terrain3DAssets = load("res://terrain_materials/terrain_assets_roman_natural.tres")
+	var roman_assets: Resource = load("res://terrain_materials/terrain_assets_roman_natural.tres")
 	if roman_assets:
 		terrain.assets = roman_assets
 	terrain.material.auto_shader = false
