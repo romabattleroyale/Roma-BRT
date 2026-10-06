@@ -1,22 +1,23 @@
 {
-  "version": 1,
+  "version": 2,
   "coordinate_space": "godot_world",
   "world_offset": {"x": 1000.0, "y": 0.0, "z": 1000.0},
-  "placement_rule": "reserved modular POI slots; do not place on existing building footprints; validate clearance before instantiation",
+  "placement_rule": "reserved modular POI slots distributed across the full playable map; do not place on existing building footprints; validate clearance before instantiation",
   "modular": true,
+  "distribution": "full_map",
   "pois": [
-    {"id":"colosseo_foro_palatino","name":"Colosseo – Foro Romano – Palatino","category":"archeologico","position":{"x":200.0,"y":0.0,"z":350.0},"clearance_radius":90.0},
-    {"id":"stazione_termini","name":"Stazione Termini","category":"trasporti","position":{"x":600.0,"y":0.0,"z":350.0},"clearance_radius":85.0},
-    {"id":"stazione_tiburtina","name":"Stazione Tiburtina","category":"trasporti","position":{"x":1400.0,"y":0.0,"z":350.0},"clearance_radius":85.0},
-    {"id":"vaticano_san_pietro","name":"Vaticano – San Pietro","category":"religioso","position":{"x":200.0,"y":0.0,"z":1000.0},"clearance_radius":90.0},
-    {"id":"pantheon_navona","name":"Pantheon – Piazza Navona","category":"storico","position":{"x":600.0,"y":0.0,"z":1000.0},"clearance_radius":75.0},
-    {"id":"trevi_spagna","name":"Fontana di Trevi – Piazza di Spagna","category":"piazze_fontane","position":{"x":1400.0,"y":0.0,"z":1000.0},"clearance_radius":70.0},
-    {"id":"venezia_campidoglio","name":"Piazza Venezia – Campidoglio","category":"storico","position":{"x":1800.0,"y":0.0,"z":1000.0},"clearance_radius":80.0},
-    {"id":"circo_massimo_caracalla","name":"Circo Massimo – Terme di Caracalla","category":"archeologico","position":{"x":200.0,"y":0.0,"z":1650.0},"clearance_radius":90.0},
-    {"id":"villa_borghese_popolo","name":"Villa Borghese – Piazza del Popolo","category":"parco_piazza","position":{"x":600.0,"y":0.0,"z":1650.0},"clearance_radius":80.0},
-    {"id":"trastevere_isola","name":"Trastevere – Isola Tiberina","category":"quartiere","position":{"x":1400.0,"y":0.0,"z":1650.0},"clearance_radius":75.0},
-    {"id":"ostiense_piramide","name":"Ostiense – Piramide Cestia","category":"storico_trasporti","position":{"x":1800.0,"y":0.0,"z":1650.0},"clearance_radius":80.0},
-    {"id":"eur_civilta_italiana","name":"EUR – Palazzo della Civiltà Italiana","category":"moderno","position":{"x":1000.0,"y":0.0,"z":1800.0},"clearance_radius":90.0},
-    {"id":"san_giovanni_santa_maria_maggiore","name":"San Giovanni – Santa Maria Maggiore","category":"religioso","position":{"x":1000.0,"y":0.0,"z":250.0},"clearance_radius":80.0}
+    {"id":"colosseo_foro_palatino","name":"Colosseo – Foro Romano – Palatino","category":"archeologico","position":{"x":150.0,"y":0.0,"z":150.0},"clearance_radius":90.0},
+    {"id":"stazione_termini","name":"Stazione Termini","category":"trasporti","position":{"x":600.0,"y":0.0,"z":150.0},"clearance_radius":85.0},
+    {"id":"stazione_tiburtina","name":"Stazione Tiburtina","category":"trasporti","position":{"x":1400.0,"y":0.0,"z":150.0},"clearance_radius":85.0},
+    {"id":"vaticano_san_pietro","name":"Vaticano – San Pietro","category":"religioso","position":{"x":1850.0,"y":0.0,"z":350.0},"clearance_radius":90.0},
+    {"id":"pantheon_navona","name":"Pantheon – Piazza Navona","category":"storico","position":{"x":300.0,"y":0.0,"z":700.0},"clearance_radius":75.0},
+    {"id":"trevi_spagna","name":"Fontana di Trevi – Piazza di Spagna","category":"piazze_fontane","position":{"x":1000.0,"y":0.0,"z":700.0},"clearance_radius":70.0},
+    {"id":"venezia_campidoglio","name":"Piazza Venezia – Campidoglio","category":"storico","position":{"x":1700.0,"y":0.0,"z":800.0},"clearance_radius":80.0},
+    {"id":"circo_massimo_caracalla","name":"Circo Massimo – Terme di Caracalla","category":"archeologico","position":{"x":150.0,"y":0.0,"z":1200.0},"clearance_radius":90.0},
+    {"id":"villa_borghese_popolo","name":"Villa Borghese – Piazza del Popolo","category":"parco_piazza","position":{"x":600.0,"y":0.0,"z":1250.0},"clearance_radius":80.0},
+    {"id":"trastevere_isola","name":"Trastevere – Isola Tiberina","category":"quartiere","position":{"x":1200.0,"y":0.0,"z":1250.0},"clearance_radius":75.0},
+    {"id":"ostiense_piramide","name":"Ostiense – Piramide Cestia","category":"storico_trasporti","position":{"x":1850.0,"y":0.0,"z":1250.0},"clearance_radius":80.0},
+    {"id":"eur_civilta_italiana","name":"EUR – Palazzo della Civiltà Italiana","category":"moderno","position":{"x":300.0,"y":0.0,"z":1850.0},"clearance_radius":90.0},
+    {"id":"san_giovanni_santa_maria_maggiore","name":"San Giovanni – Santa Maria Maggiore","category":"religioso","position":{"x":1700.0,"y":0.0,"z":1850.0},"clearance_radius":80.0}
   ]
 }
