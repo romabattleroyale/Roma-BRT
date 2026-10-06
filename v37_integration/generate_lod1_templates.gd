@@ -3,14 +3,13 @@ extends SceneTree
 ## Keeps the building silhouette, drops shutter/balcony nodes when separable,
 ## and replaces all remaining materials with one flat color.
 const READY_DIR := "res://baked_city/ready_templates"
-const OUT_DIR := "res://baked_city/ready_templates/lod1"
+const OUT_DIR := READY_DIR
 const COUNT := 120
 
 func _init() -> void:
     call_deferred("_run")
 
 func _run() -> void:
-    DirAccess.make_dir_recursive_absolute(ProjectSettings.globalize_path(OUT_DIR))
     var report:Dictionary={"count":COUNT,"visibility_begin":150.0,"visibility_end":400.0,"material":"flat","removed_features":["persiane","balconi"]}
     var saved:=0
     for i in range(COUNT):
@@ -26,7 +25,8 @@ func _run() -> void:
         if err!=OK: push_error("LOD1: save failed %d err=%d"%[i+1,err]);quit(5);return
         saved+=1
         if i%10==9:await process_frame
-    var f:=FileAccess.open(OUT_DIR+"/report.json",FileAccess.WRITE);f.store_string(JSON.stringify(report.merged({"saved":saved})));f.close()
+    report["saved"]=saved
+    var f:=FileAccess.open(READY_DIR+"/lod1_report.json",FileAccess.WRITE);f.store_string(JSON.stringify(report));f.close()
     print("LOD1 BAKE PASS: templates=%d visibility=150-400 flat_material=PASS"%saved)
     quit(0)
 
