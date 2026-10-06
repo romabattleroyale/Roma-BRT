@@ -1,11 +1,13 @@
 extends Node3D
 ## Runtime-only terrain surface alignment.
-## Every native building root uses the Terrain3D height at its own X/Z.
-## Road GridMap cells are re-sampled individually so roads follow terrain.
+## Buildings are aligned against Terrain3D using footprint samples and real mesh bounds.
+## Roads are re-sampled individually so they follow terrain.
 ## Persisted terrain, river, road and placement assets remain untouched.
 
 const ROAD_CELL_Y_STEP := 0.01
 const ROAD_LIFT_Y := 0.06
+const BUILDING_LIFT_Y := 0.06
+const BUILDING_CLEARANCE := 0.02
 const RETRY_FRAMES := 600
 
 var _terrain_data: Object
@@ -56,6 +58,65 @@ func _terrain_y(x: float, z: float) -> float:
         return NAN
     return h
 
+func _building_meshes(root: Node) -> Array[MeshInstance3D]:
+    var meshes: Array[MeshInstance3D] = []
+    for node in root.find_children("*", "MeshInstance3D", true, false):
+        var mesh := node as MeshInstance3D
+        if mesh != null and mesh.mesh != null:
+            meshes.append(mesh)
+    return meshes
+
+func _building_footprint(root: Node3D) -> Array[Vector3]:
+    var points: Array[Vector3] = [root.global_position]
+    var meshes := _building_meshes(root)
+    if meshes.is_empty():
+        return points
+
+    var bounds := AABB()
+    var has_bounds := false
+    for mesh: MeshInstance3D in meshes:
+        var local_aabb := mesh.get_aabb()
+        var corners := [
+            Vector3(local_aabb.position.x, local_aabb.position.y, local_aabb.position.z),
+            Vector3(local_aabb.end.x, local_aabb.position.y, local_aabb.position.z),
+            Vector3(local_aabb.position.x, local_aabb.position.y, local_aabb.end.z),
+            Vector3(local_aabb.end.x, local_aabb.position.y, local_aabb.end.z)
+        ]
+        for corner: Vector3 in corners:
+            var world := mesh.global_transform * corner
+            if not has_bounds:
+                bounds = AABB(world, Vector3.ZERO)
+                has_bounds = true
+            else:
+                bounds = bounds.expand(world)
+
+    if has_bounds:
+        var center := bounds.position + bounds.size * 0.5
+        points = [
+            Vector3(bounds.position.x, center.y, bounds.position.z),
+            Vector3(bounds.end.x, center.y, bounds.position.z),
+            Vector3(bounds.position.x, center.y, bounds.end.z),
+            Vector3(bounds.end.x, center.y, bounds.end.z),
+            Vector3(center.x, center.y, center.z)
+        ]
+    return points
+
+func _building_bottom_clearance(root: Node3D, terrain_floor: float) -> float:
+    var min_bottom := INF
+    var found := false
+    for mesh: MeshInstance3D in _building_meshes(root):
+        var aabb := mesh.get_aabb()
+        var y_values := [aabb.position.y, aabb.end.y]
+        for y: float in y_values:
+            for x: float in [aabb.position.x, aabb.end.x]:
+                for z: float in [aabb.position.z, aabb.end.z]:
+                    var world := mesh.global_transform * Vector3(x, y, z)
+                    min_bottom = minf(min_bottom, world.y)
+                    found = true
+    if not found:
+        return INF
+    return min_bottom - terrain_floor
+
 func _align_city(bridge: Node) -> void:
     if _aligned_buildings:
         return
@@ -64,29 +125,47 @@ func _align_city(bridge: Node) -> void:
         return
 
     var building_count := 0
+    var lifted_count := 0
+    var max_extra_lift := 0.0
     var min_y := INF
     var max_y := -INF
+
     for child in city_root.get_children():
         if not (child is Node3D):
             continue
         var root := child as Node3D
         if not root.has_meta("runtime_placement"):
             continue
-        var idx := int(root.get_meta("runtime_placement"))
-        var h := _terrain_y(root.global_position.x, root.global_position.z)
-        if is_nan(h):
+
+        var samples := _building_footprint(root)
+        var terrain_floor := -INF
+        for sample: Vector3 in samples:
+            var h := _terrain_y(sample.x, sample.z)
+            if not is_nan(h):
+                terrain_floor = maxf(terrain_floor, h)
+        if is_inf(terrain_floor):
             continue
+
         var pos := root.global_position
-        pos.y = h + 0.03
+        pos.y = terrain_floor + BUILDING_LIFT_Y
         root.global_position = pos
-        _aligned_buildings_map[idx] = true
+
+        var clearance := _building_bottom_clearance(root, terrain_floor)
+        if clearance < BUILDING_CLEARANCE:
+            var extra := BUILDING_CLEARANCE - clearance
+            pos.y += extra
+            root.global_position = pos
+            lifted_count += 1
+            max_extra_lift = maxf(max_extra_lift, extra)
+
+        _aligned_buildings_map[int(root.get_meta("runtime_placement"))] = true
         building_count += 1
-        min_y = minf(min_y, h)
-        max_y = maxf(max_y, h)
+        min_y = minf(min_y, terrain_floor)
+        max_y = maxf(max_y, terrain_floor)
 
     if building_count >= 587:
         _aligned_buildings = true
-    print("TERRAIN SURFACE ALIGN: BUILDINGS aligned=" + str(building_count) + "/587 terrain_y=" + str(snappedf(min_y, 0.01)) + ".." + str(snappedf(max_y, 0.01)))
+    print("TERRAIN SURFACE ALIGN: BUILDINGS aligned=" + str(building_count) + "/587 lifted=" + str(lifted_count) + " max_extra=" + str(snappedf(max_extra_lift, 0.01)) + " terrain_y=" + str(snappedf(min_y, 0.01)) + ".." + str(snappedf(max_y, 0.01)))
 
 func _is_bridge_node(node: Node) -> bool:
     var n := node
@@ -120,7 +199,7 @@ func _align_roads() -> void:
                 skipped_bridges += 1
                 continue
 
-            var original_cells:Array[Vector3i] = grid.get_used_cells()
+            var original_cells: Array[Vector3i] = grid.get_used_cells()
             if original_cells.is_empty():
                 continue
 
@@ -129,8 +208,8 @@ func _align_roads() -> void:
             grid.global_position = root_pos
             grid.cell_size = Vector3(grid.cell_size.x, ROAD_CELL_Y_STEP, grid.cell_size.z)
 
-            var placements:Array[Dictionary] = []
-            for cell:Vector3i in original_cells:
+            var placements: Array[Dictionary] = []
+            for cell: Vector3i in original_cells:
                 var item := grid.get_cell_item(cell)
                 if item < 0:
                     continue
@@ -150,8 +229,8 @@ func _align_roads() -> void:
                 max_y = maxf(max_y, h)
 
             grid.clear()
-            for p:Dictionary in placements:
-                var source:Vector3i = p["cell"]
+            for p: Dictionary in placements:
+                var source: Vector3i = p["cell"]
                 var target := Vector3i(source.x, int(p["y"]), source.z)
                 grid.set_cell_item(target, int(p["item"]), int(p["orientation"]))
 
