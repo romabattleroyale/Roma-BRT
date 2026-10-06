@@ -18,17 +18,21 @@ func _wait_and_apply() -> void:
             continue
         var bridge := scene.get_node_or_null("V11BuildingBridge")
         if bridge != null and bool(bridge.get("built")):
-            _apply(scene, bridge)
+            _apply(scene)
             return
         await get_tree().process_frame
     push_warning("CITY VISUAL AUDIT: timeout waiting for V11BuildingBridge")
 
-func _apply(scene: Node, bridge: Node) -> void:
+func _apply(scene: Node) -> void:
     if _done:
         return
-    var city_root := bridge.get("city_root") as Node3D
+
+    # V11BuildingBridge keeps city_root private; resolve the same runtime root
+    # through V37Integration, exactly as the bridge itself does during bootstrap.
+    var v37 := scene.get_node_or_null("V37Integration")
+    var city_root := v37.get("city_root") as Node3D if v37 != null else null
     if city_root == null:
-        push_warning("CITY VISUAL AUDIT: city_root missing")
+        push_warning("CITY VISUAL AUDIT: V37 city_root missing")
         return
 
     var hlod_hidden := 0
