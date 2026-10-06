@@ -17,6 +17,7 @@ const ALLEY_WIDTH := 4.0
 const SEGMENT_LENGTH := 10.0
 const SEGMENT_OVERLAP := 0.10
 const ROAD_HEIGHT := 0.10
+const ROAD_CLEARANCE := 0.06
 const LOCAL_HALF_EXTENT := 120.0
 const LOCAL_SPACING := 80.0
 const RETRY_FRAMES := 600
@@ -45,10 +46,19 @@ func _wait_for_terrain() -> void:
         if terrain != null:
             _terrain_data = terrain.get("data") as Object
             if _terrain_data != null:
-                _build_network()
-                return
+                # Terrain3D creates its Data object before the persistent heightmap
+                # is loaded. Do not build roads at Y=0 during that short window:
+                # that was the cause of roads being hidden underneath the terrain.
+                var range_variant: Variant = _terrain_data.call("get_height_range")
+                var height_range := Vector2.ZERO
+                if range_variant is Vector2:
+                    height_range = range_variant
+                if height_range.y - height_range.x > 0.5:
+                    print("SIMPLE ROADS: terrain height data ready range=", height_range)
+                    _build_network()
+                    return
         await get_tree().process_frame
-    push_error("SIMPLE ROADS: timeout waiting for Terrain3D")
+    push_error("SIMPLE ROADS: timeout waiting for loaded Terrain3D height data")
 
 func _terrain_y(x: float, z: float) -> float:
     if _terrain_data == null:
@@ -113,7 +123,7 @@ func _add_edge(a: Vector3, b: Vector3, width: float, material: Material) -> void
         var p1 := flat_a.lerp(flat_b, t1)
         var length := p0.distance_to(p1) + SEGMENT_OVERLAP
         var midpoint := (p0 + p1) * 0.5
-        midpoint.y = _terrain_y(midpoint.x, midpoint.z) + ROAD_HEIGHT * 0.5
+        midpoint.y = _terrain_y(midpoint.x, midpoint.z) + ROAD_CLEARANCE + ROAD_HEIGHT * 0.5
         _add_segment(midpoint, length, width, direction, material)
 
 func _add_segment(midpoint: Vector3, length: float, width: float, direction: Vector3, material: Material) -> void:
@@ -127,7 +137,7 @@ func _add_segment(midpoint: Vector3, length: float, width: float, direction: Vec
     add_child(instance)
 
 func _add_intersection(center: Vector3, width: float) -> void:
-    center.y = _terrain_y(center.x, center.z) + ROAD_HEIGHT * 0.5
+    center.y = _terrain_y(center.x, center.z) + ROAD_CLEARANCE + ROAD_HEIGHT * 0.5
     var mesh := BoxMesh.new()
     mesh.size = Vector3(width, ROAD_HEIGHT, width)
     var instance := MeshInstance3D.new()
