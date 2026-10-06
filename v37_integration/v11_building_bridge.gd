@@ -1,32 +1,22 @@
 extends Node3D
-## Runtime V11 bridge: one world-frame conversion for LOD0 + LOD1 + HLOD2.
+## Runtime V11 bridge: load all 587 real building instances and use native Godot visibility ranges.
 const READY_DIR := "res://baked_city/ready_templates"
 const MANIFEST_PATH := READY_DIR + "/manifest.json"
-const HLOD_DIR := "res://baked_city/hlod"
-const LOD1_DIR := "res://baked_city/lod1"
 const WORLD_OFFSET := Vector3(1000.0, 0.0, 1000.0)
-const CHUNK_SIZE := 200.0
-const MAX_ACTIVE := 50
-const LOAD_RADIUS_CHUNKS := 1
-const LOD0_END := 150.0
-const LOD1_BEGIN := 150.0
-const LOD1_END := 400.0
-const HLOD2_BEGIN := 400.0
-const HLOD2_END := 4000.0
+const BUILDING_VISIBILITY_END := 500.0
+const BUILDING_FADE_MARGIN := 40.0
+const DISTRICT_PLANE_BEGIN := 500.0
+const DISTRICT_PLANE_END := 5000.0
+const DISTRICT_PLANE_SIZE := Vector2(300.0, 300.0)
+const DISTRICT_PLANE_Y := 0.5
 const DISTRICT_CENTERS := [Vector3(-800,0,-650),Vector3(-400,0,-650),Vector3(400,0,-650),Vector3(800,0,-650),Vector3(-800,0,0),Vector3(-400,0,0),Vector3(400,0,0),Vector3(800,0,0),Vector3(-800,0,650),Vector3(-400,0,650),Vector3(400,0,650),Vector3(800,0,650)]
 const DISTRICT_COLORS := [Color("#C58B62"),Color("#B97845"),Color("#D1A15A"),Color("#B96F73"),Color("#C7AA83"),Color("#A9573B"),Color("#B88D6A"),Color("#D3A63A"),Color("#A99A7E"),Color("#C98D68"),Color("#A96D54"),Color("#C6A47B")]
+
 var built := false
-var _refreshing := false
 var _city_root: Node3D
 var _templates: Array[PackedScene] = []
-var _lod1_meshes: Array[Mesh] = []
 var _placements: Array = []
-var _active: Dictionary = {}
-var _groups: Dictionary = {}
-var _last_chunk := Vector2i(999999,999999)
 var _variation_script: RefCounted
-var _hlod_nodes: Array[Node3D] = []
-var _lod1_nodes: Array[Node3D] = []
 
 func _ready() -> void:
     call_deferred("_wait_for_v37")
@@ -41,26 +31,23 @@ func _wait_for_v37() -> void:
                 await _yield_frames(2)
                 if _load_manifest():
                     await _load_all_templates()
-                    _load_hlods()
-                    _load_lod1_multimeshes()
-                    var player := _find_player()
-                    var p := player.global_position if player != null else WORLD_OFFSET
-                    await _refresh_chunks(p)
+                    await _load_all_buildings()
+                    _create_district_planes()
                     built = true
-                    print("V11 READY BAKE: COMPLETE loaded=587 templates=120 active=%d HLOD2=12 LOD1=120 LOD0=streaming world_offset=%s" % [_active.size(), WORLD_OFFSET])
+                    print("V11 NATIVE VISIBILITY: COMPLETE loaded=587 templates=120 buildings=587 range=0-500 fade=self district_planes=12 range=500-5000")
                     return
         await get_tree().create_timer(0.1).timeout
-    push_error("V11 TEMPLATE CHUNKING: V37 world non pronto")
+    push_error("V11 NATIVE VISIBILITY: V37 world non pronto")
 
 func _load_manifest() -> bool:
     if not FileAccess.file_exists(MANIFEST_PATH):
-        push_error("V11 TEMPLATE CHUNKING: manifest mancante")
+        push_error("V11 NATIVE VISIBILITY: manifest mancante")
         return false
     var f := FileAccess.open(MANIFEST_PATH, FileAccess.READ)
     var data = JSON.parse_string(f.get_as_text())
     f.close()
     if not data is Dictionary or int(data.get("template_count", 0)) != 120 or int(data.get("placement_count", 0)) != 587:
-        push_error("V11 TEMPLATE CHUNKING: manifest invalido")
+        push_error("V11 NATIVE VISIBILITY: manifest invalido")
         return false
     var source_placements: Array = data["placements"] as Array
     _placements.clear()
@@ -71,113 +58,6 @@ func _load_manifest() -> bool:
         _placements.append(d)
     print("V11 WORLD FRAME: manifest 587 placements shifted once by +1000,+1000")
     return _placements.size() == 587
-
-func _load_hlods() -> void:
-    if _city_root == null:
-        return
-    for district in range(12):
-        var path := HLOD_DIR + "/quartiere_%02d_2.res" % (district + 1)
-        var mesh := ResourceLoader.load(path) as Mesh
-        if mesh == null:
-            push_error("V11 HLOD: missing " + path)
-            continue
-        var node := MeshInstance3D.new()
-        node.name = "V11_HLOD2_Q%02d" % (district + 1)
-        node.mesh = mesh
-        node.position = WORLD_OFFSET
-        node.material_override = _make_flat_material(DISTRICT_COLORS[district], true)
-        node.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
-        node.gi_mode = GeometryInstance3D.GI_MODE_DISABLED
-        node.visibility_range_fade_mode = GeometryInstance3D.VISIBILITY_RANGE_FADE_SELF
-        node.visibility_range_begin = HLOD2_BEGIN
-        node.visibility_range_end = HLOD2_END
-        node.visibility_range_begin_margin = 40.0
-        node.visibility_range_end_margin = 40.0
-        _city_root.add_child(node)
-        _hlod_nodes.append(node)
-        var aabb := mesh.get_aabb()
-        print("[HLOD2] Q%02d pos=%s aabb_center=%s aabb_size=%s" % [district + 1, node.position, aabb.get_center(), aabb.size])
-    if _hlod_nodes.size() != 12:
-        push_error("V11 HLOD2: loaded=%d expected=12" % _hlod_nodes.size())
-    else:
-        print("V11 HLOD2: PASS districts=12 range=400-4000 world_offset=+1000,+1000")
-
-func _load_lod1_multimeshes() -> void:
-    _lod1_meshes.clear()
-    for i in range(120):
-        var mesh := ResourceLoader.load("%s/template_%03d_lod1.res" % [LOD1_DIR, i + 1]) as Mesh
-        if mesh == null:
-            push_error("V11 LOD1: missing template_%03d_lod1.res" % (i + 1))
-            continue
-        _lod1_meshes.append(mesh)
-    if _lod1_meshes.size() != 120:
-        return
-    var buckets: Array = []
-    for _i in range(120):
-        buckets.append([])
-    for i in range(_placements.size()):
-        var d: Dictionary = _placements[i]
-        var ti := clampi(int(d.get("template", 0)), 0, 119)
-        buckets[ti].append(d)
-    for ti in range(120):
-        var items: Array = buckets[ti]
-        if items.is_empty():
-            continue
-        var mm := MultiMesh.new()
-        mm.transform_format = MultiMesh.TRANSFORM_3D
-        mm.use_colors = true
-        mm.mesh = _lod1_meshes[ti]
-        mm.instance_count = items.size()
-        var flat_material := _make_flat_material(Color("#B88B68"), true)
-        for j in range(items.size()):
-            var d: Dictionary = items[j]
-            var floors := clampi(int(d.get("floors", 3)), 3, 5)
-            var template_floors := 3
-            if ti < _templates.size():
-                var probe := _templates[ti].instantiate() as Node3D
-                if probe != null:
-                    template_floors = int(probe.get_meta("template_floors", 3))
-                    probe.free()
-            var t := Transform3D(Basis(Vector3.UP, float(d.get("rotation", 0.0))), Vector3(float(d.get("x", 0)), float(d.get("y", 0)), float(d.get("z", 0))))
-            t = t.scaled_local(Vector3(1.0, float(floors) / float(maxi(1, template_floors)), 1.0))
-            mm.set_instance_transform(j, t)
-            mm.set_instance_color(j, _district_color_for_position(t.origin))
-        var mmi := MultiMeshInstance3D.new()
-        mmi.name = "V11_LOD1_Template_%03d" % (ti + 1)
-        mmi.multimesh = mm
-        mmi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
-        mmi.gi_mode = GeometryInstance3D.GI_MODE_DISABLED
-        mmi.material_override = flat_material
-        mmi.visibility_range_fade_mode = GeometryInstance3D.VISIBILITY_RANGE_FADE_SELF
-        mmi.visibility_range_begin = LOD1_BEGIN
-        mmi.visibility_range_end = LOD1_END
-        mmi.visibility_range_begin_margin = 20.0
-        mmi.visibility_range_end_margin = 30.0
-        _city_root.add_child(mmi)
-        _lod1_nodes.append(mmi)
-    print("V11 LOD1: PASS templates=120 range=150-400 world_offset=+1000,+1000")
-
-func _make_flat_material(color: Color, use_vertex_color: bool = false) -> StandardMaterial3D:
-    var mat := StandardMaterial3D.new()
-    mat.albedo_color = color
-    mat.roughness = 1.0
-    mat.metallic = 0.0
-    mat.vertex_color_use_as_albedo = use_vertex_color
-    return mat
-
-func _district_color_for_position(pos: Vector3) -> Color:
-    var authored_pos := pos - WORLD_OFFSET
-    var best := 0
-    var best_dist := INF
-    for i in range(DISTRICT_CENTERS.size()):
-        var dist := Vector2(authored_pos.x, authored_pos.z).distance_squared_to(Vector2(DISTRICT_CENTERS[i].x, DISTRICT_CENTERS[i].z))
-        if dist < best_dist:
-            best_dist = dist
-            best = i
-    return DISTRICT_COLORS[best]
-
-func _get_flat_lod1_material(_mesh: Mesh) -> Material:
-    return _make_flat_material(Color("#B88B68"), true)
 
 func _load_all_templates() -> void:
     _templates.clear()
@@ -191,56 +71,19 @@ func _load_all_templates() -> void:
     if variation_script != null:
         _variation_script = variation_script.new()
     if _templates.size() != 120:
-        push_error("V11 TEMPLATE CHUNKING: templates caricati=%d" % _templates.size())
+        push_error("V11 NATIVE VISIBILITY: templates caricati=%d" % _templates.size())
 
-func _process(_delta: float) -> void:
-    if not built or _refreshing:
+func _load_all_buildings() -> void:
+    if _city_root == null or _templates.size() != 120:
         return
-    var player := _find_player()
-    if player == null:
-        return
-    var p := player.global_position
-    var c := _chunk_for(p.x, p.z)
-    if c != _last_chunk:
-        _refresh_chunks(p)
-
-func _refresh_chunks(player_pos: Vector3) -> void:
-    if _refreshing:
-        return
-    _refreshing = true
-    var center: Vector2i = _chunk_for(player_pos.x, player_pos.z)
-    _last_chunk = center
-    var wanted := {}
+    var loaded := 0
     for i in range(_placements.size()):
-        var d: Dictionary = _placements[i]
-        var c := _chunk_for(float(d.get("x", 0)), float(d.get("z", 0)))
-        if abs(c.x - center.x) <= LOAD_RADIUS_CHUNKS and abs(c.y - center.y) <= LOAD_RADIUS_CHUNKS:
-            wanted[i] = true
-    var ordered: Array = wanted.keys()
-    ordered.sort_custom(func(a: int, b: int) -> bool:
-        var da: Dictionary = _placements[a]
-        var db: Dictionary = _placements[b]
-        return Vector2(float(da.get("x", 0)) - player_pos.x, float(da.get("z", 0)) - player_pos.z).length_squared() < Vector2(float(db.get("x", 0)) - player_pos.x, float(db.get("z", 0)) - player_pos.z).length_squared()
-    )
-    if ordered.size() > MAX_ACTIVE:
-        ordered.resize(MAX_ACTIVE)
-    var keep := {}
-    for i in ordered:
-        keep[i] = true
-    var to_remove: Array[int] = []
-    for key in _active.keys():
-        if not keep.has(int(key)):
-            to_remove.append(int(key))
-    for i in to_remove:
-        _unload_placement(i)
-    var added := 0
-    for i in ordered:
-        if not _active.has(i):
-            _load_placement(i)
-            added += 1
-            if added % 3 == 0:
-                await get_tree().process_frame
-    _refreshing = false
+        _load_placement(i)
+        loaded += 1
+        if loaded % 4 == 0:
+            await get_tree().process_frame
+    if loaded != 587:
+        push_error("V11 NATIVE VISIBILITY: buildings caricati=%d expected=587" % loaded)
 
 func _load_placement(i: int) -> void:
     var d: Dictionary = _placements[i]
@@ -259,95 +102,59 @@ func _load_placement(i: int) -> void:
     root.set_meta("ready_signature", "%d|f%d|c%d|r%d" % [ti, floors, int(d.get("facade_index", 0)), int(d.get("roof_index", 0))])
     if _variation_script != null:
         _variation_script.apply(root, int(d.get("seed", i)), floors)
-    _set_lod0_visibility(root)
+    _set_native_visibility(root)
     _city_root.add_child(root)
-    _active[i] = root
-    _attach_to_multimesh(i, root)
 
-func _set_lod0_visibility(root: Node) -> void:
+func _set_native_visibility(root: Node) -> void:
     var stack: Array[Node] = [root]
+    var mesh_count := 0
     while not stack.is_empty():
         var n: Node = stack.pop_back()
         if n is MeshInstance3D:
-            var g := n as MeshInstance3D
-            g.visibility_range_fade_mode = GeometryInstance3D.VISIBILITY_RANGE_FADE_SELF
-            g.visibility_range_begin = 0.0
-            g.visibility_range_end = LOD0_END
-            g.visibility_range_begin_margin = 15.0
-            g.visibility_range_end_margin = 20.0
+            var mesh := n as MeshInstance3D
+            mesh.visibility_range_begin = 0.0
+            mesh.visibility_range_end = BUILDING_VISIBILITY_END
+            mesh.visibility_range_begin_margin = 0.0
+            mesh.visibility_range_end_margin = BUILDING_FADE_MARGIN
+            mesh.visibility_range_fade_mode = GeometryInstance3D.VISIBILITY_RANGE_FADE_SELF
+            mesh_count += 1
         for c in n.get_children():
             stack.append(c)
+    root.set_meta("runtime_mesh_count", mesh_count)
 
-func _attach_to_multimesh(i: int, root: Node3D) -> void:
-    var mesh := _find_mesh_node(root)
-    if mesh == null or mesh.mesh == null:
+func _create_district_planes() -> void:
+    if _city_root == null:
         return
-    var sig := str(root.get_meta("ready_signature", ""))
-    var group: Dictionary = _groups.get(sig, {})
-    if group.is_empty():
-        _groups[sig] = {"mesh": mesh.mesh, "roots": [i], "mmi": null, "mm": null}
-        return
-    var mm := group.get("mm") as MultiMesh
-    if mm == null:
-        mm = MultiMesh.new()
-        mm.transform_format = MultiMesh.TRANSFORM_3D
-        mm.use_colors = false
-        mm.mesh = group["mesh"] as Mesh
-        mm.instance_count = 2
-        var first_root: Node3D = _active[int(group["roots"][0])]
-        mm.set_instance_transform(0, first_root.transform)
-        mm.set_instance_transform(1, root.transform)
-        var mmi := MultiMeshInstance3D.new()
-        mmi.name = "ReadyTemplateMultiMesh_%s" % sig
-        mmi.multimesh = mm
-        _city_root.add_child(mmi)
-        var first_mesh := _find_mesh_node(first_root)
-        if first_mesh != null:
-            first_mesh.visible = false
-        mesh.visible = false
-        group["mm"] = mm
-        group["mmi"] = mmi
-        group["roots"].append(i)
-        _groups[sig] = group
-    else:
-        mm.instance_count += 1
-        mm.set_instance_transform(mm.instance_count - 1, root.transform)
-        mesh.visible = false
-        group["roots"].append(i)
-        _groups[sig] = group
+    for child in _city_root.get_children():
+        if str(child.name).begins_with("V11_CITY_PLANE_"):
+            child.queue_free()
+    for district in range(12):
+        var plane := MeshInstance3D.new()
+        plane.name = "V11_CITY_PLANE_%02d" % (district + 1)
+        var mesh := PlaneMesh.new()
+        mesh.size = DISTRICT_PLANE_SIZE
+        plane.mesh = mesh
+        var authored_center := DISTRICT_CENTERS[district]
+        plane.position = authored_center + WORLD_OFFSET
+        plane.position.y = DISTRICT_PLANE_Y
+        plane.material_override = _make_flat_material(DISTRICT_COLORS[district])
+        plane.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+        plane.gi_mode = GeometryInstance3D.GI_MODE_DISABLED
+        plane.visibility_range_begin = DISTRICT_PLANE_BEGIN
+        plane.visibility_range_end = DISTRICT_PLANE_END
+        plane.visibility_range_begin_margin = 40.0
+        plane.visibility_range_end_margin = 40.0
+        plane.visibility_range_fade_mode = GeometryInstance3D.VISIBILITY_RANGE_FADE_SELF
+        plane.extra_cull_margin = 100.0
+        _city_root.add_child(plane)
+    print("V11 CITY DISTRICT PLANES: PASS count=12 size=300x300 y=0.5 range=500-5000 fade=self")
 
-func _unload_placement(i: int) -> void:
-    var root := _active.get(i) as Node3D
-    if root != null:
-        root.queue_free()
-    _active.erase(i)
-    _rebuild_groups()
-
-func _rebuild_groups() -> void:
-    _groups.clear()
-    if _city_root != null:
-        for child in _city_root.get_children():
-            if child is MultiMeshInstance3D and str(child.name).begins_with("ReadyTemplateMultiMesh_"):
-                child.queue_free()
-    for i in _active.keys():
-        var mesh := _find_mesh_node(_active[i] as Node3D)
-        if mesh != null:
-            mesh.visible = true
-    for i in _active.keys():
-        _attach_to_multimesh(int(i), _active[i] as Node3D)
-
-func _chunk_for(x: float, z: float) -> Vector2i:
-    return Vector2i(floori(x / CHUNK_SIZE), floori(z / CHUNK_SIZE))
-
-func _find_mesh_node(root: Node) -> MeshInstance3D:
-    var stack: Array[Node] = [root]
-    while not stack.is_empty():
-        var n: Node = stack.pop_back()
-        if n is MeshInstance3D:
-            return n as MeshInstance3D
-        for c in n.get_children():
-            stack.append(c)
-    return null
+func _make_flat_material(color: Color) -> StandardMaterial3D:
+    var mat := StandardMaterial3D.new()
+    mat.albedo_color = color
+    mat.roughness = 1.0
+    mat.metallic = 0.0
+    return mat
 
 func _find_player() -> Node3D:
     var debug_camera := get_tree().current_scene.find_child("DebugTopDownCamera3D", true, false) as Camera3D
