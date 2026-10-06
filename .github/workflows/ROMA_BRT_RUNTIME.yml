@@ -57,7 +57,7 @@ jobs:
           PY
           hlod_count=$(find baked_city/hlod -maxdepth 1 -type f -name 'quartiere_*_*.res' | wc -l)
           echo "HLOD_MESH_COUNT=$hlod_count"
-          test "$hlod_count" -eq 36
+          test "$hlod_count" -eq 12
 
       - name: Verify project metadata
         run: |
