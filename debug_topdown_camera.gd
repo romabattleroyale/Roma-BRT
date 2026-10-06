@@ -5,7 +5,7 @@ extends Node3D
 
 @export var map_size := 2000.0
 @export var target := Vector3(1000.0, 0.0, 1000.0)
-@export var distance := 1500.0
+@export var distance := 350.0
 @export var min_distance := 120.0
 @export var max_distance := 3200.0
 @export var pitch := -1.22
@@ -88,17 +88,13 @@ func _apply_world_frame_fix() -> void:
     if not placements is Array or placements.size() != 587:
         return
 
-    # Correct the runtime copy of the manifest before the next LOD streaming
-    # decision. The repository JSON/baked assets are never modified.
     for item in placements:
-        if item is Dictionary:
-            if not bool(item.get("_runtime_world_offset", false)):
-                item["x"] = float(item.get("x", 0.0)) + CITY_WORLD_OFFSET.x
-                item["z"] = float(item.get("z", 0.0)) + CITY_WORLD_OFFSET.z
-                item["_runtime_world_offset"] = true
+        if item is Dictionary and not bool(item.get("_runtime_world_offset", false)):
+            item["x"] = float(item.get("x", 0.0)) + CITY_WORLD_OFFSET.x
+            item["z"] = float(item.get("z", 0.0)) + CITY_WORLD_OFFSET.z
+            item["_runtime_world_offset"] = true
     bridge.set("_placements", placements)
 
-    # Shift anything V11 already spawned before the correction became active.
     var city_root := bridge.get("_city_root") as Node3D
     if city_root != null:
         for child in city_root.get_children():
@@ -116,7 +112,6 @@ func _apply_world_frame_fix() -> void:
                 node.position += CITY_WORLD_OFFSET
                 node.set_meta("runtime_world_offset", true)
 
-    # Force V11 to recalculate the active LOD0 chunk with the corrected frame.
     bridge.set("_last_chunk", Vector2i(999999, 999999))
     _world_frame_fixed = true
     print("WORLD FRAME FIX: V11 +1000,+1000 runtime-only; manifest=587 corrected")
@@ -127,8 +122,6 @@ func _on_virtual_move_changed(value: Vector2) -> void:
 func pan_from_controller(move: Vector2, delta: float) -> void:
     var speed := controller_move_speed * maxf(distance / 900.0, 0.45)
     target.x += move.x * speed * delta
-    # Screen/joystick UP (negative Y) must move the map/camera forward toward -Z.
-    # The previous sign made pushing UP move the map backward.
     target.z += move.y * speed * delta
     target.x = clampf(target.x, 0.0, map_size)
     target.z = clampf(target.z, 0.0, map_size)
@@ -137,31 +130,23 @@ func pan_from_controller(move: Vector2, delta: float) -> void:
 func _input(event: InputEvent) -> void:
     if camera == null:
         return
-
     if event is InputEventScreenTouch:
         var touch := event as InputEventScreenTouch
         if touch.pressed:
             touches[touch.index] = touch.position
-            if is_right_side(touch.position):
-                right_touch_indices[touch.index] = true
+            if is_right_side(touch.position): right_touch_indices[touch.index] = true
         else:
             touches.erase(touch.index)
             right_touch_indices.erase(touch.index)
-            if right_touch_indices.size() < 2:
-                last_pinch_distance = 0.0
+            if right_touch_indices.size() < 2: last_pinch_distance = 0.0
         return
-
     if event is InputEventScreenDrag:
         var drag := event as InputEventScreenDrag
         touches[drag.index] = drag.position
-
-        if not right_touch_indices.has(drag.index):
-            return
-
+        if not right_touch_indices.has(drag.index): return
         var right_keys := right_touch_indices.keys()
         if right_keys.size() >= 2:
-            if not touches.has(right_keys[0]) or not touches.has(right_keys[1]):
-                return
+            if not touches.has(right_keys[0]) or not touches.has(right_keys[1]): return
             var p0: Vector2 = touches[right_keys[0]]
             var p1: Vector2 = touches[right_keys[1]]
             var pinch_distance := p0.distance_to(p1)
@@ -171,30 +156,19 @@ func _input(event: InputEvent) -> void:
                 update_camera()
             last_pinch_distance = pinch_distance
             return
-
         var vertical := drag.relative.y
         var horizontal := drag.relative.x
         if absf(vertical) > 0.01:
-            distance = clampf(
-                distance * pow(2.0, vertical * touch_zoom_speed / 1000.0),
-                min_distance,
-                max_distance
-            )
+            distance = clampf(distance * pow(2.0, vertical * touch_zoom_speed / 1000.0), min_distance, max_distance)
         if absf(horizontal) > 0.01:
-            pitch = clampf(
-                pitch - horizontal * touch_pitch_speed,
-                min_pitch,
-                max_pitch
-            )
+            pitch = clampf(pitch - horizontal * touch_pitch_speed, min_pitch, max_pitch)
         update_camera()
 
 func is_right_side(position: Vector2) -> bool:
     return position.x >= get_viewport().get_visible_rect().size.x * 0.5
 
 func update_camera() -> void:
-    if camera == null:
-        return
-
+    if camera == null: return
     var horizontal := cos(pitch) * distance
     var vertical := -sin(pitch) * distance
     var offset := Vector3(0.0, vertical, horizontal)
