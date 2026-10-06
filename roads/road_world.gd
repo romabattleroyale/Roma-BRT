@@ -4,9 +4,8 @@ extends Node3D
 ## Tevere, the road graph, district layout or building/HLOD assets.
 
 const WORLD_OFFSET := Vector3(1000.0, 0.0, 1000.0)
-# Diagnostic/runtime elevation only. Persisted road cells are authored at Y=0,
-# while the Terrain3D heightmap spans 0..48 m. Lift the rendered road layer so
-# it cannot be buried by the terrain. This does not modify baked road scenes.
+# Temporary runtime lift is retained only until terrain-surface alignment runs.
+# Persisted road cells remain untouched.
 const ROAD_RUNTIME_LIFT_Y := 4.0
 const DISTRICT_SCENES:Array[String] = [
     "res://roads/generated/district_01_roads.tscn",
@@ -51,3 +50,11 @@ func _ready() -> void:
         print("ROMA ROADS RUNTIME: PASS districts=12 bridges=4 GridMap=manual world_offset=+1000,+1000 lift_y=4.0")
     else:
         push_error("ROMA ROADS RUNTIME: loaded=%d/16" % loaded)
+
+    # Start the terrain-aware alignment without changing any persisted road asset.
+    var align_script := load("res://v37_integration/terrain_surface_alignment.gd") as Script
+    if align_script != null:
+        var aligner := Node3D.new()
+        aligner.name = "TerrainSurfaceAlignment"
+        aligner.set_script(align_script)
+        get_parent().add_child.call_deferred(aligner)
