@@ -96,6 +96,11 @@ jobs:
           .runtime/godot/godot --headless --path . --script res://tools/optimize_v11_textures_mobile.gd
           .runtime/godot/godot --headless --path . --script res://tools/enforce_v11_facade_style.gd
 
+      - name: Reimport project after material normalization
+        run: |
+          set -euo pipefail
+          .runtime/godot/godot --headless --editor --path . --quit
+
       - name: Normalize building texture loading for bake reuse
         shell: bash
         run: |
