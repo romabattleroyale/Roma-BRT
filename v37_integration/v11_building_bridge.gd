@@ -3,7 +3,7 @@ extends Node3D
 const READY_DIR := "res://baked_city/ready_templates"
 const MANIFEST_PATH := READY_DIR + "/manifest.json"
 const HLOD_DIR := "res://baked_city/hlod"
-const LOD1_DIR := READY_DIR
+const LOD1_DIR := "res://baked_city/lod1"
 const CHUNK_SIZE := 200.0
 const MAX_ACTIVE := 50
 const LOAD_RADIUS_CHUNKS := 1
