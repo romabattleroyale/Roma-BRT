@@ -77,12 +77,25 @@ jobs:
           print('POI_MANIFEST_STRUCTURE=PASS slots=13 grid=7x3 map=2000x2000m')
           PY
 
-      - name: Verify project metadata
+      - name: Verify project metadata and deterministic runtime launcher
         run: |
           set -euo pipefail
           test -f project.godot
-          grep -q '^\[application\]' project.godot
+          test -f runtime_extension_launcher.tscn
+          test -f runtime_extension_launcher.gd
+          grep -q 'run/main_scene="res://runtime_extension_launcher.tscn"' project.godot
+          grep -q 'GDExtensionManager.load_extension' runtime_extension_launcher.gd
+          grep -q 'res://addons/terrain_3d/terrain.gdextension' runtime_extension_launcher.gd
           grep -q 'textures/vram_compression/import_etc2_astc=true' project.godot
+
+      - name: Verify Terrain3D native libraries
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -f addons/terrain_3d/terrain.gdextension
+          test -f addons/terrain_3d/bin/libterrain.linux.release.x86_64.so
+          test -f addons/terrain_3d/bin/libterrain.android.release.arm64.so
+          echo 'TERRAIN3D_NATIVE_LIBRARIES=PASS linux_release android_arm64'
 
       - name: Download Godot 4.7.2
         shell: bash
@@ -126,7 +139,7 @@ jobs:
           if grep -Eq 'ERROR:|SCRIPT ERROR|Parse Error|Invalid call|Nonexistent function|Cannot open file|Failed loading resource' build/runtime/godot_preflight.log; then exit 1; fi
           echo 'GODOT PREFLIGHT OUTPUT=CLEAN'
 
-      - name: Runtime smoke launch using the real main scene
+      - name: Runtime smoke launch using deterministic Terrain3D launcher
         shell: bash
         run: |
           set -u
@@ -136,21 +149,22 @@ jobs:
           grep -E 'MemTotal|MemAvailable|SwapTotal|SwapFree' /proc/meminfo || true
           echo 'RUNTIME_DIAGNOSTICS_LAUNCH'
           set +e
-          timeout 300s xvfb-run -a .runtime/godot/godot --path . --display-driver x11 --rendering-method gl_compatibility --rendering-driver opengl3 --audio-driver Dummy --scene res://main.tscn 2>&1 | tee build/runtime/godot_runtime.log
+          timeout 300s xvfb-run -a .runtime/godot/godot --path . --display-driver x11 --rendering-method gl_compatibility --rendering-driver opengl3 --audio-driver Dummy --scene res://runtime_extension_launcher.tscn 2>&1 | tee build/runtime/godot_runtime.log
           code=${PIPESTATUS[0]}
           set -e
           echo "GODOT_RUNTIME_EXIT_CODE=$code"
           tail -n 300 build/runtime/godot_runtime.log || true
           if [ "$code" -ne 0 ]; then exit "$code"; fi
           echo 'GODOT_RUNTIME_TERMINATION=NORMAL'
+          grep -q 'TERRAIN3D LAUNCHER CLASSDB=AVAILABLE' build/runtime/godot_runtime.log
           grep -q 'V11 NATIVE VISIBILITY: COMPLETE loaded=587 templates=120 buildings=587 range=0-500 fade=self district_planes=12 range=500-5000 fade=self' build/runtime/godot_runtime.log
           grep -q 'V11 CITY DISTRICT PLANES: PASS count=12 size=300x300 y=0.5 range=500-5000 fade=self' build/runtime/godot_runtime.log
           grep -q 'ROMA ROADS V2: PASS network=12_districts main_edges=17 sidewalks=enabled drainage=enabled street_furniture=enabled' build/runtime/godot_runtime.log
           grep -q 'ROMA POI PLACER: PASS slots=13/13' build/runtime/godot_runtime.log
           test "$(grep -c 'ROMA POI SLOT:' build/runtime/godot_runtime.log || true)" -eq 13
           if grep -q 'V37 edifici:' build/runtime/godot_runtime.log; then exit 1; fi
-          if grep -Eq 'ERROR:|SCRIPT ERROR|Parse Error|Invalid call|Nonexistent function|Cannot open file|Failed loading resource|V11 HLOD|V11 LOD1|MultiMesh|Terrain3D non disponibile|Terrain3D Data non inizializzato|V37 world non pronto' build/runtime/godot_runtime.log; then
-            grep -E 'ERROR:|SCRIPT ERROR|Parse Error|Invalid call|Nonexistent function|Cannot open file|Failed loading resource|V11 HLOD|V11 LOD1|MultiMesh|Terrain3D non disponibile|Terrain3D Data non inizializzato|V37 world non pronto' build/runtime/godot_runtime.log || true
+          if grep -Eq 'ERROR:|SCRIPT ERROR|Parse Error|Invalid call|Nonexistent function|Cannot open file|Failed loading resource|V11 HLOD|V11 LOD1|MultiMesh|Terrain3D non disponibile|Terrain3D Data non inizializzato|V37 world non pronto|Attempt to register extension class|Attempt to unregister unexisting extension class' build/runtime/godot_runtime.log; then
+            grep -E 'ERROR:|SCRIPT ERROR|Parse Error|Invalid call|Nonexistent function|Cannot open file|Failed loading resource|V11 HLOD|V11 LOD1|MultiMesh|Terrain3D non disponibile|Terrain3D Data non inizializzato|V37 world non pronto|Attempt to register extension class|Attempt to unregister unexisting extension class' build/runtime/godot_runtime.log || true
             exit 1
           fi
           echo 'GODOT_RUNTIME_OUTPUT=CLEAN'
