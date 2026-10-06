@@ -15,11 +15,19 @@ extends Node3D
 @export var touch_pitch_speed := 0.008
 @export var controller_move_speed := 520.0
 
+# Runtime-only world-frame correction.
+# Terrain3D is authored from world (0,0) to (2000,2000), while the persisted
+# V11 placement/road coordinates are centered around the origin. Do not alter
+# the baked assets: translate their runtime frame by exactly +1000,+1000.
+const CITY_WORLD_OFFSET := Vector3(1000.0, 0.0, 1000.0)
+
 var camera: Camera3D
 var touches: Dictionary = {}
 var right_touch_indices: Dictionary = {}
 var last_pinch_distance := 0.0
 var virtual_move := Vector2.ZERO
+var _world_frame_fixed := false
+var _roads_frame_fixed := false
 
 func _ready() -> void:
     camera = Camera3D.new()
@@ -40,6 +48,8 @@ func _process(delta: float) -> void:
     if camera == null:
         return
 
+    _apply_world_frame_fix()
+
     if virtual_move.length_squared() > 0.0001:
         pan_from_controller(virtual_move, delta)
 
@@ -54,6 +64,62 @@ func _process(delta: float) -> void:
             move = move.normalized() * magnitude
             pan_from_controller(move, delta)
         break
+
+func _apply_world_frame_fix() -> void:
+    var scene := get_parent()
+    if scene == null:
+        return
+
+    if not _roads_frame_fixed:
+        var roads := scene.get_node_or_null("RomaRoadsGridMap") as Node3D
+        if roads != null:
+            roads.position += CITY_WORLD_OFFSET
+            _roads_frame_fixed = true
+            print("WORLD FRAME FIX: roads +1000,+1000")
+
+    if _world_frame_fixed:
+        return
+
+    var bridge := scene.get_node_or_null("V11BuildingBridge")
+    if bridge == null or not bool(bridge.get("built")):
+        return
+
+    var placements = bridge.get("_placements")
+    if not placements is Array or placements.size() != 587:
+        return
+
+    # Correct the runtime copy of the manifest before the next LOD streaming
+    # decision. The repository JSON/baked assets are never modified.
+    for item in placements:
+        if item is Dictionary:
+            if not bool(item.get("_runtime_world_offset", false)):
+                item["x"] = float(item.get("x", 0.0)) + CITY_WORLD_OFFSET.x
+                item["z"] = float(item.get("z", 0.0)) + CITY_WORLD_OFFSET.z
+                item["_runtime_world_offset"] = true
+    bridge.set("_placements", placements)
+
+    # Shift anything V11 already spawned before the correction became active.
+    var city_root := bridge.get("_city_root") as Node3D
+    if city_root != null:
+        for child in city_root.get_children():
+            if not child is Node3D:
+                continue
+            var node := child as Node3D
+            var node_name := str(node.name)
+            var is_v11_node := (
+                node_name.begins_with("V11_HLOD2_")
+                or node_name.begins_with("V11_LOD1_")
+                or node_name.begins_with("ReadyTemplateMultiMesh_")
+                or node.has_meta("runtime_placement")
+            )
+            if is_v11_node and not bool(node.get_meta("runtime_world_offset", false)):
+                node.position += CITY_WORLD_OFFSET
+                node.set_meta("runtime_world_offset", true)
+
+    # Force V11 to recalculate the active LOD0 chunk with the corrected frame.
+    bridge.set("_last_chunk", Vector2i(999999, 999999))
+    _world_frame_fixed = true
+    print("WORLD FRAME FIX: V11 +1000,+1000 runtime-only; manifest=587 corrected")
 
 func _on_virtual_move_changed(value: Vector2) -> void:
     virtual_move = value
