@@ -3,6 +3,7 @@ extends Node3D
 ## Loads 12 district road scenes + 4 authorized bridges without touching Terrain3D,
 ## Tevere, the road graph, district layout or building/HLOD assets.
 
+const WORLD_OFFSET := Vector3(1000.0, 0.0, 1000.0)
 const DISTRICT_SCENES:Array[String] = [
     "res://roads/generated/district_01_roads.tscn",
     "res://roads/generated/district_02_roads.tscn",
@@ -32,13 +33,16 @@ func _ready() -> void:
         if packed == null:
             push_error("ROMA ROADS: missing persisted scene " + path)
             continue
-        var instance:=packed.instantiate()
+        var instance:=packed.instantiate() as Node3D
         if instance == null:
             push_error("ROMA ROADS: failed to instantiate " + path)
             continue
+        # Road scenes are authored in the centered V11 frame; move each loaded
+        # scene once into the same 0..2000 runtime frame as buildings and terrain.
+        instance.position += WORLD_OFFSET
         add_child(instance)
         loaded += 1
     if loaded == 16:
-        print("ROMA ROADS RUNTIME: PASS districts=12 bridges=4 GridMap=manual")
+        print("ROMA ROADS RUNTIME: PASS districts=12 bridges=4 GridMap=manual world_offset=+1000,+1000")
     else:
         push_error("ROMA ROADS RUNTIME: loaded=%d/16" % loaded)
