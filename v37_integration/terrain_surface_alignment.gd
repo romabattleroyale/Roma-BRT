@@ -14,6 +14,16 @@ var _aligned_lod0: Dictionary = {}
 func _ready() -> void:
     call_deferred("_run")
 
+func _process(_delta: float) -> void:
+    if _terrain_data == null:
+        return
+    var bridge := get_tree().current_scene.get_node_or_null("V11BuildingBridge")
+    if bridge == null or not bool(bridge.get("built")):
+        return
+    _align_city(bridge)
+    if not _aligned_roads:
+        _align_roads()
+
 func _run() -> void:
     for _i in range(RETRY_FRAMES):
         var terrain := get_tree().current_scene.find_child("Terrain3D_HEIGHTMAP_2000x2000", true, false)
