@@ -17,9 +17,9 @@ const MAIN_WIDTH := 8.0
 const ALLEY_WIDTH := 4.0
 const SIDEWALK_WIDTH := 1.8
 const CURB_WIDTH := 0.22
-const CURB_HEIGHT := 0.16
-const SIDEWALK_HEIGHT := 0.10
-const ROAD_HEIGHT := 0.10
+const CURB_HEIGHT := 0.14
+const SIDEWALK_HEIGHT := 0.12
+const ROAD_HEIGHT := 0.12
 const CLEARANCE := 0.07
 const SEGMENT_LENGTH := 10.0
 const OVERLAP := 0.18
@@ -42,10 +42,10 @@ var _lamp: StandardMaterial3D
 func _ready() -> void:
     _asphalt = _material(Color("#343638"), 0.90)
     _asphalt_dark = _material(Color("#292B2D"), 0.94)
-    _sidewalk = _material(Color("#B9AA8E"), 0.88)
-    _curb = _material(Color("#8D877A"), 0.90)
+    _sidewalk = _material(Color("#9B8D73"), 0.94)
+    _curb = _material(Color("#6F685E"), 0.94)
     _sampietrini = _material(Color("#50504D"), 0.94)
-    _gutter = _material(Color("#6D6A61"), 0.96)
+    _gutter = _material(Color("#45433F"), 0.98)
     _metal = _material(Color("#5A5B58"), 0.82)
     _marking = _material(Color("#E9E5D7"), 0.72)
     _lamp = _material(Color("#202224"), 0.78)
