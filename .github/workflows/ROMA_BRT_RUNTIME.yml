@@ -136,7 +136,7 @@ jobs:
           grep -E 'MemTotal|MemAvailable|SwapTotal|SwapFree' /proc/meminfo || true
           echo 'RUNTIME_DIAGNOSTICS_LAUNCH'
           set +e
-          timeout 120s xvfb-run -a .runtime/godot/godot --path . --display-driver x11 --rendering-method gl_compatibility --rendering-driver opengl3 --audio-driver Dummy --scene res://main.tscn 2>&1 | tee build/runtime/godot_runtime.log
+          timeout 300s xvfb-run -a .runtime/godot/godot --path . --display-driver x11 --rendering-method gl_compatibility --rendering-driver opengl3 --audio-driver Dummy --scene res://main.tscn 2>&1 | tee build/runtime/godot_runtime.log
           code=${PIPESTATUS[0]}
           set -e
           echo "GODOT_RUNTIME_EXIT_CODE=$code"
