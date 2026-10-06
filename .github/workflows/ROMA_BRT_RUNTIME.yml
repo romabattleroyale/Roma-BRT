@@ -59,6 +59,30 @@ jobs:
           test ! -d baked_city/lod1
           echo 'NATIVE_VISIBILITY_ASSETS=CLEAN'
 
+      - name: Verify measured modular POI layout
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -f city_library/poi/poi_manifest.json
+          test -f city_library/poi/poi_manager.gd
+          python3 - <<'PY'
+          import json
+          from pathlib import Path
+          p = Path('city_library/poi/poi_manifest.json')
+          data = json.loads(p.read_text())
+          pois = data.get('pois', [])
+          assert len(pois) == 21
+          assert data['map']['world_size_m'] == 2000.0
+          assert data['map']['world_offset'] == [1000.0, 0.0, 1000.0]
+          assert data['placement']['slot_count'] == 21
+          assert data['module_rules']['modular'] is True
+          assert data['module_rules']['interior_ready'] is True
+          assert data['module_rules']['underground_link_ready'] is True
+          assert len({p['target_cell'][0] for p in pois}) == 7
+          assert len({p['target_cell'][1] for p in pois}) == 3
+          print('POI_MANIFEST_STRUCTURE=PASS slots=21 grid=7x3 map=2000x2000m')
+          PY
+
       - name: Verify project metadata
         run: |
           set -euo pipefail
@@ -128,9 +152,12 @@ jobs:
           if [ "$code" -ne 0 ] && [ "$code" -ne 124 ]; then
             exit "$code"
           fi
-          grep -q 'V11 NATIVE VISIBILITY: COMPLETE loaded=587 templates=120 buildings=587 range=0-500 fade=self district_planes=12 range=500-5000' build/runtime/godot_runtime.log
+          grep -q 'V11 NATIVE VISIBILITY: COMPLETE loaded=587 templates=120 buildings=587 range=0-500 fade=self district_planes=12 range=500-5000 fade=self' build/runtime/godot_runtime.log
           grep -q 'V11 CITY DISTRICT PLANES: PASS count=12 size=300x300 y=0.5 range=500-5000 fade=self' build/runtime/godot_runtime.log
           grep -q 'ROMA ROADS RUNTIME: PASS districts=12 bridges=4 GridMap=manual' build/runtime/godot_runtime.log
+          grep -q 'ROMA POI PLACER: PASS slots=21/21' build/runtime/godot_runtime.log
+          poi_slot_count=$(grep -c 'ROMA POI SLOT:' build/runtime/godot_runtime.log || true)
+          test "$poi_slot_count" -eq 21
           if grep -q 'V37 edifici:' build/runtime/godot_runtime.log; then
             echo 'ERROR: procedural V11 building generation ran during runtime'
             exit 1
