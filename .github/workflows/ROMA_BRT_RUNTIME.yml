@@ -153,25 +153,17 @@ jobs:
           echo 'ULIMIT:'
           ulimit -a || true
           echo 'RUNTIME_DIAGNOSTICS_LAUNCH'
-          timeout 120s xvfb-run -a .runtime/godot/godot --path . --display-driver x11 --rendering-method gl_compatibility --rendering-driver opengl3 --audio-driver Dummy --scene res://main.tscn 2>&1 | tee build/runtime/godot_runtime.log
+          .runtime/godot/godot --path . --display-driver x11 --rendering-method gl_compatibility --rendering-driver opengl3 --audio-driver Dummy --scene res://main.tscn --quit-after 90 2>&1 | tee build/runtime/godot_runtime.log
           code=${PIPESTATUS[0]}
           echo "GODOT_RUNTIME_EXIT_CODE=$code"
           echo 'RUNTIME_LOG_TAIL_BEGIN'
           tail -n 300 build/runtime/godot_runtime.log || true
           echo 'RUNTIME_LOG_TAIL_END'
-          if [ "$code" -eq 137 ]; then
-            echo 'GODOT_RUNTIME_TERMINATION=SIGKILL_OR_OOM'
-          elif [ "$code" -eq 124 ]; then
-            echo 'GODOT_RUNTIME_TERMINATION=TIMEOUT'
-          elif [ "$code" -ne 0 ]; then
+          if [ "$code" -ne 0 ]; then
             echo 'GODOT_RUNTIME_TERMINATION=PROCESS_EXIT_NONZERO'
-          else
-            echo 'GODOT_RUNTIME_TERMINATION=NORMAL'
-          fi
-          set -e
-          if [ "$code" -ne 0 ] && [ "$code" -ne 124 ]; then
             exit "$code"
           fi
+          echo 'GODOT_RUNTIME_TERMINATION=NORMAL'
           grep -q 'V11 NATIVE VISIBILITY: COMPLETE loaded=587 templates=120 buildings=587 range=0-500 fade=self district_planes=12 range=500-5000 fade=self' build/runtime/godot_runtime.log
           grep -q 'V11 CITY DISTRICT PLANES: PASS count=12 size=300x300 y=0.5 range=500-5000 fade=self' build/runtime/godot_runtime.log
           grep -q 'ROMA ROADS V2: PASS network=12_districts main_edges=17 sidewalks=enabled drainage=enabled street_furniture=enabled' build/runtime/godot_runtime.log
