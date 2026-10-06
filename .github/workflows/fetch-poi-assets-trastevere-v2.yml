@@ -1,0 +1,62 @@
+name: Fetch Trastevere POI Assets V2
+on:
+  push:
+    branches: [poi-assets-trastevere]
+  workflow_dispatch:
+jobs:
+  fetch-assets:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Download CC0 POI assets
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import json,pathlib,shutil,urllib.request,zipfile
+          OUT=pathlib.Path('POI_External_Assets/Trastevere_Isola_Tiberina'); OUT.mkdir(parents=True,exist_ok=True)
+          UA='RomaBattleRoyale-POI-Lab/1.0'
+          models=['tree_small_02','jacaranda_tree','island_tree_01','island_tree_03','fern_02']
+          textures=['cobblestone_01','cobblestone_pavement','stone_wall','stone_tile_wall','brick_wall_003']
+          def j(url):
+            r=urllib.request.urlopen(urllib.request.Request(url,headers={'User-Agent':UA}),timeout=60); return json.load(r)
+          def dl(url,p):
+            with urllib.request.urlopen(urllib.request.Request(url,headers={'User-Agent':UA}),timeout=180) as r,open(p,'wb') as f: shutil.copyfileobj(r,f)
+          def direct(d,path):
+            x=d
+            for k in path:
+              if not isinstance(x,dict) or k not in x:return None
+              x=x[k]
+            return x.get('url') if isinstance(x,dict) else None
+          def find(d,want):
+            out=None
+            def walk(x,path=()):
+              nonlocal out
+              if out or not isinstance(x,dict):return
+              if 'url' in x and '1k' in path and 'jpg' in path and want in path: out=x['url']; return
+              for k,v in x.items():walk(v,path+(str(k),))
+            walk(d); return out
+          m={'source':'Poly Haven','license':'CC0','models':[],'textures':[]}
+          for a in models:
+            d=j('https://api.polyhaven.com/files/'+a); u=direct(d,('gltf','1k','gltf')) or direct(d,('gltf','2k','gltf'))
+            if not u: raise RuntimeError('No glTF URL: '+a)
+            p=OUT/'models'/a; p.mkdir(parents=True,exist_ok=True); raw=p/'download'; dl(u,raw)
+            if zipfile.is_zipfile(raw):
+              zipfile.ZipFile(raw).extractall(p); raw.unlink()
+            else: raw.rename(p/pathlib.Path(u).name)
+            m['models'].append({'id':a,'resolution':'1k'})
+          for a in textures:
+            d=j('https://api.polyhaven.com/files/'+a); p=OUT/'textures'/a; p.mkdir(parents=True,exist_ok=True); maps={}
+            for n in ('diffuse','nor_gl','rough'):
+              u=find(d,n)
+              if not u: raise RuntimeError(f'No 1k JPG {n} map: {a}')
+              f=p/f'{a}_{n}_1k.jpg'; dl(u,f); maps[n]=f.name
+            m['textures'].append({'id':a,'resolution':'1k','maps':maps})
+          (OUT/'manifest.json').write_text(json.dumps(m,indent=2),encoding='utf-8')
+          PY
+      - name: Package asset pack
+        run: zip -r Trastevere_Isola_Tiberina_External_Assets.zip POI_External_Assets/Trastevere_Isola_Tiberina
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Trastevere-Isola-Tiberina-External-Assets-V2
+          path: Trastevere_Isola_Tiberina_External_Assets.zip
