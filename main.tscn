@@ -1,4 +1,4 @@
-[gd_scene load_steps=12 format=3]
+[gd_scene load_steps=13 format=3]
 
 [ext_resource type="Script" path="res://terrain_runtime_android_safe.gd" id="1_rt"]
 [ext_resource type="Script" path="res://viewer.gd" id="2_viewer"]
@@ -10,6 +10,7 @@
 [ext_resource type="Script" path="res://v37_integration/v11_building_bridge.gd" id="8_v11bridge"]
 [ext_resource type="Script" path="res://tools/mobile_memory_watch.gd" id="9_memwatch"]
 [ext_resource type="Script" path="res://roads/road_world.gd" id="10_roads"]
+[ext_resource type="Script" path="res://v37_integration/city_visual_runtime.gd" id="11_cityaudit"]
 
 [sub_resource type="Environment" id="Env"]
 background_mode = 1
@@ -49,6 +50,9 @@ script = ExtResource("10_roads")
 
 [node name="V11BuildingBridge" type="Node3D" parent="."]
 script = ExtResource("8_v11bridge")
+
+[node name="CityVisualRuntime" type="Node3D" parent="."]
+script = ExtResource("11_cityaudit")
 
 [node name="MobileV11MemoryWatch" type="Node" parent="."]
 script = ExtResource("9_memwatch")
