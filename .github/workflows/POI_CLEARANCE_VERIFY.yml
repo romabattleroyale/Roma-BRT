@@ -1,0 +1,95 @@
+name: Roma POI Clearance Verify
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  poi-clearance:
+    name: Verify 13 modular POI slots are clear
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Checkout main
+        uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 1
+
+      - name: Check POI slots against 587 building placements
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import json
+          import math
+          from pathlib import Path
+
+          poi_path = Path('city_library/poi/poi_layout.json')
+          manifest_path = Path('baked_city/ready_templates/manifest.json')
+          assert poi_path.is_file(), poi_path
+          assert manifest_path.is_file(), manifest_path
+
+          poi_data = json.loads(poi_path.read_text())
+          manifest = json.loads(manifest_path.read_text())
+          pois = poi_data['pois']
+          placements = manifest['placements']
+          offset = poi_data['world_offset']
+
+          assert len(pois) == 13, f'Expected 13 POIs, found {len(pois)}'
+          assert len(placements) == 587, f'Expected 587 buildings, found {len(placements)}'
+          assert poi_data['modular'] is True
+          assert poi_data['coordinate_space'] == 'godot_world'
+
+          ox = float(offset['x'])
+          oz = float(offset['z'])
+          building_points = [(float(p['x']), float(p['z'])) for p in placements]
+
+          print(f'POI_CLEARANCE: checking {len(pois)} POIs against {len(building_points)} buildings')
+          failures = []
+
+          for poi in pois:
+              pos = poi['position']
+              # Building manifest coordinates are local; POI coordinates are Godot world.
+              px = float(pos['x']) - ox
+              pz = float(pos['z']) - oz
+              radius = float(poi['clearance_radius'])
+              nearest = min(
+                  ((math.hypot(px - bx, pz - bz), bx, bz) for bx, bz in building_points),
+                  key=lambda item: item[0],
+              )
+              distance, bx, bz = nearest
+              status = 'PASS' if distance >= radius else 'COLLISION'
+              print(
+                  f"POI_CLEARANCE: {status} id={poi['id']} name={poi['name']} "
+                  f"world=({pos['x']:.1f},{pos['z']:.1f}) local=({px:.1f},{pz:.1f}) "
+                  f"radius={radius:.1f} nearest_building={distance:.2f}m"
+              )
+              if distance < radius:
+                  failures.append((poi['id'], poi['name'], radius, distance, bx, bz))
+
+          # Also guarantee that reserved POI envelopes do not overlap each other.
+          for i, a in enumerate(pois):
+              for b in pois[i + 1:]:
+                  ax, az = float(a['position']['x']), float(a['position']['z'])
+                  bx, bz = float(b['position']['x']), float(b['position']['z'])
+                  d = math.hypot(ax - bx, az - bz)
+                  required = float(a['clearance_radius']) + float(b['clearance_radius'])
+                  if d < required:
+                      failures.append((a['id'] + ' <-> ' + b['id'], 'POI envelope overlap', required, d, bx, bz))
+                      print(
+                          f"POI_ENVELOPE: COLLISION {a['id']} <-> {b['id']} "
+                          f"distance={d:.2f}m required={required:.1f}m"
+                      )
+
+          if failures:
+              print(f'POI_CLEARANCE: FAIL conflicts={len(failures)}')
+              raise SystemExit(1)
+
+          print('POI_CLEARANCE: PASS all 13 POI envelopes clear of existing building centers')
+          print('POI_ENVELOPE: PASS no reserved POI envelopes overlap')
+          print('POI_CLEARANCE_VERIFY=PASS')
+          PY
