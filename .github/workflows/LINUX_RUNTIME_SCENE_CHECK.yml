@@ -111,28 +111,28 @@ jobs:
           test -f terrain_data/READY.txt
           test "$(find terrain_data -maxdepth 1 -name 'terrain3d*.res' | wc -l)" -gt 0
 
-      - name: Launch actual main scene + facade diagnostics under Linux X11
+      - name: Launch actual main scene + terrain surface alignment diagnostics under Linux X11
         run: |
           set -u
           export DISPLAY=:99
 
           set +e
-          .runtime/godot/godot --path . --display-driver x11 --rendering-method gl_compatibility --audio-driver Dummy --script res://tools/linux_facade_diagnostics.gd > build/linux_runtime/godot.log 2>&1 &
+          .runtime/godot/godot --path . --display-driver x11 --rendering-method gl_compatibility --audio-driver Dummy --script res://tools/linux_terrain_surface_alignment_diagnostics.gd > build/linux_runtime/godot.log 2>&1 &
           GAME_PID=$!
-          sleep 20
+          sleep 30
 
           if kill -0 "$GAME_PID" 2>/dev/null; then
-            echo 'FULL SCENE PROCESS STILL RUNNING AFTER 20s'
+            echo 'FULL SCENE ALIGNMENT PROCESS STILL RUNNING AFTER 30s'
             GAME_ALIVE=1
             GAME_EXIT=0
           else
             wait "$GAME_PID"
             GAME_EXIT=$?
-            echo "FULL SCENE PROCESS EXITED WITH CODE $GAME_EXIT"
+            echo "FULL SCENE ALIGNMENT PROCESS EXITED WITH CODE $GAME_EXIT"
             GAME_ALIVE=0
           fi
 
-          import -window root build/linux_runtime/full_scene_20s.png 2>/dev/null
+          import -window root build/linux_runtime/full_scene_30s.png 2>/dev/null
           SCREENSHOT_EXIT=$?
 
           if [ "$GAME_ALIVE" -eq 1 ]; then
@@ -140,7 +140,7 @@ jobs:
             wait "$GAME_PID" 2>/dev/null || true
           fi
 
-          echo '--- GODOT LOG / FACADE DIAGNOSTICS ---'
+          echo '--- GODOT LOG / TERRAIN SURFACE ALIGN DIAGNOSTICS ---'
           cat build/linux_runtime/godot.log || true
           echo '--- TERRAIN CONTROL LOG ---'
           cat build/linux_runtime/terrain_control.log || true
@@ -150,6 +150,8 @@ jobs:
           cat build/linux_runtime/xvfb.log || true
 
           test "$SCREENSHOT_EXIT" -eq 0
+          grep -q 'TERRAIN SURFACE ALIGN: BUILDINGS aligned=587/587' build/linux_runtime/godot.log
+          grep -q 'TERRAIN SURFACE ALIGN: PASS buildings=true roads=true' build/linux_runtime/godot.log
           if [ "$GAME_ALIVE" -eq 0 ]; then
             exit "$GAME_EXIT"
           fi
