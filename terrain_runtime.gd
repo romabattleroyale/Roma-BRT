@@ -11,7 +11,7 @@ const RAW_BITS := 16
 const BYTES_PER_SAMPLE := 2
 const RAW_MAX := 65535.0
 
-var terrain: Terrain3D
+var terrain: Node3D
 var file_dialog: FileDialog
 var status_label: Label
 
@@ -25,11 +25,11 @@ func _setup() -> void:
         _set_status("ERRORE: Terrain3D non disponibile")
         return
 
-    terrain = Terrain3D.new()
+    terrain = ClassDB.instantiate("Terrain3D") as Node3D
     terrain.name = "Terrain3D_HEIGHTMAP_2000x2000"
     # 512 gives a reasonable region size for a 2000 m beta while still
     # allowing Terrain3D to slice the 1081x1081 source across regions.
-    terrain.region_size = Terrain3D.SIZE_512
+    terrain.set("region_size", 512)
     terrain.vertex_spacing = MAP_SIZE_M / 1080.0
     terrain.mesh_lods = 7
     terrain.show_checkered = false
@@ -38,7 +38,7 @@ func _setup() -> void:
     add_child(terrain, true)
 
     # V7 Roman Natural art pass, transferred to native Terrain3D material.
-    var roman_assets: Terrain3DAssets = load("res://terrain_materials/terrain_assets_roman_natural.tres")
+    var roman_assets: Resource = load("res://terrain_materials/terrain_assets_roman_natural.tres")
     if roman_assets:
         terrain.assets = roman_assets
     # FIX15: stop using Terrain3D autoshader for the biome mask.
@@ -133,9 +133,9 @@ func _import_raw(path: String) -> void:
         return
 
     var maps: Array[Image]
-    maps.resize(Terrain3DRegion.TYPE_MAX)
-    maps[Terrain3DRegion.TYPE_HEIGHT] = img
-    maps[Terrain3DRegion.TYPE_CONTROL] = _build_manual_control_map(values, width, height)
+    maps.resize(4)
+    maps[0] = img
+    maps[1] = _build_manual_control_map(values, width, height)
 
     # Start the map at world 0,0. The 1081 samples span exactly 2000 m at
     # 2000/(1081-1) spacing. Camera is positioned accordingly in main.tscn.
