@@ -83,8 +83,8 @@ func _resolve_poi(poi: Dictionary, placed: Array[Vector2]) -> Dictionary:
     var cell: Array = poi.get("target_cell", [0, 0])
     var ix := int(cell[0])
     var iz := int(cell[1])
-    var target_x := lerp(-850.0, 850.0, float(ix) / 6.0)
-    var target_z := lerp(-700.0, 700.0, float(iz) / 2.0)
+    var target_x: float = lerp(-850.0, 850.0, float(ix) / 6.0)
+    var target_z: float = lerp(-700.0, 700.0, float(iz) / 2.0)
     var target := Vector2(target_x, target_z)
 
     var best := Vector2.ZERO

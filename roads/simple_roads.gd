@@ -150,17 +150,17 @@ func _add_edge(a: Vector3, b: Vector3, width: float, material: Material, main_ro
 
         if main_road:
             for side_sign in [-1.0, 1.0]:
-                var curb_center := (p0 + p1) * 0.5 + side * side_sign * (width * 0.5 + CURB_WIDTH * 0.5)
+                var curb_center: Vector3 = (p0 + p1) * 0.5 + side * side_sign * (width * 0.5 + CURB_WIDTH * 0.5)
                 var curb0 := _surface_point(curb_center.x - direction.x * length * 0.5, curb_center.z - direction.z * length * 0.5, CURB_HEIGHT * 0.5)
                 var curb1 := _surface_point(curb_center.x + direction.x * length * 0.5, curb_center.z + direction.z * length * 0.5, CURB_HEIGHT * 0.5)
                 _add_box_between(curb0, curb1, CURB_WIDTH, CURB_HEIGHT, _curb)
 
-                var sidewalk_center := (p0 + p1) * 0.5 + side * side_sign * (width * 0.5 + CURB_WIDTH + SIDEWALK_WIDTH * 0.5)
+                var sidewalk_center: Vector3 = (p0 + p1) * 0.5 + side * side_sign * (width * 0.5 + CURB_WIDTH + SIDEWALK_WIDTH * 0.5)
                 var sw0 := _surface_point(sidewalk_center.x - direction.x * length * 0.5, sidewalk_center.z - direction.z * length * 0.5, SIDEWALK_HEIGHT * 0.5)
                 var sw1 := _surface_point(sidewalk_center.x + direction.x * length * 0.5, sidewalk_center.z + direction.z * length * 0.5, SIDEWALK_HEIGHT * 0.5)
                 _add_box_between(sw0, sw1, SIDEWALK_WIDTH, SIDEWALK_HEIGHT, _sidewalk)
 
-                var gutter_center := (p0 + p1) * 0.5 + side * side_sign * (width * 0.5 + CURB_WIDTH + 0.10)
+                var gutter_center: Vector3 = (p0 + p1) * 0.5 + side * side_sign * (width * 0.5 + CURB_WIDTH + 0.10)
                 var g0 := _surface_point(gutter_center.x - direction.x * length * 0.5, gutter_center.z - direction.z * length * 0.5, 0.055)
                 var g1 := _surface_point(gutter_center.x + direction.x * length * 0.5, gutter_center.z + direction.z * length * 0.5, 0.055)
                 _add_box_between(g0, g1, 0.20, 0.06, _gutter)
@@ -175,7 +175,7 @@ func _add_edge(a: Vector3, b: Vector3, width: float, material: Material, main_ro
         else:
             if i % 4 == 0:
                 for side_sign in [-1.0, 1.0]:
-                    var edge_center := (p0 + p1) * 0.5 + side * side_sign * (width * 0.5 + 0.10)
+                    var edge_center: Vector3 = (p0 + p1) * 0.5 + side * side_sign * (width * 0.5 + 0.10)
                     var e0 := _surface_point(edge_center.x - direction.x * length * 0.5, edge_center.z - direction.z * length * 0.5, 0.035)
                     var e1 := _surface_point(edge_center.x + direction.x * length * 0.5, edge_center.z + direction.z * length * 0.5, 0.035)
                     _add_box_between(e0, e1, 0.20, 0.07, _curb)
@@ -234,7 +234,7 @@ func _add_manhole(center: Vector3) -> void:
 
 func _add_drain(center: Vector3, side: Vector3, width: float) -> void:
     for side_sign in [-1.0, 1.0]:
-        var p := center + side * side_sign * (width * 0.5 - 0.18)
+        var p: Vector3 = center + side * side_sign * (width * 0.5 - 0.18)
         var pos := _surface_point(p.x, p.z, ROAD_HEIGHT + 0.020)
         var base := MeshInstance3D.new()
         var base_mesh := BoxMesh.new()
@@ -288,7 +288,7 @@ func _add_bridge(a: Vector3, b: Vector3) -> void:
     var side := Vector3(-direction.z, 0.0, direction.x)
     var midpoint := (a + b) * 0.5
     for side_sign in [-1.0, 1.0]:
-        var rail := midpoint + side * side_sign * 4.3
+        var rail: Vector3 = midpoint + side * side_sign * 4.3
         rail.y = _terrain_y(rail.x, rail.z) + 0.75
         var mesh := BoxMesh.new()
         mesh.size = Vector3(0.12, 1.5, maxf(1.0, a.distance_to(b)))
