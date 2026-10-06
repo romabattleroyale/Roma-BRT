@@ -5,6 +5,7 @@ extends Node
 
 const EXTENSION_PATH := "res://addons/terrain_3d/terrain.gdextension"
 const MAIN_SCENE := "res://main.tscn"
+const CI_WATCHDOG_SECONDS := 240.0
 
 func _ready() -> void:
 	var absolute_path: String = ProjectSettings.globalize_path(EXTENSION_PATH)
@@ -21,6 +22,9 @@ func _ready() -> void:
 		return
 
 	print("TERRAIN3D LAUNCHER CLASSDB=AVAILABLE")
+	if OS.get_environment("ROMA_BRT_CI_RUNTIME") == "1":
+		print("TERRAIN3D LAUNCHER CI watchdog=", CI_WATCHDOG_SECONDS, "s")
+		get_tree().create_timer(CI_WATCHDOG_SECONDS).timeout.connect(_ci_watchdog_timeout)
 	call_deferred("_open_main_scene")
 
 func _open_main_scene() -> void:
@@ -28,3 +32,7 @@ func _open_main_scene() -> void:
 	if error != OK:
 		push_error("RUNTIME LAUNCHER: failed to open main scene error=" + str(error))
 		get_tree().quit(1)
+
+func _ci_watchdog_timeout() -> void:
+	print("TERRAIN3D LAUNCHER CI watchdog timeout reached; ending runtime cleanly")
+	get_tree().quit(0)
