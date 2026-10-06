@@ -134,7 +134,7 @@ func _create_district_planes() -> void:
         var mesh := PlaneMesh.new()
         mesh.size = DISTRICT_PLANE_SIZE
         plane.mesh = mesh
-        var authored_center := DISTRICT_CENTERS[district]
+        var authored_center: Vector3 = DISTRICT_CENTERS[district] as Vector3
         plane.position = authored_center + WORLD_OFFSET
         plane.position.y = DISTRICT_PLANE_Y
         plane.material_override = _make_flat_material(DISTRICT_COLORS[district])
