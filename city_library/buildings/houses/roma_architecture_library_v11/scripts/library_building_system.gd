@@ -5,9 +5,7 @@ const LIB_ROOT := "res://city_library/buildings/houses/roma_architecture_library
 const TEX_ROOT := LIB_ROOT + "assets/textures/"
 
 func _safe_texture(path: String) -> Texture2D:
-    var image := Image.load_from_file(path)
-    if image == null or image.is_empty(): return null
-    return ImageTexture.create_from_image(image)
+    return ResourceLoader.load(path, "Texture2D", ResourceLoader.CACHE_MODE_REUSE) as Texture2D
 
 func _pbr(color_path: String, normal_path: String, rough: float, uv_scale: float) -> StandardMaterial3D:
     var m := StandardMaterial3D.new()
