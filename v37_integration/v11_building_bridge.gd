@@ -37,9 +37,9 @@ func _wait_for_v37() -> void:
                 _city_root=v37.get("city_root") as Node3D
                 await _yield_frames(2)
                 if _load_manifest():
+                    await _load_all_templates()
                     _load_hlods()
                     _load_lod1_multimeshes()
-                    await _load_all_templates()
                     var player:=_find_player()
                     var p:=player.global_position if player!=null else Vector3.ZERO
                     await _refresh_chunks(p)
@@ -66,18 +66,10 @@ func _load_hlods()->void:
             push_error("V11 HLOD: missing "+path)
             continue
         var node:=MeshInstance3D.new()
-        node.name="V11_HLOD2_Q%02d"%(district+1)
-        node.mesh=mesh
-        node.position=DISTRICT_CENTERS[district]
-        node.cast_shadow=GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
-        node.gi_mode=GeometryInstance3D.GI_MODE_DISABLED
-        node.visibility_range_fade_mode=GeometryInstance3D.VISIBILITY_RANGE_FADE_SELF
-        node.visibility_range_begin=HLOD2_BEGIN
-        node.visibility_range_end=HLOD2_END
-        node.visibility_range_begin_margin=40.0
-        node.visibility_range_end_margin=40.0
-        _city_root.add_child(node)
-        _hlod_nodes.append(node)
+        node.name="V11_HLOD2_Q%02d"%(district+1);node.mesh=mesh;node.position=DISTRICT_CENTERS[district]
+        node.cast_shadow=GeometryInstance3D.SHADOW_CASTING_SETTING_OFF;node.gi_mode=GeometryInstance3D.GI_MODE_DISABLED
+        node.visibility_range_fade_mode=GeometryInstance3D.VISIBILITY_RANGE_FADE_SELF;node.visibility_range_begin=HLOD2_BEGIN;node.visibility_range_end=HLOD2_END;node.visibility_range_begin_margin=40.0;node.visibility_range_end_margin=40.0
+        _city_root.add_child(node);_hlod_nodes.append(node)
     if _hlod_nodes.size()!=12:push_error("V11 HLOD2: loaded=%d expected=12"%_hlod_nodes.size())
     else:print("V11 HLOD2: PASS districts=12 range=400-4000")
 
@@ -99,14 +91,12 @@ func _load_lod1_multimeshes()->void:
         var mm:=MultiMesh.new();mm.transform_format=MultiMesh.TRANSFORM_3D;mm.use_colors=false;mm.mesh=_lod1_meshes[ti];mm.instance_count=items.size()
         for j in range(items.size()):
             var d:Dictionary=items[j];var floors:=clampi(int(d.get("floors",3)),3,5)
-            var template_scene:=_templates[ti] if ti<_templates.size() else null
             var template_floors:=3
-            if template_scene!=null:
-                var probe:=template_scene.instantiate() as Node3D
+            if ti<_templates.size():
+                var probe:=_templates[ti].instantiate() as Node3D
                 if probe!=null:template_floors=int(probe.get_meta("template_floors",3));probe.free()
             var t:=Transform3D(Basis(Vector3.UP,float(d.get("rotation",0.0))),Vector3(float(d.get("x",0)),float(d.get("y",0)),float(d.get("z",0))))
-            t=t.scaled_local(Vector3(1.0,float(floors)/float(maxi(1,template_floors)),1.0))
-            mm.set_instance_transform(j,t)
+            t=t.scaled_local(Vector3(1.0,float(floors)/float(maxi(1,template_floors)),1.0));mm.set_instance_transform(j,t)
         var mmi:=MultiMeshInstance3D.new();mmi.name="V11_LOD1_Template_%03d"%(ti+1);mmi.multimesh=mm;mmi.cast_shadow=GeometryInstance3D.SHADOW_CASTING_SETTING_OFF;mmi.gi_mode=GeometryInstance3D.GI_MODE_DISABLED
         mmi.visibility_range_fade_mode=GeometryInstance3D.VISIBILITY_RANGE_FADE_SELF;mmi.visibility_range_begin=LOD1_BEGIN;mmi.visibility_range_end=LOD1_END;mmi.visibility_range_begin_margin=20.0;mmi.visibility_range_end_margin=30.0
         _city_root.add_child(mmi);_lod1_nodes.append(mmi)
