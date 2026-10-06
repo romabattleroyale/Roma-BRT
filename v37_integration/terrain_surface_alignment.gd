@@ -5,7 +5,7 @@ extends Node3D
 ## instead of applying one Y to an entire district. Persisted assets are untouched.
 
 const ROAD_CELL_Y_STEP := 0.01
-const ROAD_LIFT_Y := 0.02
+const ROAD_LIFT_Y := 0.06
 const RETRY_FRAMES := 600
 
 var _terrain_data: Object
@@ -112,6 +112,15 @@ func _align_city(bridge: Node) -> void:
     if lod0_count > 0:
         print("TERRAIN SURFACE ALIGN: LOD0 newly_aligned=" + str(lod0_count) + " total=" + str(_aligned_lod0.size()))
 
+func _is_bridge_node(node: Node) -> bool:
+    var n := node
+    while n != null and n.name != "RomaRoadsGridMap":
+        var lower := str(n.name).to_lower()
+        if lower.contains("ponte") or lower.contains("bridge"):
+            return true
+        n = n.get_parent()
+    return false
+
 func _align_roads() -> void:
     if _aligned_roads:
         return
@@ -122,6 +131,7 @@ func _align_roads() -> void:
     var aligned_roots := 0
     var aligned_cells := 0
     var skipped_cells := 0
+    var skipped_bridges := 0
     var min_y := INF
     var max_y := -INF
 
@@ -130,19 +140,23 @@ func _align_roads() -> void:
             var grid := node as GridMap
             if grid == null or grid.mesh_library == null:
                 continue
+            if _is_bridge_node(grid):
+                skipped_bridges += 1
+                continue
 
             var original_cells:Array[Vector3i] = grid.get_used_cells()
             if original_cells.is_empty():
                 continue
 
-            # Keep X/Z authored positions exactly. Only replace the Y sampling
-            # with a 1 cm runtime vertical grid, using the real Terrain3D height.
+            # Preserve authored X/Z exactly. The Y grid is runtime-only and
+            # has 1 cm resolution so each road cell can follow Terrain3D.
             var root_pos := grid.global_position
             root_pos.y = 0.0
             grid.global_position = root_pos
             grid.cell_size = Vector3(grid.cell_size.x, ROAD_CELL_Y_STEP, grid.cell_size.z)
 
-            var changed := 0
+            var placements:Array[Dictionary] = []
+            placements.resize(0)
             for cell:Vector3i in original_cells:
                 var item := grid.get_cell_item(cell)
                 if item < 0:
@@ -155,20 +169,24 @@ func _align_roads() -> void:
                     skipped_cells += 1
                     continue
 
-                var y_index := roundi((h - grid.global_position.y) / ROAD_CELL_Y_STEP)
+                var y_index := roundi((h + ROAD_LIFT_Y - grid.global_position.y) / ROAD_CELL_Y_STEP)
                 if grid.cell_center_y:
-                    y_index = roundi((h - grid.global_position.y) / ROAD_CELL_Y_STEP - 0.5)
-                var target := Vector3i(cell.x, y_index, cell.z)
-                if target != cell:
-                    grid.set_cell_item(cell, GridMap.INVALID_CELL_ITEM)
-                    grid.set_cell_item(target, item, orientation)
-                changed += 1
+                    y_index = roundi((h + ROAD_LIFT_Y - grid.global_position.y) / ROAD_CELL_Y_STEP - 0.5)
+                placements.append({"cell": cell, "item": item, "orientation": orientation, "y": y_index})
                 min_y = minf(min_y, h)
                 max_y = maxf(max_y, h)
 
-            aligned_cells += changed
+            # Clear first, then rebuild. This prevents a target cell from
+            # overwriting another source cell while the road is being remapped.
+            grid.clear()
+            for p:Dictionary in placements:
+                var source:Vector3i = p["cell"]
+                var target := Vector3i(source.x, int(p["y"]), source.z)
+                grid.set_cell_item(target, int(p["item"]), int(p["orientation"]))
+
+            aligned_cells += placements.size()
             aligned_roots += 1
 
     if aligned_roots > 0:
         _aligned_roads = true
-        print("TERRAIN SURFACE ALIGN: road_gridmaps=" + str(aligned_roots) + " cells=" + str(aligned_cells) + " skipped=" + str(skipped_cells) + " terrain_y=" + str(snappedf(min_y, 0.01)) + ".." + str(snappedf(max_y, 0.01)) + " step=" + str(ROAD_CELL_Y_STEP))
+        print("TERRAIN SURFACE ALIGN: road_gridmaps=" + str(aligned_roots) + " cells=" + str(aligned_cells) + " skipped=" + str(skipped_cells) + " bridges_skipped=" + str(skipped_bridges) + " terrain_y=" + str(snappedf(min_y, 0.01)) + ".." + str(snappedf(max_y, 0.01)) + " step=" + str(ROAD_CELL_Y_STEP))
