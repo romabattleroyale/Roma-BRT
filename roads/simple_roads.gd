@@ -66,15 +66,12 @@ func _build_network() -> void:
         return
     _built = true
 
-    # 12 district nodes, preserving the existing district centers but replacing
-    # isolated GridMap modules with a real connected node/edge network.
     var nodes: Array[Vector3] = []
     for local_center in DISTRICT_CENTERS:
         var p := _world(Vector2(local_center.x, local_center.z))
         p.y = _terrain_y(p.x, p.z)
         nodes.append(p)
 
-    # Connect adjacent district nodes horizontally and vertically.
     for row in range(3):
         for col in range(4):
             var index := row * 4 + col
@@ -83,7 +80,6 @@ func _build_network() -> void:
             if row < 2:
                 _add_edge(nodes[index], nodes[index + 4], MAIN_WIDTH, _asphalt)
 
-    # Local 4m street grids only inside the 12 district envelopes.
     for local_center in DISTRICT_CENTERS:
         var center := _world(Vector2(local_center.x, local_center.z))
         for offset in [-LOCAL_SPACING, 0.0, LOCAL_SPACING]:
@@ -93,11 +89,8 @@ func _build_network() -> void:
             var c := Vector3(center.x + offset, 0.0, center.z - LOCAL_HALF_EXTENT)
             var d := Vector3(center.x + offset, 0.0, center.z + LOCAL_HALF_EXTENT)
             _add_edge(c, d, ALLEY_WIDTH, _cobble)
-
         _add_intersection(center, MAIN_WIDTH)
 
-    # Bridge anchors correspond to the four existing bridge locations in the
-    # old road data, but the bridge geometry itself is now simple boxes only.
     _add_bridge(Vector3(880.0, 0.0, 960.0), Vector3(920.0, 0.0, 960.0))
     _add_bridge(Vector3(960.0, 0.0, 980.0), Vector3(1000.0, 0.0, 980.0))
     _add_bridge(Vector3(1040.0, 0.0, 1020.0), Vector3(1080.0, 0.0, 1020.0))
@@ -150,7 +143,7 @@ func _add_bridge(a: Vector3, b: Vector3) -> void:
     var midpoint := (a + b) * 0.5
     var length := a.distance_to(b)
     for side_sign in [-1.0, 1.0]:
-        var rail := midpoint + side * side_sign * 4.3
+        var rail: Vector3 = midpoint + side * side_sign * 4.3
         rail.y = _terrain_y(rail.x, rail.z) + 0.75
         var mesh := BoxMesh.new()
         mesh.size = Vector3(0.12, 1.5, length)
