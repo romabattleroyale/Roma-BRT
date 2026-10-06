@@ -111,7 +111,7 @@ jobs:
           if [ "$code" -ne 0 ]; then exit "$code"; fi
           if grep -Eq 'ERROR:|SCRIPT ERROR|Parse Error|Invalid call|Nonexistent function|Cannot open file|Failed loading resource' build/runtime/godot_preflight.log; then
             echo 'ERROR: Godot preflight Output is not clean'
-            grep -E 'ERROR:|SCRIPT ERROR|Parse Error|Invalid call|Nonexistent function|Cannot open file|Failed loading resource' build/runtime/godlight_preflight.log || true
+            grep -E 'ERROR:|SCRIPT ERROR|Parse Error|Invalid call|Nonexistent function|Cannot open file|Failed loading resource' build/runtime/godot_preflight.log || true
             exit 1
           fi
           echo 'GODOT PREFLIGHT OUTPUT=CLEAN'
