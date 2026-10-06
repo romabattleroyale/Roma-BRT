@@ -10,7 +10,6 @@ var _terrain_data: Object
 var _aligned_lod1 := false
 var _aligned_roads := false
 var _aligned_lod0: Dictionary = {}
-var _reported := false
 
 func _ready() -> void:
     call_deferred("_run")
@@ -25,8 +24,7 @@ func _run() -> void:
                 await get_tree().physics_frame
                 _align_city(bridge)
                 _align_roads()
-                _reported = true
-                print("TERRAIN SURFACE ALIGN: PASS buildings_lod1=true roads=true")
+                print("TERRAIN SURFACE ALIGN: PASS buildings_lod1=true roads=" + str(_aligned_roads))
                 return
         await get_tree().process_frame
     push_warning("TERRAIN SURFACE ALIGN: timeout waiting for Terrain3D/V11")
@@ -73,7 +71,7 @@ func _align_city(bridge: Node) -> void:
                 max_y = maxf(max_y, h)
                 lod1_instances += 1
         _aligned_lod1 = true
-        print("TERRAIN SURFACE ALIGN: LOD1 nodes=%d instances=%d terrain_y=%.2f..%.2f" % [lod1_count, lod1_instances, min_y, max_y])
+        print("TERRAIN SURFACE ALIGN: LOD1 nodes=" + str(lod1_count) + " instances=" + str(lod1_instances) + " terrain_y=" + str(snappedf(min_y, 0.01)) + ".." + str(snappedf(max_y, 0.01)))
 
     var lod0_count := 0
     for child in city_root.get_children():
@@ -94,7 +92,7 @@ func _align_city(bridge: Node) -> void:
         _aligned_lod0[idx] = true
         lod0_count += 1
     if lod0_count > 0:
-        print("TERRAIN SURFACE ALIGN: LOD0 newly_aligned=%d total=%d" % [lod0_count, _aligned_lod0.size()])
+        print("TERRAIN SURFACE ALIGN: LOD0 newly_aligned=" + str(lod0_count) + " total=" + str(_aligned_lod0.size()))
 
 func _align_roads() -> void:
     if _aligned_roads:
@@ -120,4 +118,4 @@ func _align_roads() -> void:
         max_y = maxf(max_y, h)
     if aligned >= 16:
         _aligned_roads = true
-        print("TERRAIN SURFACE ALIGN: roads aligned=%d terrain_y=%.2f..%.2f lift=%.2f" % [aligned, min_y, max_y])
+        print("TERRAIN SURFACE ALIGN: roads aligned=" + str(aligned) + " terrain_y=" + str(snappedf(min_y, 0.01)) + ".." + str(snappedf(max_y, 0.01)) + " lift=" + str(ROAD_LIFT_Y))
