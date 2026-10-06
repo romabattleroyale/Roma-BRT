@@ -61,6 +61,23 @@ jobs:
           .runtime/godot/godot --headless --path . --script res://tools/optimize_v11_textures_mobile.gd
           .runtime/godot/godot --headless --path . --script res://tools/enforce_v11_facade_style.gd
 
+      - name: Normalize building texture loading for bake reuse
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          from pathlib import Path
+          p = Path('city_library/buildings/houses/roma_architecture_library_v11/scripts/library_building_system.gd')
+          s = p.read_text()
+          old = '''func _safe_texture(path: String) -> Texture2D:\n    var image := Image.load_from_file(path)\n    if image == null or image.is_empty(): return null\n    return ImageTexture.create_from_image(image)'''
+          new = '''func _safe_texture(path: String) -> Texture2D:\n    return ResourceLoader.load(path, "Texture2D", ResourceLoader.CACHE_MODE_REUSE) as Texture2D'''
+          if old in s:
+              p.write_text(s.replace(old, new, 1))
+          elif new not in s:
+              raise SystemExit('ERROR: unexpected _safe_texture implementation')
+          print('BUILDING_TEXTURE_LOADER=SHARED_RESOURCE_CACHE')
+          PY
+
       - name: Bake 120 reusable templates + 587 placement manifest
         run: |
           set -euo pipefail
