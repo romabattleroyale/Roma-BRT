@@ -1,0 +1,77 @@
+name: Integrate verified LOD artifact
+
+on:
+  push:
+    paths:
+      - .github/workflows/INTEGRATE_LOD_ARTIFACT.yml
+
+permissions:
+  contents: write
+
+jobs:
+  integrate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout main
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Download verified CI artifact
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          curl -fsSL \
+            -H "Authorization: Bearer ${GH_TOKEN}" \
+            -H "Accept: application/vnd.github+json" \
+            "https://api.github.com/repos/romabattleroyale/Roma-BRT/actions/artifacts/11390602641/zip" \
+            -o /tmp/roma-lod.zip
+          unzip -q /tmp/roma-lod.zip -d /tmp/roma-lod
+
+      - name: Validate and integrate HLOD2 + LOD1
+        run: |
+          set -euo pipefail
+          test "$(find /tmp/roma-lod/hlod -maxdepth 1 -type f -name 'quartiere_*_2.res' | wc -l)" -eq 12
+          test "$(find /tmp/roma-lod/ready_templates -maxdepth 1 -type f -name 'template_*_lod1.res' | wc -l)" -eq 120
+          mkdir -p baked_city/hlod baked_city/lod1
+          rm -f baked_city/hlod/*.res baked_city/lod1/*.res
+          cp /tmp/roma-lod/hlod/quartiere_*_2.res baked_city/hlod/
+          cp /tmp/roma-lod/ready_templates/template_*_lod1.res baked_city/lod1/
+          python3 - <<'PY'
+          from pathlib import Path
+          p = Path('v37_integration/v11_building_bridge.gd')
+          s = p.read_text()
+          old = 'const LOD1_DIR := READY_DIR'
+          new = 'const LOD1_DIR := "res://baked_city/lod1"'
+          if old not in s:
+              raise SystemExit('expected LOD1_DIR declaration not found')
+          p.write_text(s.replace(old, new, 1))
+          PY
+          test "$(find baked_city/hlod -maxdepth 1 -type f -name 'quartiere_*_2.res' | wc -l)" -eq 12
+          test "$(find baked_city/lod1 -maxdepth 1 -type f -name 'template_*_lod1.res' | wc -l)" -eq 120
+          grep -F 'const HLOD_DIR := "res://baked_city/hlod"' v37_integration/v11_building_bridge.gd
+          grep -F 'const LOD1_DIR := "res://baked_city/lod1"' v37_integration/v11_building_bridge.gd
+          grep -F 'quartiere_%02d_2.res' v37_integration/v11_building_bridge.gd
+          grep -F 'template_%03d_lod1.res' v37_integration/v11_building_bridge.gd
+
+      - name: Commit integrated artifacts
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          rm -f .github/workflows/INTEGRATE_LOD_ARTIFACT.yml
+          git add baked_city/hlod baked_city/lod1 v37_integration/v11_building_bridge.gd .github/workflows/INTEGRATE_LOD_ARTIFACT.yml
+          git commit -m 'feat: integrate HLOD2 and LOD1 artifacts from CI bake'
+          for attempt in 1 2 3; do
+            git fetch origin main
+            if git rebase origin/main && git push origin HEAD:main; then
+              echo 'LOD_ARTIFACT_INTEGRATION=PASS'
+              exit 0
+            fi
+            git rebase --abort || true
+            sleep 2
+          done
+          echo 'LOD_ARTIFACT_INTEGRATION=FAIL'
+          exit 1
