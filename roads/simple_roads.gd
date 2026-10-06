@@ -192,8 +192,9 @@ func _add_box_between(p0: Vector3, p1: Vector3, width: float, height: float, mat
     instance.mesh = mesh
     instance.material_override = material
     instance.position = midpoint
-    instance.look_at(midpoint + direction.normalized(), Vector3.UP)
     add_child(instance)
+    instance.global_position = midpoint
+    instance.look_at_from_position(midpoint, midpoint + direction.normalized(), Vector3.UP)
 
 func _add_intersection(center: Vector3, width: float) -> void:
     center.y = _terrain_y(center.x, center.z) + CLEARANCE + ROAD_HEIGHT * 0.5
