@@ -93,17 +93,38 @@ func _load_placement(i: int) -> void:
     var root := _templates[ti].instantiate() as Node3D
     if root == null:
         return
-    root.position = Vector3(float(d.get("x", 0)), float(d.get("y", 0)), float(d.get("z", 0)))
+    var x := float(d.get("x", 0.0))
+    var z := float(d.get("z", 0.0))
+    var terrain_y := _get_terrain_height(x, z)
+    root.position = Vector3(x, terrain_y, z)
     root.rotation.y = float(d.get("rotation", 0))
     var template_floors := int(root.get_meta("template_floors", 3))
     var floors := clampi(int(d.get("floors", template_floors)), 3, 5)
     root.scale.y = float(floors) / float(maxi(1, template_floors))
     root.set_meta("runtime_placement", i)
     root.set_meta("ready_signature", "%d|f%d|c%d|r%d" % [ti, floors, int(d.get("facade_index", 0)), int(d.get("roof_index", 0))])
+    root.set_meta("terrain_y", terrain_y)
     if _variation_script != null:
         _variation_script.apply(root, int(d.get("seed", i)), floors)
     _set_native_visibility(root)
     _city_root.add_child(root)
+
+func _get_terrain_height(x: float, z: float) -> float:
+    if not is_finite(x) or not is_finite(z):
+        return 0.0
+    var terrain := get_tree().current_scene.find_child("Terrain3D_HEIGHTMAP_2000x2000", true, false)
+    if terrain != null and terrain.has_method("get_height"):
+        var h := float(terrain.get_height(Vector3(x, 0.0, z)))
+        if is_finite(h):
+            return h
+    if terrain != null:
+        var data = terrain.get("data")
+        if data != null and data.has_method("get_height"):
+            var h2 := float(data.get_height(Vector3(x, 0.0, z)))
+            if is_finite(h2):
+                return h2
+    push_warning("V11 TERRAIN Y: Terrain3D get_height non disponibile; uso Y=0 per x=%s z=%s" % [x, z])
+    return 0.0
 
 func _set_native_visibility(root: Node) -> void:
     var stack: Array[Node] = [root]
