@@ -22,13 +22,13 @@ jobs:
     runs-on: ubuntu-24.04
     timeout-minutes: 30
     steps:
-      - name: Checkout persisted ready-bake main
+      - name: Checkout main
         uses: actions/checkout@v4
         with:
           ref: main
           fetch-depth: 1
 
-      - name: Verify persisted ready-building templates and manifest
+      - name: Verify persisted ready-building templates and native visibility assets
         shell: bash
         run: |
           set -euo pipefail
@@ -55,9 +55,9 @@ jobs:
               assert 'x' in entry and 'z' in entry, f'missing coordinates at placement {i}'
           print('READY_MANIFEST_STRUCTURE=PASS')
           PY
-          hlod_count=$(find baked_city/hlod -maxdepth 1 -type f -name 'quartiere_*_*.res' | wc -l)
-          echo "HLOD_MESH_COUNT=$hlod_count"
-          test "$hlod_count" -eq 12
+          test ! -d baked_city/hlod
+          test ! -d baked_city/lod1
+          echo 'NATIVE_VISIBILITY_ASSETS=CLEAN'
 
       - name: Verify project metadata
         run: |
@@ -128,15 +128,16 @@ jobs:
           if [ "$code" -ne 0 ] && [ "$code" -ne 124 ]; then
             exit "$code"
           fi
-          grep -q 'V11 READY BAKE: COMPLETE loaded=587' build/runtime/godot_runtime.log
+          grep -q 'V11 NATIVE VISIBILITY: COMPLETE loaded=587 templates=120 buildings=587 range=0-500 fade=self district_planes=12 range=500-5000' build/runtime/godot_runtime.log
+          grep -q 'V11 CITY DISTRICT PLANES: PASS count=12 size=300x300 y=0.5 range=500-5000 fade=self' build/runtime/godot_runtime.log
           grep -q 'ROMA ROADS RUNTIME: PASS districts=12 bridges=4 GridMap=manual' build/runtime/godot_runtime.log
           if grep -q 'V37 edifici:' build/runtime/godot_runtime.log; then
             echo 'ERROR: procedural V11 building generation ran during runtime'
             exit 1
           fi
-          if grep -Eq 'ERROR:|SCRIPT ERROR|Parse Error|Invalid call|Nonexistent function|Cannot open file|Failed loading resource|V11 HLOD: missing|Terrain3D non disponibile|Terrain3D Data non inizializzato|V37 world non pronto' build/runtime/godot_runtime.log; then
+          if grep -Eq 'ERROR:|SCRIPT ERROR|Parse Error|Invalid call|Nonexistent function|Cannot open file|Failed loading resource|V11 HLOD|V11 LOD1|MultiMesh|Terrain3D non disponibile|Terrain3D Data non inizializzato|V37 world non pronto' build/runtime/godot_runtime.log; then
             echo 'ERROR: Godot runtime Output is not clean'
-            grep -E 'ERROR:|SCRIPT ERROR|Parse Error|Invalid call|Nonexistent function|Cannot open file|Failed loading resource|V11 HLOD: missing|Terrain3D non disponibile|Terrain3D Data non inizializzato|V37 world non pronto' build/runtime/godot_runtime.log || true
+            grep -E 'ERROR:|SCRIPT ERROR|Parse Error|Invalid call|Nonexistent function|Cannot open file|Failed loading resource|V11 HLOD|V11 LOD1|MultiMesh|Terrain3D non disponibile|Terrain3D Data non inizializzato|V37 world non pronto' build/runtime/godot_runtime.log || true
             exit 1
           fi
           echo 'GODOT_RUNTIME_OUTPUT=CLEAN'
@@ -146,7 +147,7 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: Roma-BRT-ready-bake-runtime-log
+          name: Roma-BRT-native-visibility-runtime-log
           path: build/runtime
           if-no-files-found: warn
           retention-days: 30
