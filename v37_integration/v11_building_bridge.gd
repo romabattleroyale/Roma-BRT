@@ -1,15 +1,15 @@
 extends Node3D
-## Runtime V11 bridge: 120 shared templates, 587 virtual placements, 12x3 district HLOD.
-## Detailed HLOD0 buildings stream near the player; HLOD1/2 keep the whole city readable.
+## Runtime V11 bridge: LOD0 templates + per-template LOD1 + 12 district HLOD2.
 const READY_DIR := "res://baked_city/ready_templates"
 const MANIFEST_PATH := READY_DIR + "/manifest.json"
 const HLOD_DIR := "res://baked_city/hlod"
+const LOD1_DIR := READY_DIR
 const CHUNK_SIZE := 200.0
 const MAX_ACTIVE := 50
 const LOAD_RADIUS_CHUNKS := 1
-const HLOD0_END := 150.0
-const HLOD1_BEGIN := 150.0
-const HLOD1_END := 400.0
+const LOD0_END := 150.0
+const LOD1_BEGIN := 150.0
+const LOD1_END := 400.0
 const HLOD2_BEGIN := 400.0
 const HLOD2_END := 4000.0
 const DISTRICT_CENTERS := [Vector3(-800,0,-650),Vector3(-400,0,-650),Vector3(400,0,-650),Vector3(800,0,-650),Vector3(-800,0,0),Vector3(-400,0,0),Vector3(400,0,0),Vector3(800,0,0),Vector3(-800,0,650),Vector3(-400,0,650),Vector3(400,0,650),Vector3(800,0,650)]
@@ -17,12 +17,14 @@ var built := false
 var _refreshing := false
 var _city_root: Node3D
 var _templates: Array[PackedScene] = []
+var _lod1_meshes: Array[Mesh] = []
 var _placements: Array = []
 var _active: Dictionary = {}
 var _groups: Dictionary = {}
 var _last_chunk := Vector2i(999999,999999)
 var _variation_script: RefCounted
 var _hlod_nodes: Array[Node3D] = []
+var _lod1_nodes: Array[Node3D] = []
 
 func _ready() -> void: call_deferred("_wait_for_v37")
 
@@ -36,12 +38,13 @@ func _wait_for_v37() -> void:
                 await _yield_frames(2)
                 if _load_manifest():
                     _load_hlods()
+                    _load_lod1_multimeshes()
                     await _load_all_templates()
                     var player:=_find_player()
                     var p:=player.global_position if player!=null else Vector3.ZERO
                     await _refresh_chunks(p)
                     built=true
-                    print("V11 READY BAKE: COMPLETE loaded=587 templates=120 active=%d HLOD=12x3"%_active.size())
+                    print("V11 READY BAKE: COMPLETE loaded=587 templates=120 active=%d HLOD2=12 LOD1=120 LOD0=streaming"%_active.size())
                     return
         await get_tree().create_timer(0.1).timeout
     push_error("V11 TEMPLATE CHUNKING: V37 world non pronto")
@@ -57,31 +60,57 @@ func _load_manifest()->bool:
 func _load_hlods()->void:
     if _city_root==null:return
     for district in range(12):
-        var center:Vector3=DISTRICT_CENTERS[district]
-        for level in [2,1]:
-            var path:=HLOD_DIR+"/quartiere_%02d_%d.res"%[district+1,level]
-            var mesh:=ResourceLoader.load(path) as Mesh
-            if mesh==null:
-                push_error("V11 HLOD: missing "+path)
-                continue
-            var node:=MeshInstance3D.new()
-            node.name="V11_HLOD_Q%02d_L%d"%[district+1,level]
-            node.mesh=mesh
-            node.position=center
-            node.cast_shadow=GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
-            node.gi_mode=GeometryInstance3D.GI_MODE_DISABLED
-            node.visibility_range_fade_mode=GeometryInstance3D.VISIBILITY_RANGE_FADE_SELF
-            if level==2:
-                node.visibility_range_begin=HLOD2_BEGIN
-                node.visibility_range_end=HLOD2_END
-            else:
-                node.visibility_range_begin=HLOD1_BEGIN
-                node.visibility_range_end=HLOD1_END
-            node.visibility_range_begin_margin=40.0
-            node.visibility_range_end_margin=40.0
-            _city_root.add_child(node)
-            _hlod_nodes.append(node)
-    print("V11 HLOD: PASS districts=12 levels=3 aggregate_meshes=24 + HLOD0 streaming")
+        var path:=HLOD_DIR+"/quartiere_%02d_2.res"%(district+1)
+        var mesh:=ResourceLoader.load(path) as Mesh
+        if mesh==null:
+            push_error("V11 HLOD: missing "+path)
+            continue
+        var node:=MeshInstance3D.new()
+        node.name="V11_HLOD2_Q%02d"%(district+1)
+        node.mesh=mesh
+        node.position=DISTRICT_CENTERS[district]
+        node.cast_shadow=GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+        node.gi_mode=GeometryInstance3D.GI_MODE_DISABLED
+        node.visibility_range_fade_mode=GeometryInstance3D.VISIBILITY_RANGE_FADE_SELF
+        node.visibility_range_begin=HLOD2_BEGIN
+        node.visibility_range_end=HLOD2_END
+        node.visibility_range_begin_margin=40.0
+        node.visibility_range_end_margin=40.0
+        _city_root.add_child(node)
+        _hlod_nodes.append(node)
+    if _hlod_nodes.size()!=12:push_error("V11 HLOD2: loaded=%d expected=12"%_hlod_nodes.size())
+    else:print("V11 HLOD2: PASS districts=12 range=400-4000")
+
+func _load_lod1_multimeshes()->void:
+    _lod1_meshes.clear()
+    for i in range(120):
+        var mesh:=ResourceLoader.load("%s/template_%03d_lod1.res"%[LOD1_DIR,i+1]) as Mesh
+        if mesh==null:
+            push_error("V11 LOD1: missing template_%03d_lod1.res"%(i+1));continue
+        _lod1_meshes.append(mesh)
+    if _lod1_meshes.size()!=120:return
+    var buckets:Array=[]
+    for _i in range(120):buckets.append([])
+    for i in range(_placements.size()):
+        var d:Dictionary=_placements[i];var ti:=clampi(int(d.get("template",0)),0,119);buckets[ti].append(d)
+    for ti in range(120):
+        var items:Array=buckets[ti]
+        if items.is_empty():continue
+        var mm:=MultiMesh.new();mm.transform_format=MultiMesh.TRANSFORM_3D;mm.use_colors=false;mm.mesh=_lod1_meshes[ti];mm.instance_count=items.size()
+        for j in range(items.size()):
+            var d:Dictionary=items[j];var floors:=clampi(int(d.get("floors",3)),3,5)
+            var template_scene:=_templates[ti] if ti<_templates.size() else null
+            var template_floors:=3
+            if template_scene!=null:
+                var probe:=template_scene.instantiate() as Node3D
+                if probe!=null:template_floors=int(probe.get_meta("template_floors",3));probe.free()
+            var t:=Transform3D(Basis(Vector3.UP,float(d.get("rotation",0.0))),Vector3(float(d.get("x",0)),float(d.get("y",0)),float(d.get("z",0))))
+            t=t.scaled_local(Vector3(1.0,float(floors)/float(maxi(1,template_floors)),1.0))
+            mm.set_instance_transform(j,t)
+        var mmi:=MultiMeshInstance3D.new();mmi.name="V11_LOD1_Template_%03d"%(ti+1);mmi.multimesh=mm;mmi.cast_shadow=GeometryInstance3D.SHADOW_CASTING_SETTING_OFF;mmi.gi_mode=GeometryInstance3D.GI_MODE_DISABLED
+        mmi.visibility_range_fade_mode=GeometryInstance3D.VISIBILITY_RANGE_FADE_SELF;mmi.visibility_range_begin=LOD1_BEGIN;mmi.visibility_range_end=LOD1_END;mmi.visibility_range_begin_margin=20.0;mmi.visibility_range_end_margin=30.0
+        _city_root.add_child(mmi);_lod1_nodes.append(mmi)
+    print("V11 LOD1: PASS templates=120 range=150-400")
 
 func _load_all_templates() -> void:
     _templates.clear()
@@ -131,7 +160,16 @@ func _load_placement(i:int)->void:
     var template_floors:=int(root.get_meta("template_floors",3));var floors:=clampi(int(d.get("floors",template_floors)),3,5);root.scale.y=float(floors)/float(maxi(1,template_floors))
     root.set_meta("runtime_placement",i);root.set_meta("ready_signature","%d|f%d|c%d|r%d"%[ti,floors,int(d.get("facade_index",0)),int(d.get("roof_index",0))])
     if _variation_script!=null:_variation_script.apply(root,int(d.get("seed",i)),floors)
+    _set_lod0_visibility(root)
     _city_root.add_child(root);_active[i]=root;_attach_to_multimesh(i,root)
+
+func _set_lod0_visibility(root:Node)->void:
+    var stack:Array[Node]=[root]
+    while not stack.is_empty():
+        var n:Node=stack.pop_back()
+        if n is MeshInstance3D:
+            var g:=n as MeshInstance3D;g.visibility_range_fade_mode=GeometryInstance3D.VISIBILITY_RANGE_FADE_SELF;g.visibility_range_begin=0.0;g.visibility_range_end=LOD0_END;g.visibility_range_begin_margin=15.0;g.visibility_range_end_margin=20.0
+        for c in n.get_children():stack.append(c)
 
 func _attach_to_multimesh(i:int,root:Node3D)->void:
     var mesh:=_find_mesh_node(root);if mesh==null or mesh.mesh==null:return
