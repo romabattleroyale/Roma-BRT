@@ -1,0 +1,131 @@
+name: _Fix Runtime Types V2
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+
+permissions:
+  contents: write
+
+jobs:
+  fix:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Apply explicit types and sync main
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+          git fetch origin main
+          git reset --hard origin/main
+
+          python3 - <<'PY'
+          from pathlib import Path
+
+          road = Path("roads/simple_roads.gd")
+          s = road.read_text()
+          replacements = {
+              'var material := StandardMaterial3D.new()': 'var material: StandardMaterial3D = StandardMaterial3D.new()',
+              'var terrain := get_tree().current_scene.find_child("Terrain3D_HEIGHTMAP_2000x2000", true, false)': 'var terrain: Node = get_tree().current_scene.find_child("Terrain3D_HEIGHTMAP_2000x2000", true, false)',
+              'var height_range := Vector2.ZERO': 'var height_range: Vector2 = Vector2.ZERO',
+              'var h := float(_terrain_data.call("get_height", Vector3(x, 0.0, z)))': 'var h: float = float(_terrain_data.call("get_height", Vector3(x, 0.0, z)))',
+              'var p := _world(Vector2(local_center.x, local_center.z))': 'var p: Vector3 = _world(Vector2(local_center.x, local_center.z))',
+              'var index := row * 4 + col': 'var index: int = row * 4 + col',
+              'var center := _world(Vector2(local_center.x, local_center.z))': 'var center: Vector3 = _world(Vector2(local_center.x, local_center.z))',
+              'var a := Vector3(center.x - LOCAL_HALF_EXTENT, 0.0, center.z + offset)': 'var a: Vector3 = Vector3(center.x - LOCAL_HALF_EXTENT, 0.0, center.z + offset)',
+              'var b := Vector3(center.x + LOCAL_HALF_EXTENT, 0.0, center.z + offset)': 'var b: Vector3 = Vector3(center.x + LOCAL_HALF_EXTENT, 0.0, center.z + offset)',
+              'var c := Vector3(center.x + offset, 0.0, center.z - LOCAL_HALF_EXTENT)': 'var c: Vector3 = Vector3(center.x + offset, 0.0, center.z - LOCAL_HALF_EXTENT)',
+              'var d := Vector3(center.x + offset, 0.0, center.z + LOCAL_HALF_EXTENT)': 'var d: Vector3 = Vector3(center.x + offset, 0.0, center.z + LOCAL_HALF_EXTENT)',
+              'var flat_a := Vector3(a.x, 0.0, a.z)': 'var flat_a: Vector3 = Vector3(a.x, 0.0, a.z)',
+              'var flat_b := Vector3(b.x, 0.0, b.z)': 'var flat_b: Vector3 = Vector3(b.x, 0.0, b.z)',
+              'var distance := flat_a.distance_to(flat_b)': 'var distance: float = flat_a.distance_to(flat_b)',
+              'var direction := (flat_b - flat_a).normalized()': 'var direction: Vector3 = (flat_b - flat_a).normalized()',
+              'var side := Vector3(-direction.z, 0.0, direction.x)': 'var side: Vector3 = Vector3(-direction.z, 0.0, direction.x)',
+              'var steps := maxi(1, ceili(distance / SEGMENT_LENGTH))': 'var steps: int = maxi(1, ceili(distance / SEGMENT_LENGTH))',
+              'var t0 := float(i) / float(steps)': 'var t0: float = float(i) / float(steps)',
+              'var t1 := float(i + 1) / float(steps)': 'var t1: float = float(i + 1) / float(steps)',
+              'var p0 := flat_a.lerp(flat_b, t0)': 'var p0: Vector3 = flat_a.lerp(flat_b, t0)',
+              'var p1 := flat_a.lerp(flat_b, t1)': 'var p1: Vector3 = flat_a.lerp(flat_b, t1)',
+              'var ground0 := _surface_point(p0.x, p0.z, ROAD_HEIGHT * 0.5)': 'var ground0: Vector3 = _surface_point(p0.x, p0.z, ROAD_HEIGHT * 0.5)',
+              'var ground1 := _surface_point(p1.x, p1.z, ROAD_HEIGHT * 0.5)': 'var ground1: Vector3 = _surface_point(p1.x, p1.z, ROAD_HEIGHT * 0.5)',
+              'var length := p0.distance_to(p1) + OVERLAP': 'var length: float = p0.distance_to(p1) + OVERLAP',
+              'var curb0 := _surface_point': 'var curb0: Vector3 = _surface_point',
+              'var curb1 := _surface_point': 'var curb1: Vector3 = _surface_point',
+              'var sw0 := _surface_point': 'var sw0: Vector3 = _surface_point',
+              'var sw1 := _surface_point': 'var sw1: Vector3 = _surface_point',
+              'var gutter_center :=': 'var gutter_center: Vector3 =',
+              'var g0 := _surface_point': 'var g0: Vector3 = _surface_point',
+              'var g1 := _surface_point': 'var g1: Vector3 = _surface_point',
+              'var edge_center :=': 'var edge_center: Vector3 =',
+              'var e0 := _surface_point': 'var e0: Vector3 = _surface_point',
+              'var e1 := _surface_point': 'var e1: Vector3 = _surface_point',
+              'var midpoint := (p0 + p1) * 0.5': 'var midpoint: Vector3 = (p0 + p1) * 0.5',
+              'var direction := p1 - p0': 'var direction: Vector3 = p1 - p0',
+              'var length := maxf(0.10, direction.length() + OVERLAP)': 'var length: float = maxf(0.10, direction.length() + OVERLAP)',
+              'var mesh := BoxMesh.new()': 'var mesh: BoxMesh = BoxMesh.new()',
+              'var instance := MeshInstance3D.new()': 'var instance: MeshInstance3D = MeshInstance3D.new()',
+              'var dash_center :=': 'var dash_center: Vector3 =',
+              'var pos := _surface_point': 'var pos: Vector3 = _surface_point',
+              'var base := MeshInstance3D.new()': 'var base: MeshInstance3D = MeshInstance3D.new()',
+              'var base_mesh := BoxMesh.new()': 'var base_mesh: BoxMesh = BoxMesh.new()',
+              'var bar := MeshInstance3D.new()': 'var bar: MeshInstance3D = MeshInstance3D.new()',
+              'var bar_mesh := BoxMesh.new()': 'var bar_mesh: BoxMesh = BoxMesh.new()',
+              'var p := center + side * side_sign * (width * 0.5 - 0.18)': 'var p: Vector3 = center + side * side_sign * (width * 0.5 - 0.18)',
+              'var pole := MeshInstance3D.new()': 'var pole: MeshInstance3D = MeshInstance3D.new()',
+              'var pole_mesh := CylinderMesh.new()': 'var pole_mesh: CylinderMesh = CylinderMesh.new()',
+              'var head := MeshInstance3D.new()': 'var head: MeshInstance3D = MeshInstance3D.new()',
+              'var head_mesh := BoxMesh.new()': 'var head_mesh: BoxMesh = BoxMesh.new()',
+          }
+          for old, new in replacements.items():
+              s = s.replace(old, new)
+          road.write_text(s)
+
+          poi = Path("city_library/poi/poi_manager.gd")
+          s = poi.read_text()
+          s = s.replace('var text := FileAccess.get_file_as_string(POI_MANIFEST)', 'var text: String = FileAccess.get_file_as_string(POI_MANIFEST)')
+          s = s.replace('var parsed = JSON.parse_string(text)', 'var parsed: Variant = JSON.parse_string(text)')
+          s = s.replace('var text := FileAccess.get_file_as_string(BUILDING_MANIFEST)', 'var text: String = FileAccess.get_file_as_string(BUILDING_MANIFEST)')
+          s = s.replace('var footprint: Array = poi.get("footprint", [56.0, 56.0])', 'var footprint: Array = poi.get("footprint", [56.0, 56.0])')
+          s = s.replace('var width := float(footprint[0])', 'var width: float = float(footprint[0])')
+          s = s.replace('var depth := float(footprint[1])', 'var depth: float = float(footprint[1])')
+          s = s.replace('var half_diag := sqrt(width * width + depth * depth) * 0.5', 'var half_diag: float = sqrt(width * width + depth * depth) * 0.5')
+          s = s.replace('var building_clearance :=', 'var building_clearance: float =')
+          s = s.replace('var min_slot_sep :=', 'var min_slot_sep: float =')
+          s = s.replace('var search_radius :=', 'var search_radius: float =')
+          s = s.replace('var step :=', 'var step: float =')
+          s = s.replace('var cell: Array = poi.get("target_cell", [0, 0])', 'var cell: Array = poi.get("target_cell", [0, 0])')
+          s = s.replace('var ix := int(cell[0])', 'var ix: int = int(cell[0])')
+          s = s.replace('var iz := int(cell[1])', 'var iz: int = int(cell[1])')
+          s = s.replace('var target := Vector2(target_x, target_z)', 'var target: Vector2 = Vector2(target_x, target_z)')
+          s = s.replace('var best := Vector2.ZERO', 'var best: Vector2 = Vector2.ZERO')
+          s = s.replace('var best_distance := INF', 'var best_distance: float = INF')
+          s = s.replace('var radius_steps := int(ceil(search_radius / step))', 'var radius_steps: int = int(ceil(search_radius / step))')
+          s = s.replace('var candidate := target + Vector2(float(sx) * step, float(sz) * step)', 'var candidate: Vector2 = target + Vector2(float(sx) * step, float(sz) * step)')
+          s = s.replace('var d := candidate.distance_to(target)', 'var d: float = candidate.distance_to(target)')
+          poi.write_text(s)
+          PY
+
+          git add roads/simple_roads.gd city_library/poi/poi_manager.gd
+          if git diff --cached --quiet; then
+            echo "No changes needed"
+          else
+            git commit -m "fix: resolve Godot runtime type inference errors"
+            git push origin HEAD:main
+          fi
+
+      - name: Remove temporary fixer workflow
+        if: success()
+        shell: bash
+        run: |
+          set -euo pipefail
+          rm -f .github/workflows/_fix_runtime_types_v2.yml
+          git add .github/workflows/_fix_runtime_types_v2.yml
+          git commit -m "chore: remove temporary runtime type fixer v2" || true
+          git push origin HEAD:main || true
