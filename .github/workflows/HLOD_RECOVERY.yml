@@ -7,6 +7,8 @@ on:
     paths:
       - '.github/workflows/HLOD_RECOVERY.yml'
       - 'v37_integration/generate_quarter_hlod_fast.gd'
+      - 'v37_integration/generate_lod1_templates.gd'
+      - 'v37_integration/v11_building_bridge.gd'
       - 'tools/ci_hlod_runtime_smoke.gd'
 
 permissions:
@@ -15,7 +17,7 @@ permissions:
 jobs:
   rebuild-hlod:
     runs-on: ubuntu-latest
-    timeout-minutes: 120
+    timeout-minutes: 20
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -39,61 +41,77 @@ jobs:
           .runtime/godot/godot --headless --path . --script res://tools/normalize_v11_texture_paths.gd
           .runtime/godot/godot --headless --path . --script res://tools/optimize_v11_textures_mobile.gd
           .runtime/godot/godot --headless --path . --script res://tools/enforce_v11_facade_style.gd
-      - name: Bake 120 and distribute 587
+      - name: Bake 120 LOD0 templates and distribute 587
         run: |
           set -euo pipefail
           rm -rf baked_city/ready_buildings baked_city/ready_templates baked_city/hlod
           .runtime/godot/godot --headless --path . --script res://v37_integration/bake_ready_buildings_120.gd
           .runtime/godot/godot --headless --path . --script res://v37_integration/distribute_ready_buildings_quarters.gd
           test "$(find baked_city/ready_templates -maxdepth 1 -type f -name 'template_*.tscn' | wc -l)" -eq 120
-      - name: Generate 12 HLOD2 pilot levels
+      - name: Generate 120 LOD1 meshes
         run: |
           set -euo pipefail
-          .runtime/godot/godot --headless --path . --script res://v37_integration/generate_quarter_hlod_fast.gd -- --levels hlod2 --districts 01,02,03,04,05,06,07,08,09,10,11,12
+          .runtime/godot/godot --headless --path . --script res://v37_integration/generate_lod1_templates.gd
+          test "$(find baked_city/ready_templates -maxdepth 1 -type f -name 'template_*_lod1.res' | wc -l)" -eq 120
+          test -f baked_city/ready_templates/lod1_report.json
+      - name: Generate 12 HLOD2 proxies
+        run: |
+          set -euo pipefail
+          .runtime/godot/godot --headless --path . --script res://v37_integration/generate_quarter_hlod_fast.gd
           test "$(find baked_city/hlod -maxdepth 1 -type f -name 'quartiere_*_2.res' | wc -l)" -eq 12
           test "$(find baked_city/hlod -maxdepth 1 -type f -name 'quartiere_*_*.res' | wc -l)" -eq 12
           test -f baked_city/hlod/report.json
-      - name: Validate HLOD2
+      - name: Validate World Partition style LOD stack
         run: |
           set -euo pipefail
           python3 - <<'PY'
-          import json, glob
+          import json,glob,os
           m=json.load(open('baked_city/ready_templates/manifest.json'))
-          assert m['placement_count']==587 and m['district_count']==12
-          assert len(glob.glob('baked_city/hlod/quartiere_*_2.res'))==12
+          assert m['placement_count']==587 and m['template_count']==120
+          assert len(glob.glob('baked_city/ready_templates/template_*_lod1.res'))==120
           r=json.load(open('baked_city/hlod/report.json'))
           assert r['districts']==12 and r['placement_count']==587
+          assert len(glob.glob('baked_city/hlod/quartiere_*_2.res'))==12
           for d,v in r['levels'].items():
-              assert 0 < v['hlod2_tri'] <= 2200
-          print('HLOD2_STRUCTURE=PASS')
+              assert v['triangles'] <= 24
+              assert v['visibility_begin']==400.0 and v['visibility_end']==4000.0
+          print('HLOD2_12=PASS')
+          print('LOD1_120=PASS')
+          print('LOD0_120=PASS')
+          print('VISIBILITY=0-150 / 150-400 / 400-4000')
           PY
-      - name: Upload HLOD artifact
+      - name: Upload LOD artifacts
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: roma-hlod2-bake
-          path: baked_city/hlod
+          name: roma-worldpartition-lod-stack
+          path: |
+            baked_city/hlod
+            baked_city/ready_templates/*_lod1.res
+            baked_city/ready_templates/lod1_report.json
           if-no-files-found: warn
           retention-days: 30
-      - name: Persist HLOD before runtime smoke
+      - name: Persist LOD stack before runtime smoke
         run: |
           set -euo pipefail
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
           git add baked_city/ready_templates baked_city/hlod
-          git commit -m 'feat: persist ready buildings and HLOD2 [skip ci]' || true
+          git commit -m 'feat: persist HLOD2 and per-template LOD1 [skip ci]' || true
           for attempt in 1 2 3; do
             git fetch origin main
-            git rebase origin/main && git push origin HEAD:main && break
+            if git rebase origin/main && git push origin HEAD:main; then
+              echo 'LOD_STACK_GIT_PUSH=PASS'
+              break
+            fi
             if [ "$attempt" -eq 3 ]; then
-              echo 'HLOD_GIT_PUSH=FAIL'
+              echo 'LOD_STACK_GIT_PUSH=FAIL'
               exit 1
             fi
             git rebase --abort || true
             sleep 5
           done
-          echo 'HLOD_GIT_PUSH=PASS'
-      - name: Godot HLOD runtime Output
+      - name: Godot LOD runtime Output
         run: |
           set -euo pipefail
           mkdir -p build/runtime
@@ -103,17 +121,19 @@ jobs:
           set -e
           if [ "$code" -ne 0 ] && [ "$code" -ne 124 ]; then exit "$code"; fi
           grep -q 'V11 READY BAKE: COMPLETE loaded=587' build/runtime/runtime_output.log
-          if grep -Eq 'ERROR:|SCRIPT ERROR|Parse Error|Invalid call|Nonexistent function|Cannot open file|Failed loading resource|V11 HLOD: missing' build/runtime/runtime_output.log; then
-            echo 'GODOT_HLOD_RUNTIME=FAIL'
-            grep -E 'ERROR:|SCRIPT ERROR|Parse Error|Invalid call|Nonexistent function|Cannot open file|Failed loading resource|V11 HLOD: missing' build/runtime/runtime_output.log || true
+          grep -q 'V11 HLOD2: PASS districts=12 range=400-4000' build/runtime/runtime_output.log
+          grep -q 'V11 LOD1: PASS templates=120 range=150-400' build/runtime/runtime_output.log
+          if grep -Eq 'ERROR:|SCRIPT ERROR|Parse Error|Invalid call|Nonexistent function|Cannot open file|Failed loading resource|V11 HLOD: missing|V11 LOD1: missing' build/runtime/runtime_output.log; then
+            echo 'GODOT_LOD_RUNTIME=FAIL'
+            grep -E 'ERROR:|SCRIPT ERROR|Parse Error|Invalid call|Nonexistent function|Cannot open file|Failed loading resource|V11 HLOD: missing|V11 LOD1: missing' build/runtime/runtime_output.log || true
             exit 1
           fi
-          echo 'GODOT_HLOD_RUNTIME=CLEAN'
+          echo 'GODOT_LOD_RUNTIME=CLEAN'
       - name: Upload runtime log
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: hlod-recovery-runtime-output
+          name: worldpartition-lod-runtime-output
           path: build/runtime/runtime_output.log
           if-no-files-found: warn
           retention-days: 30
