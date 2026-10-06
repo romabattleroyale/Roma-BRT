@@ -84,8 +84,6 @@ func _load_hlods() -> void:
         var node := MeshInstance3D.new()
         node.name = "V11_HLOD2_Q%02d" % (district + 1)
         node.mesh = mesh
-        # HLOD mesh vertices are baked in the original centered world frame.
-        # Move the node once so HLOD shares the same runtime frame as LOD0/LOD1.
         node.position = WORLD_OFFSET
         node.material_override = _make_flat_material(DISTRICT_COLORS[district], true)
         node.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
@@ -352,6 +350,9 @@ func _find_mesh_node(root: Node) -> MeshInstance3D:
     return null
 
 func _find_player() -> Node3D:
+    var debug_camera := get_tree().current_scene.find_child("DebugTopDownCamera3D", true, false) as Camera3D
+    if debug_camera != null and debug_camera.current:
+        return debug_camera
     var group_nodes := get_tree().get_nodes_in_group("player")
     if not group_nodes.is_empty() and group_nodes[0] is Node3D:
         return group_nodes[0] as Node3D
