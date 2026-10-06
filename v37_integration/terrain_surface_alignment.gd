@@ -1,17 +1,17 @@
 extends Node3D
 ## Runtime-only terrain surface alignment.
-## Buildings use the Terrain3D height at their own X/Z.
-## Road GridMap cells are re-sampled individually so the road follows terrain
-## instead of applying one Y to an entire district. Persisted assets are untouched.
+## Every native building root uses the Terrain3D height at its own X/Z.
+## Road GridMap cells are re-sampled individually so roads follow terrain.
+## Persisted terrain, river, road and placement assets remain untouched.
 
 const ROAD_CELL_Y_STEP := 0.01
 const ROAD_LIFT_Y := 0.06
 const RETRY_FRAMES := 600
 
 var _terrain_data: Object
-var _aligned_lod1 := false
+var _aligned_buildings := false
 var _aligned_roads := false
-var _aligned_lod0: Dictionary = {}
+var _aligned_buildings_map: Dictionary = {}
 
 func _ready() -> void:
     call_deferred("_run")
@@ -43,7 +43,7 @@ func _run() -> void:
                 await get_tree().physics_frame
                 _align_city(bridge)
                 _align_roads()
-                print("TERRAIN SURFACE ALIGN: PASS buildings_lod1=true roads=" + str(_aligned_roads))
+                print("TERRAIN SURFACE ALIGN: PASS buildings=true roads=" + str(_aligned_roads))
                 return
         await get_tree().process_frame
     push_warning("TERRAIN SURFACE ALIGN: timeout waiting for Terrain3D/V11")
@@ -57,41 +57,15 @@ func _terrain_y(x: float, z: float) -> float:
     return h
 
 func _align_city(bridge: Node) -> void:
+    if _aligned_buildings:
+        return
     var city_root := bridge.get("city_root") as Node3D
     if city_root == null:
         return
 
-    if not _aligned_lod1:
-        var lod1_count := 0
-        var lod1_instances := 0
-        var min_y := INF
-        var max_y := -INF
-        for child in city_root.get_children():
-            if not (child is MultiMeshInstance3D):
-                continue
-            var mmi := child as MultiMeshInstance3D
-            if not str(mmi.name).begins_with("V11_LOD1_Template_"):
-                continue
-            var mm := mmi.multimesh
-            if mm == null:
-                continue
-            lod1_count += 1
-            for j in range(mm.instance_count):
-                var t := mm.get_instance_transform(j)
-                var global_pos := mmi.to_global(t.origin)
-                var h := _terrain_y(global_pos.x, global_pos.z)
-                if is_nan(h):
-                    continue
-                global_pos.y = h + 0.03
-                t.origin = mmi.to_local(global_pos)
-                mm.set_instance_transform(j, t)
-                min_y = minf(min_y, h)
-                max_y = maxf(max_y, h)
-                lod1_instances += 1
-        _aligned_lod1 = true
-        print("TERRAIN SURFACE ALIGN: LOD1 nodes=" + str(lod1_count) + " instances=" + str(lod1_instances) + " terrain_y=" + str(snappedf(min_y, 0.01)) + ".." + str(snappedf(max_y, 0.01)))
-
-    var lod0_count := 0
+    var building_count := 0
+    var min_y := INF
+    var max_y := -INF
     for child in city_root.get_children():
         if not (child is Node3D):
             continue
@@ -99,18 +73,20 @@ func _align_city(bridge: Node) -> void:
         if not root.has_meta("runtime_placement"):
             continue
         var idx := int(root.get_meta("runtime_placement"))
-        if _aligned_lod0.has(idx):
-            continue
-        var pos := root.global_position
-        var h := _terrain_y(pos.x, pos.z)
+        var h := _terrain_y(root.global_position.x, root.global_position.z)
         if is_nan(h):
             continue
+        var pos := root.global_position
         pos.y = h + 0.03
         root.global_position = pos
-        _aligned_lod0[idx] = true
-        lod0_count += 1
-    if lod0_count > 0:
-        print("TERRAIN SURFACE ALIGN: LOD0 newly_aligned=" + str(lod0_count) + " total=" + str(_aligned_lod0.size()))
+        _aligned_buildings_map[idx] = true
+        building_count += 1
+        min_y = minf(min_y, h)
+        max_y = maxf(max_y, h)
+
+    if building_count >= 587:
+        _aligned_buildings = true
+    print("TERRAIN SURFACE ALIGN: BUILDINGS aligned=" + str(building_count) + "/587 terrain_y=" + str(snappedf(min_y, 0.01)) + ".." + str(snappedf(max_y, 0.01)))
 
 func _is_bridge_node(node: Node) -> bool:
     var n := node
@@ -148,15 +124,12 @@ func _align_roads() -> void:
             if original_cells.is_empty():
                 continue
 
-            # Preserve authored X/Z exactly. The Y grid is runtime-only and
-            # has 1 cm resolution so each road cell can follow Terrain3D.
             var root_pos := grid.global_position
             root_pos.y = 0.0
             grid.global_position = root_pos
             grid.cell_size = Vector3(grid.cell_size.x, ROAD_CELL_Y_STEP, grid.cell_size.z)
 
             var placements:Array[Dictionary] = []
-            placements.resize(0)
             for cell:Vector3i in original_cells:
                 var item := grid.get_cell_item(cell)
                 if item < 0:
@@ -176,8 +149,6 @@ func _align_roads() -> void:
                 min_y = minf(min_y, h)
                 max_y = maxf(max_y, h)
 
-            # Clear first, then rebuild. This prevents a target cell from
-            # overwriting another source cell while the road is being remapped.
             grid.clear()
             for p:Dictionary in placements:
                 var source:Vector3i = p["cell"]
