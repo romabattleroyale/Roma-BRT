@@ -53,8 +53,8 @@ func _build_poi_layout() -> void:
 func _load_config() -> void:
     if not FileAccess.file_exists(POI_MANIFEST):
         return
-    var text := FileAccess.get_file_as_string(POI_MANIFEST)
-    var parsed = JSON.parse_string(text)
+    var text: String = FileAccess.get_file_as_string(POI_MANIFEST)
+    var parsed: Variant = JSON.parse_string(text)
     if parsed is Dictionary:
         _config = parsed
 
@@ -62,8 +62,8 @@ func _load_building_centers() -> void:
     if not FileAccess.file_exists(BUILDING_MANIFEST):
         push_warning("POI: building manifest missing; safe placement cannot be certified")
         return
-    var text := FileAccess.get_file_as_string(BUILDING_MANIFEST)
-    var parsed = JSON.parse_string(text)
+    var text: String = FileAccess.get_file_as_string(BUILDING_MANIFEST)
+    var parsed: Variant = JSON.parse_string(text)
     if not (parsed is Dictionary):
         return
     for placement in parsed.get("placements", []):
@@ -72,37 +72,37 @@ func _load_building_centers() -> void:
 
 func _resolve_poi(poi: Dictionary, placed: Array[Vector2]) -> Dictionary:
     var footprint: Array = poi.get("footprint", [56.0, 56.0])
-    var width := float(footprint[0])
-    var depth := float(footprint[1])
-    var half_diag := sqrt(width * width + depth * depth) * 0.5
-    var building_clearance := float(_config.get("placement", {}).get("building_clearance_m", 48.0))
-    var min_slot_sep := float(_config.get("placement", {}).get("min_slot_separation_m", 95.0))
-    var search_radius := float(_config.get("placement", {}).get("search_radius_m", 140.0))
-    var step := float(_config.get("placement", {}).get("search_step_m", 10.0))
+    var width: float = float(footprint[0])
+    var depth: float = float(footprint[1])
+    var half_diag: float = sqrt(width * width + depth * depth) * 0.5
+    var building_clearance: float = float(_config.get("placement", {}).get("building_clearance_m", 48.0))
+    var min_slot_sep: float = float(_config.get("placement", {}).get("min_slot_separation_m", 95.0))
+    var search_radius: float = float(_config.get("placement", {}).get("search_radius_m", 140.0))
+    var step: float = float(_config.get("placement", {}).get("search_step_m", 10.0))
 
     var cell: Array = poi.get("target_cell", [0, 0])
-    var ix := int(cell[0])
-    var iz := int(cell[1])
+    var ix: int = int(cell[0])
+    var iz: int = int(cell[1])
     var target_x: float = lerp(-850.0, 850.0, float(ix) / 6.0)
     var target_z: float = lerp(-700.0, 700.0, float(iz) / 2.0)
-    var target := Vector2(target_x, target_z)
+    var target: Vector2 = Vector2(target_x, target_z)
 
-    var best := Vector2.ZERO
-    var best_distance := INF
-    var radius_steps := int(ceil(search_radius / step))
+    var best: Vector2 = Vector2.ZERO
+    var best_distance: float = INF
+    var radius_steps: int = int(ceil(search_radius / step))
     for ring in range(radius_steps + 1):
         for sx in range(-ring, ring + 1):
             for sz in range(-ring, ring + 1):
                 if max(abs(sx), abs(sz)) != ring:
                     continue
-                var candidate := target + Vector2(float(sx) * step, float(sz) * step)
+                var candidate: Vector2 = target + Vector2(float(sx) * step, float(sz) * step)
                 if not _inside_map(candidate, width, depth):
                     continue
                 if not _safe_from_buildings(candidate, half_diag + building_clearance):
                     continue
                 if not _safe_from_pois(candidate, min_slot_sep, placed):
                     continue
-                var d := candidate.distance_to(target)
+                var d: float = candidate.distance_to(target)
                 if d < best_distance:
                     best = candidate
                     best_distance = d
