@@ -1,0 +1,52 @@
+{
+  "version": 1,
+  "map": {
+    "world_size_m": 2000.0,
+    "local_min": -1000.0,
+    "local_max": 1000.0,
+    "world_offset": [1000.0, 0.0, 1000.0]
+  },
+  "placement": {
+    "slot_count": 21,
+    "target_grid": [7, 3],
+    "search_radius_m": 140.0,
+    "search_step_m": 10.0,
+    "building_clearance_m": 48.0,
+    "road_clearance_m": 8.0,
+    "min_slot_separation_m": 95.0,
+    "terrain_ray_top_y": 220.0,
+    "terrain_ray_bottom_y": -40.0
+  },
+  "module_rules": {
+    "modular": true,
+    "scene_per_poi": true,
+    "footprint_is_reserved": true,
+    "interior_ready": true,
+    "underground_link_ready": true,
+    "max_footprint_m": [72.0, 72.0],
+    "service_corridor_m": 4.0
+  },
+  "pois": [
+    {"id":"poi_01_colosseo","name":"Colosseo","category":"landmark","footprint":[72.0,72.0],"scene":"res://city_library/poi/modules/poi_01_colosseo.tscn","target_cell":[0,0]},
+    {"id":"poi_02_vaticano","name":"Vaticano","category":"landmark","footprint":[72.0,72.0],"scene":"res://city_library/poi/modules/poi_02_vaticano.tscn","target_cell":[1,0]},
+    {"id":"poi_03_castel_sant_angelo","name":"Castel Sant'Angelo","category":"landmark","footprint":[64.0,64.0],"scene":"res://city_library/poi/modules/poi_03_castel_sant_angelo.tscn","target_cell":[2,0]},
+    {"id":"poi_04_piazza_venezia","name":"Piazza Venezia","category":"square","footprint":[64.0,64.0],"scene":"res://city_library/poi/modules/poi_04_piazza_venezia.tscn","target_cell":[3,0]},
+    {"id":"poi_05_termini","name":"Stazione Termini","category":"station","footprint":[72.0,72.0],"scene":"res://city_library/poi/modules/poi_05_termini.tscn","target_cell":[4,0]},
+    {"id":"poi_06_tiburtina","name":"Stazione Tiburtina","category":"station","footprint":[72.0,72.0],"scene":"res://city_library/poi/modules/poi_06_tiburtina.tscn","target_cell":[5,0]},
+    {"id":"poi_07_eur","name":"EUR","category":"district_landmark","footprint":[72.0,72.0],"scene":"res://city_library/poi/modules/poi_07_eur.tscn","target_cell":[6,0]},
+    {"id":"poi_08_pantheon","name":"Pantheon","category":"landmark","footprint":[56.0,56.0],"scene":"res://city_library/poi/modules/poi_08_pantheon.tscn","target_cell":[0,1]},
+    {"id":"poi_09_trevi","name":"Fontana di Trevi","category":"square","footprint":[56.0,56.0],"scene":"res://city_library/poi/modules/poi_09_trevi.tscn","target_cell":[1,1]},
+    {"id":"poi_10_navona","name":"Piazza Navona","category":"square","footprint":[64.0,56.0],"scene":"res://city_library/poi/modules/poi_10_navona.tscn","target_cell":[2,1]},
+    {"id":"poi_11_campo_de_fiori","name":"Campo de' Fiori","category":"square","footprint":[56.0,56.0],"scene":"res://city_library/poi/modules/poi_11_campo_de_fiori.tscn","target_cell":[3,1]},
+    {"id":"poi_12_campidoglio","name":"Campidoglio","category":"landmark","footprint":[60.0,60.0],"scene":"res://city_library/poi/modules/poi_12_campidoglio.tscn","target_cell":[4,1]},
+    {"id":"poi_13_piazza_spagna","name":"Piazza di Spagna","category":"square","footprint":[56.0,56.0],"scene":"res://city_library/poi/modules/poi_13_piazza_spagna.tscn","target_cell":[5,1]},
+    {"id":"poi_14_villa_borghese","name":"Villa Borghese","category":"park_landmark","footprint":[72.0,72.0],"scene":"res://city_library/poi/modules/poi_14_villa_borghese.tscn","target_cell":[6,1]},
+    {"id":"poi_15_circo_massimo","name":"Circo Massimo","category":"archaeological","footprint":[72.0,64.0],"scene":"res://city_library/poi/modules/poi_15_circo_massimo.tscn","target_cell":[0,2]},
+    {"id":"poi_16_piramide","name":"Piramide Cestia","category":"landmark","footprint":[56.0,56.0],"scene":"res://city_library/poi/modules/poi_16_piramide.tscn","target_cell":[1,2]},
+    {"id":"poi_17_san_giovanni","name":"San Giovanni in Laterano","category":"landmark","footprint":[64.0,64.0],"scene":"res://city_library/poi/modules/poi_17_san_giovanni.tscn","target_cell":[2,2]},
+    {"id":"poi_18_santa_maria_maggiore","name":"Santa Maria Maggiore","category":"landmark","footprint":[56.0,56.0],"scene":"res://city_library/poi/modules/poi_18_santa_maria_maggiore.tscn","target_cell":[3,2]},
+    {"id":"poi_19_ostiense","name":"Ostiense / Garbatella","category":"district_landmark","footprint":[64.0,64.0],"scene":"res://city_library/poi/modules/poi_19_ostiense.tscn","target_cell":[4,2]},
+    {"id":"poi_20_forum","name":"Foro Romano / Palatino","category":"archaeological","footprint":[72.0,72.0],"scene":"res://city_library/poi/modules/poi_20_forum.tscn","target_cell":[5,2]},
+    {"id":"poi_21_appia","name":"Appia Antica / San Giovanni","category":"heritage","footprint":[72.0,72.0],"scene":"res://city_library/poi/modules/poi_21_appia.tscn","target_cell":[6,2]}
+  ]
+}
