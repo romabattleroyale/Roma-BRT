@@ -144,11 +144,30 @@ jobs:
       - name: Runtime smoke launch using the real main scene
         shell: bash
         run: |
-          set -euo pipefail
+          set -u
           mkdir -p build/runtime
-          set +e
+          echo 'RUNTIME_DIAGNOSTICS_BEGIN'
+          free -h || true
+          echo 'MEMINFO:'
+          grep -E 'MemTotal|MemAvailable|SwapTotal|SwapFree' /proc/meminfo || true
+          echo 'ULIMIT:'
+          ulimit -a || true
+          echo 'RUNTIME_DIAGNOSTICS_LAUNCH'
           timeout 120s xvfb-run -a .runtime/godot/godot --path . --display-driver x11 --rendering-method gl_compatibility --rendering-driver opengl3 --audio-driver Dummy --scene res://main.tscn 2>&1 | tee build/runtime/godot_runtime.log
           code=${PIPESTATUS[0]}
+          echo "GODOT_RUNTIME_EXIT_CODE=$code"
+          echo 'RUNTIME_LOG_TAIL_BEGIN'
+          tail -n 300 build/runtime/godot_runtime.log || true
+          echo 'RUNTIME_LOG_TAIL_END'
+          if [ "$code" -eq 137 ]; then
+            echo 'GODOT_RUNTIME_TERMINATION=SIGKILL_OR_OOM'
+          elif [ "$code" -eq 124 ]; then
+            echo 'GODOT_RUNTIME_TERMINATION=TIMEOUT'
+          elif [ "$code" -ne 0 ]; then
+            echo 'GODOT_RUNTIME_TERMINATION=PROCESS_EXIT_NONZERO'
+          else
+            echo 'GODOT_RUNTIME_TERMINATION=NORMAL'
+          fi
           set -e
           if [ "$code" -ne 0 ] && [ "$code" -ne 124 ]; then
             exit "$code"
