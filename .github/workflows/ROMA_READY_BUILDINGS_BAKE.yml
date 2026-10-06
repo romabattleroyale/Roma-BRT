@@ -1,6 +1,7 @@
 name: Roma Ready Buildings Bake
 
-# HLOD final verification trigger: rerun the complete bake/validation pipeline.
+# Native Godot visibility architecture: 120 reusable templates + 587 real instances.
+# No custom HLOD, LOD1 or MultiMesh generation is used.
 
 on:
   workflow_dispatch:
@@ -11,17 +12,16 @@ on:
       - 'v37_integration/validate_ready_templates_memory.gd'
       - 'v37_integration/v11_building_bridge.gd'
       - 'v37_integration/distribute_ready_buildings_quarters.gd'
-      - 'v37_integration/generate_quarter_hlod.gd'
-      - 'tools/capture_hlod_visual_tests.gd'
       - 'city_library/buildings/houses/roma_architecture_library_v11/scripts/modular_house_factory.gd'
       - 'city_library/buildings/houses/roma_architecture_library_v11/scripts/library_building_system.gd'
       - 'v37_integration/mobile_visual_variation.gd'
+      - 'v37_integration/terrain_surface_alignment.gd'
       - 'tools/normalize_v11_texture_paths.gd'
       - 'tools/optimize_v11_textures_mobile.gd'
       - 'tools/enforce_v11_facade_style.gd'
       - 'main.tscn'
       - '.github/workflows/ROMA_READY_BUILDINGS_BAKE.yml'
-      - '.github/workflows/ROMA_ROADS_GRIDMAP_PILOT.yml'
+      - '.github/workflows/ROMA_BRT_RUNTIME.yml'
 
 permissions:
   contents: write
@@ -29,9 +29,6 @@ permissions:
 env:
   READY_TEMPLATE_TARGET: '120'
   READY_VIRTUAL_TARGET: '587'
-  READY_RUNTIME_MAX_ACTIVE: '50'
-  HLOD_DISTRICT_TARGET: '12'
-  HLOD_MESH_TARGET: '36'
 
 jobs:
   bake-and-validate:
@@ -43,6 +40,7 @@ jobs:
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
+
       - name: Download Godot 4.7.2
         run: |
           set -euo pipefail
@@ -52,72 +50,50 @@ jobs:
           GODOT_BIN=$(find .runtime/godot -maxdepth 2 -type f -name 'Godot_v4.7.2-stable_linux.x86_64' | head -n 1)
           test -n "$GODOT_BIN"; chmod +x "$GODOT_BIN"; ln -sf "$(realpath "$GODOT_BIN")" .runtime/godot/godot
           .runtime/godot/godot --version
+
       - name: Import project before bake
         run: .runtime/godot/godot --headless --path . --quit-after 8
+
       - name: Prepare Roman mobile materials
         run: |
           set -euo pipefail
           .runtime/godot/godot --headless --path . --script res://tools/normalize_v11_texture_paths.gd
           .runtime/godot/godot --headless --path . --script res://tools/optimize_v11_textures_mobile.gd
           .runtime/godot/godot --headless --path . --script res://tools/enforce_v11_facade_style.gd
+
       - name: Bake 120 reusable templates + 587 placement manifest
         run: |
           set -euo pipefail
-          rm -rf baked_city/ready_buildings baked_city/ready_templates baked_city/hlod
+          rm -rf baked_city/ready_buildings baked_city/ready_templates baked_city/hlod baked_city/lod1
           .runtime/godot/godot --headless --path . --script res://v37_integration/bake_ready_buildings_120.gd
           test "$(find baked_city/ready_templates -maxdepth 1 -type f -name 'template_*.tscn' | wc -l)" -eq "$READY_TEMPLATE_TARGET"
           test -f baked_city/ready_templates/manifest.json
           test "$(find baked_city/ready_templates/materials -maxdepth 1 -type f -name '*.tres' | wc -l)" -eq 9
+          test ! -d baked_city/hlod
+          test ! -d baked_city/lod1
+
       - name: Distribute 587 placements across 12 districts
         run: |
           set -euo pipefail
           .runtime/godot/godot --headless --path . --script res://v37_integration/distribute_ready_buildings_quarters.gd
           test -f baked_city/ready_templates/manifest.json
-      - name: Generate 3-level HLOD for 12 districts
-        run: |
-          set -euo pipefail
-          .runtime/godot/godot --headless --path . --script res://v37_integration/generate_quarter_hlod.gd
-          test "$(find baked_city/hlod -maxdepth 1 -type f -name 'quartiere_*_*.res' | wc -l)" -eq "$HLOD_MESH_TARGET"
-          test -f baked_city/hlod/roma_palette_512.png
-          test -f baked_city/hlod/report.json
-      - name: Validate 120 templates, 587 placements and HLOD
+
+      - name: Validate 120 templates and 587 placements
         run: |
           set -euo pipefail
           mkdir -p build
           .runtime/godot/godot --headless --path . --script res://v37_integration/validate_ready_templates_memory.gd 2>&1 | tee build/ready_template_memory.log
           python3 - <<'PY'
-          import json, glob
-          m=json.load(open('baked_city/ready_templates/manifest.json'))
+          import json
+          from pathlib import Path
+          m=json.loads(Path('baked_city/ready_templates/manifest.json').read_text())
           assert m['placement_count']==587 and m['district_count']==12
-          files=glob.glob('baked_city/hlod/quartiere_*_*.res')
-          assert len(files)==36, len(files)
-          r=json.load(open('baked_city/hlod/report.json'))
-          assert r['districts']==12 and r['placement_count']==587
-          for d,v in r['levels'].items():
-              assert 0 < v['hlod2_tri'] <= 2200, (d,v['hlod2_tri'])
-              assert 0 < v['hlod1_tri'] <= 10200, (d,v['hlod1_tri'])
-              assert 0 < v['hlod0_tri'] <= 50000, (d,v['hlod0_tri'])
-          print('HLOD_STRUCTURE=PASS districts=12 meshes=36 targets=2000/10000')
+          assert len(list(Path('baked_city/ready_templates').glob('template_*.tscn'))) == 120
+          assert not Path('baked_city/hlod').exists()
+          assert not Path('baked_city/lod1').exists()
+          print('NATIVE_VISIBILITY_STRUCTURE=PASS templates=120 placements=587 hlod=0 lod1=0')
           PY
-      - name: Capture HLOD visual tests and memory states
-        run: |
-          set -uo pipefail
-          mkdir -p build
-          set +e
-          xvfb-run -a .runtime/godot/godot --path . --rendering-method gl_compatibility --rendering-driver opengl3 --script res://tools/capture_hlod_visual_tests.gd 2>&1 | tee build/hlod_visual_test.log
-          capture_status=${PIPESTATUS[0]}
-          set -e
-          a=$(find build/hlod_visual -maxdepth 1 -type f -name 'A_500m.png' | wc -l)
-          b=$(find build/hlod_visual -maxdepth 1 -type f -name 'B_250m.png' | wc -l)
-          c=$(find build/hlod_visual -maxdepth 1 -type f -name 'C_50m.png' | wc -l)
-          d=$(find build/hlod_visual -maxdepth 1 -type f -name 'D_*.png' | wc -l)
-          test "$a" -eq 1
-          test "$b" -eq 1
-          test "$c" -eq 1
-          test "$d" -eq 4
-          test -f build/hlod_visual/memory_report.json
-          echo "HLOD_CAPTURE_EXIT=${capture_status} OUTPUTS=PASS A=$a B=$b C=$c D=$d"
-          exit 0
+
       - name: Runtime Godot smoke test
         run: |
           set -euo pipefail
@@ -127,75 +103,54 @@ jobs:
           code=${PIPESTATUS[0]}
           set -e
           if [ "$code" -ne 0 ] && [ "$code" -ne 124 ]; then exit "$code"; fi
-          grep -q 'V11 READY BAKE: COMPLETE loaded=587' build/runtime/runtime_output.log
+          grep -q 'V11 NATIVE VISIBILITY: COMPLETE loaded=587 templates=120 buildings=587 range=0-500 fade=self district_planes=12 range=500-5000' build/runtime/runtime_output.log
+          grep -q 'V11 CITY DISTRICT PLANES: PASS count=12 size=300x300 y=0.5 range=500-5000 fade=self' build/runtime/runtime_output.log
           ! grep -q 'V37 edifici:' build/runtime/runtime_output.log
-          if grep -Eq 'ERROR:|SCRIPT ERROR|Parse Error|Invalid call|Nonexistent function|Cannot open file|Failed loading resource|V11 HLOD: missing' build/runtime/runtime_output.log; then
+          if grep -Eq 'ERROR:|SCRIPT ERROR|Parse Error|Invalid call|Nonexistent function|Cannot open file|Failed loading resource|V11 HLOD|V11 LOD1|MultiMesh|Terrain3D non disponibile|Terrain3D Data non inizializzato|V37 world non pronto' build/runtime/runtime_output.log; then
             echo 'ERROR: Godot runtime Output is not clean'
-            grep -E 'ERROR:|SCRIPT ERROR|Parse Error|Invalid call|Nonexistent function|Cannot open file|Failed loading resource|V11 HLOD: missing' build/runtime/runtime_output.log || true
+            grep -E 'ERROR:|SCRIPT ERROR|Parse Error|Invalid call|Nonexistent function|Cannot open file|Failed loading resource|V11 HLOD|V11 LOD1|MultiMesh|Terrain3D non disponibile|Terrain3D Data non inizializzato|V37 world non pronto' build/runtime/runtime_output.log || true
             exit 1
           fi
           echo 'GODOT_RUNTIME_OUTPUT=CLEAN'
-      - name: Package roma_ready_buildings.zip
+
+      - name: Package native ready buildings
         run: |
           set -euo pipefail
           mkdir -p build
-          zip -qr build/roma_ready_buildings.zip baked_city/ready_templates baked_city/hlod
-          unzip -tq build/roma_ready_buildings.zip
-          stat -c 'READY_ARCHIVE_BYTES=%s' build/roma_ready_buildings.zip
+          zip -qr build/roma_ready_buildings_native.zip baked_city/ready_templates
+          unzip -tq build/roma_ready_buildings_native.zip
+          stat -c 'READY_ARCHIVE_BYTES=%s' build/roma_ready_buildings_native.zip
           echo "READY_TEMPLATES_COUNT=$(find baked_city/ready_templates -maxdepth 1 -type f -name 'template_*.tscn' | wc -l)"
-          echo "HLOD_MESH_COUNT=$(find baked_city/hlod -maxdepth 1 -type f -name 'quartiere_*_*.res' | wc -l)"
-      - name: Persist ready template bake to main
+
+      - name: Persist native ready template bake to main
         run: |
           set -euo pipefail
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-          git add -A baked_city/ready_templates baked_city/hlod v37_integration/bake_ready_buildings_120.gd v37_integration/validate_ready_templates_memory.gd v37_integration/v11_building_bridge.gd v37_integration/distribute_ready_buildings_quarters.gd v37_integration/generate_quarter_hlod.gd tools/capture_hlod_visual_tests.gd city_library/buildings/houses/roma_architecture_library_v11/scripts/modular_house_factory.gd city_library/buildings/houses/roma_architecture_library_v11/scripts/library_building_system.gd v37_integration/mobile_visual_variation.gd tools/normalize_v11_texture_paths.gd tools/optimize_v11_textures_mobile.gd tools/enforce_v11_facade_style.gd .github/workflows/ROMA_READY_BUILDINGS_BAKE.yml
+          git add -A baked_city/ready_templates baked_city/hlod baked_city/lod1 v37_integration/bake_ready_buildings_120.gd v37_integration/validate_ready_templates_memory.gd v37_integration/v11_building_bridge.gd v37_integration/distribute_ready_buildings_quarters.gd v37_integration/terrain_surface_alignment.gd city_library/buildings/houses/roma_architecture_library_v11/scripts/modular_house_factory.gd city_library/buildings/houses/roma_architecture_library_v11/scripts/library_building_system.gd v37_integration/mobile_visual_variation.gd tools/normalize_v11_texture_paths.gd tools/optimize_v11_textures_mobile.gd tools/enforce_v11_facade_style.gd main.tscn .github/workflows/ROMA_READY_BUILDINGS_BAKE.yml .github/workflows/ROMA_BRT_RUNTIME.yml
           if git diff --cached --quiet; then exit 0; fi
-          git commit -m 'feat: persist three-level district HLOD [skip ci]'
+          git commit -m 'feat: switch buildings to native Godot visibility [skip ci]'
           git fetch origin main
           git rebase origin/main
           git push origin HEAD:main
-      - name: Upload roma_ready_buildings.zip
+
+      - name: Upload native ready buildings archive
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: roma_ready_buildings
-          path: build/roma_ready_buildings.zip
+          name: roma_ready_buildings_native
+          path: build/roma_ready_buildings_native.zip
           if-no-files-found: error
           retention-days: 30
           compression-level: 6
           overwrite: false
           include-hidden-files: false
-      - name: Upload HLOD report
+
+      - name: Upload runtime log
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: district-hlod-report
-          path: baked_city/hlod/report.json
-          if-no-files-found: error
+          name: native-visibility-runtime-log
+          path: build/runtime/runtime_output.log
+          if-no-files-found: warn
           retention-days: 30
-          compression-level: 6
-          overwrite: false
-          include-hidden-files: false
-      - name: Upload HLOD visual tests
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: hlod-visual-tests
-          path: build/hlod_visual
-          if-no-files-found: error
-          retention-days: 30
-          compression-level: 6
-          overwrite: false
-          include-hidden-files: false
-      - name: Upload memory report
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: ready-template-memory-report
-          path: build/ready_template_memory.log
-          if-no-files-found: error
-          retention-days: 30
-          compression-level: 6
-          overwrite: false
-          include-hidden-files: false
