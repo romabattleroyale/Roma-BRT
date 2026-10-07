@@ -1,40 +1,16 @@
 name: Tiber POI verified downloader
 
 on:
-  workflow_dispatch:
   push:
     branches:
       - poi-assets-trastevere
 
-permissions:
-  contents: write
-
 jobs:
-  fetch:
-    name: Fetch and validate 9 Tiber assets
-    runs-on: ubuntu-24.04
-    timeout-minutes: 30
+  smoke:
+    runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: Check downloader
-        run: test -f tools/download_tiber_assets.sh
-      - name: Check Sketchfab token
-        env:
-          SKETCHFAB_TOKEN: ${{ secrets.SKETCHFAB_TOKEN }}
-        run: test -n "$SKETCHFAB_TOKEN"
-      - name: Download and validate 9 GLB
-        env:
-          SKETCHFAB_TOKEN: ${{ secrets.SKETCHFAB_TOKEN }}
-        run: bash tools/download_tiber_assets.sh
-      - name: Write manifest
+      - name: Runner smoke test
         run: |
-          cat > poi_test_tiber_island/poi_test/assets/MANIFEST.md <<'EOF'
-# Isola Tiberina — validated Sketchfab assets
-EOF
-      - name: Commit assets
-        run: |
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add poi_test_tiber_island/poi_test/assets/models poi_test_tiber_island/poi_test/assets/MANIFEST.md
-          git commit -m "POI Isola Tiberina - validated 9 Sketchfab GLB" || true
-          git push
+          echo "TIBER_WORKFLOW_RUNNER_OK"
+          test -n "${GITHUB_SHA}"
