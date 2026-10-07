@@ -1,75 +1,154 @@
-name: Fetch Trastevere POI Assets V3
+name: Download POI Tiber assets — exactly 9 GLB
+
 on:
   push:
-    branches: [poi-assets-trastevere]
+    branches:
+      - poi-assets-trastevere
   workflow_dispatch:
+
 jobs:
-  fetch-assets:
+  fetch:
     runs-on: ubuntu-latest
+    env:
+      SKETCHFAB_TOKEN: ${{ secrets.SKETCHFAB_TOKEN }}
     steps:
       - uses: actions/checkout@v4
-      - name: Download verified CC0 models and textures
+      - name: Check Sketchfab token
+        run: |
+          set -euo pipefail
+          test -n "$SKETCHFAB_TOKEN" || { echo "::error::Missing SKETCHFAB_TOKEN"; exit 1; }
+      - name: Install validation tools
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y jq unzip python3-pip
+          python3 -m pip install --quiet pygltflib
+      - name: Download ONLY the 9 approved assets
         shell: bash
         run: |
           set -euo pipefail
-          python3 - <<'PY'
-          import json, pathlib, shutil, urllib.request, zipfile
-          OUT=pathlib.Path('POI_External_Assets/Trastevere_Isola_Tiberina')
-          OUT.mkdir(parents=True, exist_ok=True)
-          UA='RomaBattleRoyale-POI-Lab/1.1'
-          models=['tree_small_02','jacaranda_tree','island_tree_01','island_tree_02','island_tree_03']
-          textures=['cobblestone_01','cobblestone_pavement','stone_wall','stone_tile_wall','brick_wall_003']
-          def get_json(url):
-            req=urllib.request.Request(url,headers={'User-Agent':UA})
-            with urllib.request.urlopen(req,timeout=60) as r:return json.load(r)
-          def download(url,path):
-            req=urllib.request.Request(url,headers={'User-Agent':UA})
-            with urllib.request.urlopen(req,timeout=180) as r,open(path,'wb') as f:shutil.copyfileobj(r,f)
-          def find_url(obj, wanted):
-            if isinstance(obj,dict):
-              for v in obj.values():
-                hit=find_url(v,wanted)
-                if hit:return hit
-            elif isinstance(obj,list):
-              for v in obj:
-                hit=find_url(v,wanted)
-                if hit:return hit
-            elif isinstance(obj,str) and obj.startswith('http'):
-              s=obj.lower()
-              if all(x in s for x in wanted):return obj
-            return None
-          manifest={'source':'Poly Haven API','license':'CC0','resolution':'1k','models':[],'textures':[]}
-          for asset in models:
-            data=get_json('https://api.polyhaven.com/files/'+asset)
-            url=find_url(data,('gltf','1k')) or find_url(data,('gltf','2k'))
-            if not url:raise RuntimeError('No glTF download URL found for '+asset)
-            folder=OUT/'models'/asset;folder.mkdir(parents=True,exist_ok=True)
-            raw=folder/'download.bin';download(url,raw)
-            if zipfile.is_zipfile(raw):
-              with zipfile.ZipFile(raw) as z:z.extractall(folder)
-              raw.unlink()
-            else:
-              raw.rename(folder/pathlib.Path(url.split('?')[0]).name)
-            manifest['models'].append({'id':asset,'url':url})
-          for asset in textures:
-            data=get_json('https://api.polyhaven.com/files/'+asset)
-            folder=OUT/'textures'/asset;folder.mkdir(parents=True,exist_ok=True)
-            maps={}
-            for tag,key in [('diff','diffuse'),('nor_gl','normal_gl'),('rough','roughness')]:
-              url=find_url(data,('jpg','1k',tag)) or find_url(data,('jpg','2k',tag))
-              if not url:raise RuntimeError('No '+tag+' texture URL found for '+asset)
-              filename=pathlib.Path(url.split('?')[0]).name
-              dest=folder/filename;download(url,dest);maps[key]=filename
-            manifest['textures'].append({'id':asset,'maps':maps})
-          (OUT/'manifest.json').write_text(json.dumps(manifest,indent=2),encoding='utf-8')
-          PY
-      - name: Validate downloaded pack
+          ROOT="poi_test_tiber_island/poi_test/assets/models"
+          rm -rf "$ROOT"
+          mkdir -p "$ROOT"
+          declare -A MODELS=(
+            [ponte_fabricio]="8511381f0b844306ab53eb40b0dcae78030e828ac"
+          )
+          MODELS[ponte_fabricio]="8511381f0b844306ab53e4fbc5660095"
+          MODELS[ponte_cestio]="58691a67ba774f2bbccff7ce8f85d1d8"
+          MODELS[basilica_san_bartolomeo]="132e19cdff9247f092c8d85f903d67fc"
+          MODELS[torre_caetani]="6c821f2aae3b4e8db5d94c6f48fb568b"
+          MODELS[casa_01]="bb5406594f4d4dd59daf1e19cb08e88c"
+          MODELS[pavimento]="a70ea3530a004baebe6c33c29cebe1de"
+          MODELS[fontana]="8580500134194ba5be3f6df7593049f2"
+          MODELS[lampione]="d75f8d8a26054e3584f55eb07644801a"
+          MODELS[albero]="196525a9936a40c1ba7e74ce5c071d59"
+          test "${#MODELS[@]}" -eq 9
+          auth_download() {
+            local uid="$1" out="$2" status
+            status=$(curl -sS -o "$out" -w "%{http_code}" -H "Authorization: Bearer $SKETCHFAB_TOKEN" "https://api.sketchfab.com/v3/models/$uid/download")
+            if [ "$status" = "200" ]; then return 0; fi
+            status=$(curl -sS -o "$out" -w "%{http_code}" -H "Authorization: Token $SKETCHFAB_TOKEN" "https://api.sketchfab.com/v3/models/$uid/download")
+            [ "$status" = "200" ]
+          }
+          for NAME in "${!MODELS[@]}"; do
+            UID="${MODELS[$NAME]}"
+            META="/tmp/$NAME.meta.json"
+            DL="/tmp/$NAME.download.json"
+            ARCHIVE="/tmp/$NAME.zip"
+            WORK="/tmp/$NAME"
+            OUT="$ROOT/$NAME.glb"
+            curl -fsSL "https://api.sketchfab.com/v3/models/$UID" -o "$META"
+            LICENSE=$(jq -r '.license.label // empty' "$META")
+            DOWNLOADABLE=$(jq -r '.isDownloadable // false' "$META")
+            case "$LICENSE" in "CC Attribution"|"CC0") ;; *) echo "::error::$NAME rejected: license=$LICENSE"; exit 1 ;; esac
+            [ "$DOWNLOADABLE" = "true" ] || { echo "::error::$NAME is not downloadable"; exit 1; }
+            auth_download "$UID" "$DL" || { echo "::error::Download API rejected $NAME"; exit 1; }
+            URL=$(jq -r '.gltf.url // empty' "$DL")
+            [ -n "$URL" ] || { echo "::error::No glTF archive URL for $NAME"; exit 1; }
+            curl -fsSL "$URL" -o "$ARCHIVE"
+            rm -rf "$WORK"; mkdir -p "$WORK"; unzip -q "$ARCHIVE" -d "$WORK"
+            GLTF=$(find "$WORK" -type f -name '*.gltf' | head -n 1)
+            [ -n "$GLTF" ] || { echo "::error::No .gltf inside archive for $NAME"; exit 1; }
+            python3 - "$GLTF" "$OUT" <<'PY'
+import sys
+from pathlib import Path
+from pygltflib import GLTF2
+src, dst = sys.argv[1], sys.argv[2]
+g = GLTF2().load(src)
+base = Path(src).parent
+for b in g.buffers or []:
+    if b.uri:
+        p = base / b.uri
+        if p.exists():
+            b.set_binary_blob(p.read_bytes())
+            b.uri = None
+for img in g.images or []:
+    if img.uri:
+        p = base / img.uri
+        if p.exists():
+            img.set_image_data(p.read_bytes())
+            img.uri = None
+g.save_binary(dst)
+PY
+            rm -rf "$WORK" "$ARCHIVE" "$DL" "$META"
+            test -f "$OUT"
+          done
+      - name: Enforce exactly 9 GLB — no extras
         run: |
-          test -s POI_External_Assets/Trastevere_Isola_Tiberina/manifest.json
-          find POI_External_Assets/Trastevere_Isola_Tiberina -type f | sort
-      - name: Package asset pack
-        run: zip -r Trastevere_Isola_Tiberina_External_Assets.zip POI_External_Assets/Trastevere_Isola_Tiberina
-      - uses: actions/upload-artifact@v4
-        with:
-          name: Trastevere-Isola-Tiberina-External-Assets-V4
-          path: Trastevere_Isola_Tiberina_External_Assets.zip
+          set -euo pipefail
+          ROOT="poi_test_tiber_island/poi_test/assets/models"
+          EXPECTED="albero basilica_san_bartolomeo casa_01 fontana lampione pavimento ponte_cestio ponte_fabricio torre_caetani"
+          ACTUAL=$(find "$ROOT" -maxdepth 1 -type f -name '*.glb' -printf '%f\n' | sed 's/\.glb$//' | sort | tr '\n' ' ')
+          test "$ACTUAL" = "$(printf '%s\n' $EXPECTED | sort | tr '\n' ' ')"
+          test "$(find "$ROOT" -maxdepth 1 -type f | wc -l)" -eq 9
+      - name: Validate triangle and size budgets
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+from pathlib import Path
+from pygltflib import GLTF2
+root = Path("poi_test_tiber_island/poi_test/assets/models")
+files = sorted(root.glob("*.glb"))
+if len(files) != 9: raise SystemExit("Expected exactly 9 GLB files")
+total_tris = 0
+for f in files:
+    g = GLTF2().load_binary(str(f)); tris = 0
+    for mesh in g.meshes or []:
+        for prim in mesh.primitives:
+            count = g.accessors[prim.indices].count if prim.indices is not None else (g.accessors[prim.attributes.POSITION].count if prim.attributes.POSITION is not None else 0)
+            tris += count // 3
+    print(f"{f.name}: {tris} triangles")
+    if tris > 15000: raise SystemExit(f"{f.name}: over 15,000 triangles")
+    total_tris += tris
+    for i, image in enumerate(g.images or []):
+        if image.uri: raise SystemExit(f"{f.name}: texture {i} is external")
+if total_tris >= 200000: raise SystemExit(f"Total triangles {total_tris} >= 200,000")
+size = sum(f.stat().st_size for f in files)
+if size >= 50 * 1024 * 1024: raise SystemExit(f"Total GLB size {size} >= 50 MB")
+print(f"PASS: 9 GLB, {total_tris} triangles, {size/1024/1024:.2f} MB")
+PY
+      - name: Write attribution manifest
+        run: |
+          cat > poi_test_tiber_island/poi_test/assets/MANIFEST.md <<'EOF'
+# Isola Tiberina — exactly 9 Sketchfab GLB assets
+Only these nine files are permitted in poi_test/assets/models/.
+| File | Nome originale | Autore | Licenza | URL Sketchfab |
+|---|---|---|---|---|
+| ponte_fabricio.glb | Roman Bridge | Samuel Brunner | CC Attribution | https://sketchfab.com/3d-models/roman-bridge-8511381f0b844306ab53e4fbc5660095 |
+| ponte_cestio.glb | Stone Bridge_3arch | xplanepilot | CC Attribution | https://sketchfab.com/3d-models/stone-bridge-3arch-58691a67ba774f2bbccff7ce8f85d1d8 |
+| basilica_san_bartolomeo.glb | Low Poly Church | Yanez Designs | CC Attribution | https://sketchfab.com/3d-models/low-poly-church-132e19cdff9247f092c8d85f903d67fc |
+| torre_caetani.glb | Medieval Tower | Den | CC Attribution | https://sketchfab.com/3d-models/medieval-tower-6c821f2aae3b4e8db5d94c6f48fb568b |
+| casa_01.glb | Lowpoly medieval house | v_pustote | CC Attribution | https://sketchfab.com/3d-models/lowpoly-medieval-house-bb5406594f4d4dd59daf1e19cb08e88c |
+| pavimento.glb | cobblestone ground - lowpoly | SPLEEN VISION | CC Attribution | https://sketchfab.com/3d-models/cobblestone-ground-lowpoly-a70ea3530a004baebe6c33c29cebe1de |
+| fontana.glb | Italian style fountain | yorre.detavernier | CC Attribution | https://sketchfab.com/3d-models/fountain-8580500134194ba5be3f6df7593049f2 |
+| lampione.glb | Rusty Streetlight | barbodoji | CC Attribution | https://sketchfab.com/3d-models/rusty-streetlight-d75f8d8a26054e3584f55eb07644801a |
+| albero.glb | Free Pack - Tree | PolyOne Studio | CC Attribution | https://sketchfab.com/3d-models/free-pack-tree-196525a9936a40c1ba7e74ce5c071d59 |
+EOF
+      - name: Commit downloaded assets
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add poi_test_tiber_island/poi_test/assets/models poi_test_tiber_island/poi_test/assets/MANIFEST.md
+          git add -u poi_test_tiber_island/poi_test/assets/models
+          git commit -m "POI Isola Tiberina - download exactly 9 validated Sketchfab GLB" || echo "No asset changes"
+          git push
