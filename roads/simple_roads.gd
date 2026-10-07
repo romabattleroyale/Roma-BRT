@@ -217,6 +217,7 @@ func _add_edge(a: Vector3, b: Vector3, width: float, material: Material, main_ro
                     _add_box_between(e0, e1, 0.20, 0.07, _curb)
             if i % 5 == 2:
                 _add_manhole((p0 + p1) * 0.5)
+        await get_tree().process_frame
 
 func _add_box_between(p0: Vector3, p1: Vector3, width: float, height: float, material: Material) -> void:
     var midpoint: Vector3 = (p0 + p1) * 0.5
