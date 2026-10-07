@@ -12,5 +12,7 @@ All selected assets are CC BY and within the 20k-triangle-per-model target.
 | Italian style fountain | https://sketchfab.com/3d-models/fountain-8580500134194ba5be3f6df7593049f2 | CC BY | 3k | Fountain prop |
 | Street lamp (low poly) | https://sketchfab.com/3d-models/street-lamp-low-poly-17e2bc2ec7de42d08d98e3a6c886a8b2 | CC BY | 972 | Street lamps |
 | Low Poly Fountain | https://sketchfab.com/3d-models/low-poly-fountain-c292f78eaf7042f0bffb9bb079b24951 | CC BY | 504 | Additional fountain |
+| Low Poly Tree - Game-Ready | https://sketchfab.com/3d-models/low-poly-tree-game-ready-free-download-430f1d7b0d2748888a67539c18626eb9 | CC0 | 1.2k | Vegetation |
+| Classic Park Bench | https://sketchfab.com/3d-models/classic-park-bench-low-poly-01a5b64427984632bb44242da3813bb1 | CC BY | 4.8k | Benches |
 
 Sketchfab Download API requires an authenticated Sketchfab account/OAuth token. The workflow uses SKETCHFAB_TOKEN and never stores it in source control.
