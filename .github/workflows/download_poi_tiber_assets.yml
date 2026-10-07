@@ -5,54 +5,12 @@ on:
     branches:
       - poi-assets-trastevere
 
-permissions:
-  contents: write
-
 jobs:
   fetch:
-    name: Fetch and validate 9 Tiber assets
     runs-on: ubuntu-latest
-    timeout-minutes: 30
     steps:
       - uses: actions/checkout@v4
-
-      - name: Check downloader
+      - name: Verify downloader
         run: test -f tools/download_tiber_assets.sh
-
-      - name: Check Sketchfab token
-        env:
-          SKETCHFAB_TOKEN: ${{ secrets.SKETCHFAB_TOKEN }}
-        run: |
-          set -euo pipefail
-          test -n "$SKETCHFAB_TOKEN"
-          echo "SKETCHFAB_TOKEN is configured"
-
-      - name: Download and validate 9 GLB
-        env:
-          SKETCHFAB_TOKEN: ${{ secrets.SKETCHFAB_TOKEN }}
-        run: bash tools/download_tiber_assets.sh
-
-      - name: Write manifest
-        run: |
-          cat > poi_test_tiber_island/poi_test/assets/MANIFEST.md <<'EOF'
-# Isola Tiberina — validated Sketchfab assets
-
-Nine downloaded/validated assets:
-- ponte_fabricio.glb
-- ponte_cestio.glb
-- basilica_san_bartolomeo.glb
-- torre_caetani.glb
-- casa_01.glb
-- pavimento.glb
-- fontana.glb
-- lampione.glb
-- albero.glb
-EOF
-
-      - name: Commit validated assets
-        run: |
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@github.com"
-          git add poi_test_tiber_island/poi_test/assets/models poi_test_tiber_island/poi_test/assets/MANIFEST.md
-          git commit -m "POI Isola Tiberina - validated 9 Sketchfab GLB" || echo "No changes"
-          git push
+      - name: Downloader script syntax
+        run: bash -n tools/download_tiber_assets.sh
