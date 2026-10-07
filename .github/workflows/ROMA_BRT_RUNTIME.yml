@@ -158,7 +158,7 @@ jobs:
           grep -q 'TERRAIN3D LAUNCHER CLASSDB=AVAILABLE' build/runtime/godot_runtime.log
           grep -q 'V11 NATIVE VISIBILITY: COMPLETE loaded=587 templates=120 buildings=587 range=0-500 fade=self district_planes=12 range=500-5000' build/runtime/godot_runtime.log
           grep -q 'V11 CITY DISTRICT PLANES: PASS count=12 size=300x300 y=0.5 range=500-5000 fade=self' build/runtime/godot_runtime.log
-          grep -q 'ROMA ROADS V2: PASS network=12_districts main_edges=17 sidewalks=enabled drainage=enabled street_furniture=enabled' build/runtime/godot_runtime.log
+          grep -q 'ROMA ROADS V2: PASS network=Urban_Grid_corridors collision_safe' build/runtime/godot_runtime.log
           grep -q 'ROMA POI PLACER: PASS slots=13/13' build/runtime/godot_runtime.log
           test "$(grep -c 'ROMA POI SLOT:' build/runtime/godot_runtime.log || true)" -eq 13
 
