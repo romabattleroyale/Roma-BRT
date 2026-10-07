@@ -22,15 +22,15 @@ assets=(
 
 for item in "${assets[@]}"; do
   NAME="${item%%|*}"
-  UID="${item##*|}"
+  MODEL_UID="${item##*|}"
   META="/tmp/${NAME}.json"
   DL="/tmp/${NAME}-download.json"
   ZIP="/tmp/${NAME}.zip"
   DIR="/tmp/${NAME}"
   OUT="$ROOT/${NAME}.glb"
 
-  echo "Downloading ${NAME} (${UID})"
-  curl -fsSL "https://api.sketchfab.com/v3/models/${UID}" -o "${META}"
+  echo "Downloading ${NAME} (${MODEL_UID})"
+  curl -fsSL "https://api.sketchfab.com/v3/models/${MODEL_UID}" -o "${META}"
   LICENSE=$(jq -r '.license.label // empty' "${META}")
   DOWNLOADABLE=$(jq -r '.isDownloadable // false' "${META}")
   case "${LICENSE}" in
@@ -39,9 +39,9 @@ for item in "${assets[@]}"; do
   esac
   test "${DOWNLOADABLE}" = "true"
 
-  CODE=$(curl -sS -o "${DL}" -w "%{http_code}" -H "Authorization: Bearer ${SKETCHFAB_TOKEN}" "https://api.sketchfab.com/v3/models/${UID}/download")
+  CODE=$(curl -sS -o "${DL}" -w "%{http_code}" -H "Authorization: Bearer ${SKETCHFAB_TOKEN}" "https://api.sketchfab.com/v3/models/${MODEL_UID}/download")
   if [ "${CODE}" != "200" ]; then
-    CODE=$(curl -sS -o "${DL}" -w "%{http_code}" -H "Authorization: Token ${SKETCHFAB_TOKEN}" "https://api.sketchfab.com/v3/models/${UID}/download")
+    CODE=$(curl -sS -o "${DL}" -w "%{http_code}" -H "Authorization: Token ${SKETCHFAB_TOKEN}" "https://api.sketchfab.com/v3/models/${MODEL_UID}/download")
   fi
   test "${CODE}" = "200"
 
