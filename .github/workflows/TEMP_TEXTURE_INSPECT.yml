@@ -1,42 +1,52 @@
-name: TEMP Texture Inspect
+name: Tiber POI verified downloader
 
 on:
   push:
-    branches: [main]
-    paths:
-      - '.github/workflows/TEMP_TEXTURE_INSPECT.yml'
+    branches: [poi-assets-trastevere]
+  workflow_dispatch:
 
 permissions:
-  contents: read
+  contents: write
 
 jobs:
-  inspect:
+  fetch:
     runs-on: ubuntu-24.04
-    timeout-minutes: 10
+    timeout-minutes: 30
     steps:
       - uses: actions/checkout@v4
-      - name: Install image tools
-        run: sudo apt-get update && sudo apt-get install -y imagemagick
-      - name: Inspect texture
+
+      - name: Verify Sketchfab token
+        env:
+          SKETCHFAB_TOKEN: ${{ secrets.SKETCHFAB_TOKEN }}
         run: |
           set -euo pipefail
-          FILE='city_library/buildings/houses/roma_architecture_library_v11/assets/textures/roman_plaster_weathered_albedo.jpg'
-          test -s "$FILE"
-          stat -c 'BYTES=%s' "$FILE"
-          file "$FILE"
-          identify -format 'WIDTH=%w HEIGHT=%h CHANNELS=%[channels] DEPTH=%z\n' "$FILE"
-          echo -n 'RGB_MEAN='; convert "$FILE" -format '%[fx:mean]' info:
-          echo
-          echo -n 'GRAY_MEAN='; convert "$FILE" -colorspace Gray -format '%[fx:mean]' info:
-          echo
-          identify -verbose "$FILE" > texture_identify.txt
-          convert "$FILE" -resize 512x512 /tmp/roman_plaster_weathered_albedo.png
-          mkdir -p build/texture_inspect
-          cp /tmp/roman_plaster_weathered_albedo.png build/texture_inspect/roman_plaster_weathered_albedo.png
-          cp texture_identify.txt build/texture_inspect/texture_identify.txt
-      - name: Upload inspection
-        uses: actions/upload-artifact@v4
-        with:
-          name: TEMP-Roman-Plaster-Texture-Inspection
-          path: build/texture_inspect
-          retention-days: 2
+          test -n "$SKETCHFAB_TOKEN"
+          echo "SKETCHFAB_TOKEN is configured"
+
+      - name: Download and validate 9 GLB
+        env:
+          SKETCHFAB_TOKEN: ${{ secrets.SKETCHFAB_TOKEN }}
+        run: bash tools/download_tiber_assets.sh
+
+      - name: Write attribution manifest
+        run: |
+          cat > poi_test_tiber_island/poi_test/assets/MANIFEST.md <<'EOF'
+# Isola Tiberina - 9 validated Sketchfab GLB assets
+- ponte_fabricio.glb — Roman Bridge — Samuel Brunner
+- ponte_cestio.glb — Stone Bridge_3arch — xplanepilot
+- basilica_san_bartolomeo.glb — Low Poly Church — Yanez Designs
+- torre_caetani.glb — Medieval Tower — Den
+- casa_01.glb — Lowpoly medieval house — v_pustote
+- pavimento.glb — cobblestone ground - lowpoly — SPLEEN VISION
+- fontana.glb — Italian style fountain — yorre.detavernier
+- lampione.glb — Street lamp (low poly) — pinokio21
+- albero.glb — Low Poly Tree — spring
+EOF
+
+      - name: Commit validated assets
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add poi_test_tiber_island/poi_test/assets/models poi_test_tiber_island/poi_test/assets/MANIFEST.md
+          git commit -m "POI Isola Tiberina - validated 9 Sketchfab GLB" || echo "No changes"
+          git push
