@@ -10,6 +10,10 @@ background_color = Color(0.055, 0.075, 0.10, 1)
 ambient_light_source = 3
 ambient_light_energy = 0.8
 
+[sub_resource type="CylinderShape3D" id="IslandCollision"]
+radius = 1.0
+height = 4.0
+
 [sub_resource type="CapsuleShape3D" id="Capsule"]
 radius = 0.35
 height = 1.7
@@ -30,8 +34,14 @@ position = Vector3(0,0,0)
 
 [node name="TiberIsland" parent="." instance=ExtResource("1_poi")]
 
+[node name="IslandCollision" type="StaticBody3D" parent="."]
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="IslandCollision"]
+shape = SubResource("IslandCollision")
+scale = Vector3(135, 1, 55)
+
 [node name="Player" type="CharacterBody3D" parent="."]
-position = Vector3(0, 8, 75)
+position = Vector3(0, 6.0, 75)
 script = ExtResource("2_player")
 
 [node name="CollisionShape3D" type="CollisionShape3D" parent="Player"]
