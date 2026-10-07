@@ -15,6 +15,10 @@ jobs:
         run: test -f tools/download_tiber_assets.sh
       - name: Downloader script syntax
         run: bash -n tools/download_tiber_assets.sh
+      - name: Install glTF Transform
+        run: |
+          npm install --global @gltf-transform/cli
+          gltf-transform --version
       - name: Download and validate 9 GLB
         env:
           SKETCHFAB_TOKEN: ${{ secrets.SKETCHFAB_TOKEN }}
