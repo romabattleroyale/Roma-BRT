@@ -143,9 +143,9 @@ func _build_network() -> void:
         for col in range(4):
             var index: int = row * 4 + col
             if col < 3:
-                _add_edge(nodes[index], nodes[index + 1], MAIN_WIDTH, _asphalt, true)
+                await _add_edge(nodes[index], nodes[index + 1], MAIN_WIDTH, _asphalt, true)
             if row < 2:
-                _add_edge(nodes[index], nodes[index + 4], MAIN_WIDTH, _asphalt, true)
+                await _add_edge(nodes[index], nodes[index + 4], MAIN_WIDTH, _asphalt, true)
             work_counter += 1
             if work_counter % 2 == 0:
                 await get_tree().process_frame
@@ -156,10 +156,10 @@ func _build_network() -> void:
         for offset in [-LOCAL_SPACING, 0.0, LOCAL_SPACING]:
             var a: Vector3 = Vector3(center.x - LOCAL_HALF_EXTENT, 0.0, center.z + offset)
             var b: Vector3 = Vector3(center.x + LOCAL_HALF_EXTENT, 0.0, center.z + offset)
-            _add_edge(a, b, ALLEY_WIDTH, _sampietrini, false)
+            await _add_edge(a, b, ALLEY_WIDTH, _sampietrini, false)
             var c: Vector3 = Vector3(center.x + offset, 0.0, center.z - LOCAL_HALF_EXTENT)
             var d: Vector3 = Vector3(center.x + offset, 0.0, center.z + LOCAL_HALF_EXTENT)
-            _add_edge(c, d, ALLEY_WIDTH, _sampietrini, false)
+            await _add_edge(c, d, ALLEY_WIDTH, _sampietrini, false)
         _add_intersection(center, MAIN_WIDTH)
         work_counter += 1
         if work_counter % 2 == 0:
