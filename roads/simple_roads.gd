@@ -138,6 +138,7 @@ func _build_network() -> void:
         nodes.append(p)
 
     # Main 8m network: 17 links joining all 12 districts.
+    var work_counter: int = 0
     for row in range(3):
         for col in range(4):
             var index: int = row * 4 + col
@@ -145,6 +146,9 @@ func _build_network() -> void:
                 _add_edge(nodes[index], nodes[index + 1], MAIN_WIDTH, _asphalt, true)
             if row < 2:
                 _add_edge(nodes[index], nodes[index + 4], MAIN_WIDTH, _asphalt, true)
+            work_counter += 1
+            if work_counter % 2 == 0:
+                await get_tree().process_frame
 
     # Local Roman streets inside each district.
     for local_center in DISTRICT_CENTERS:
@@ -157,12 +161,16 @@ func _build_network() -> void:
             var d: Vector3 = Vector3(center.x + offset, 0.0, center.z + LOCAL_HALF_EXTENT)
             _add_edge(c, d, ALLEY_WIDTH, _sampietrini, false)
         _add_intersection(center, MAIN_WIDTH)
+        work_counter += 1
+        if work_counter % 2 == 0:
+            await get_tree().process_frame
 
     # Bridge placeholders remain on the existing network coordinates.
     _add_bridge(Vector3(880.0, 0.0, 960.0), Vector3(920.0, 0.0, 960.0))
     _add_bridge(Vector3(960.0, 0.0, 980.0), Vector3(1000.0, 0.0, 980.0))
     _add_bridge(Vector3(1040.0, 0.0, 1020.0), Vector3(1080.0, 0.0, 1020.0))
     _add_bridge(Vector3(1120.0, 0.0, 1040.0), Vector3(1160.0, 0.0, 1040.0))
+    await get_tree().process_frame
 
     print("ROMA ROADS V2: PASS network=12_districts main_edges=17 sidewalks=enabled drainage=enabled street_furniture=enabled")
 
