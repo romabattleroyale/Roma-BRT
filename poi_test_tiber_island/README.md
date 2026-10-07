@@ -1,28 +1,26 @@
-# Trastevere – Isola Tiberina — POI Test / Iteration 2
+# Isola Tiberina — Iteration 3 Asset-Based
 
-Isolated Godot 4.7.2 test project. Independent of Roma-BRT Main.
+## Comandi smartphone
+- ▲ AVANTI
+- ▼ INDIETRO
+- ◀ SINISTRA
+- ▶ DESTRA
+- Trascina nella metà destra dello schermo per ruotare la visuale a 360°.
+- I quattro pulsanti sono touch e supportano pressione/rilascio.
 
-## Scope
-- Only Isola Tiberina POI.
-- Minimal test ground + fake WaterPlane + POI.
-- No Main terrain, roads, HUD, gameplay, GridMap, MeshLibrary or splines.
-- POI origin at (0,0,0).
-- Low-poly procedural geometry; primitive elements stay below 500 triangles.
-- StandardMaterial3D + NoiseTexture2D/FastNoiseLite, roughness 0.85, metallic 0.
+## Asset-based
+Gli edifici, ponti, case, percorsi, lampioni, panchine, fontane e alberi principali sono caricati come GLB da res://poi_test/assets/models/.
+Il corpo principale dell'isola resta procedurale.
 
-## Iteration 2
-1. Ship-shaped island body and individual travertine perimeter blocks.
-2. Ponte Fabricio: two TorusMesh arch rings, 62 x 5 m deck, parapets, 3 Roman lamps.
-3. Ponte Cestio: three TorusMesh arch rings, 70 x 8 m deck, peperino inserts, 4 lamps.
-4. San Bartolomeo: central body, four columns, pronaos cornice, tile roof, bell tower, cross and wooden door.
-5. Torre Caetani: brick tower, merlons, stone cornice and windows.
-6. Six differentiated residential houses with roofs, windows, frames and doors.
-7. Eighteen low-poly trees, hedges and ivy panels.
-8. Three internal cobblestone paths with travertine sidewalks.
-9. Lamps, benches, nasoni and four POI sign boards.
+## Sketchfab
+La lista completa con autore, licenza, triangoli e link è in SKETCHFAB_ASSET_MANIFEST.md.
+Tutti gli asset selezionati rispettano CC0 o CC BY e il limite di 20.000 triangoli per modello.
 
-## Validation
-The development container does not include the Godot 4.7.2 executable. Runtime/mobile validation must therefore be performed in Godot on the target device; no false validation claim is made here.
+## Download
+Il workflow .github/workflows/fetch-sketchfab-iteration3.yml usa il secret SKETCHFAB_TOKEN per ottenere i modelli tramite la Download API ufficiale di Sketchfab. Il token non viene salvato nel repository.
 
-## Main safety
-No Main scene or Main terrain file is required by this isolated project.
+## Limiti
+Budget asset: massimo 100 MB. Nessun GridMap, MeshLibrary o spline. Nessun BoxMesh per edifici principali.
+
+## Nota di verifica
+Il container di sviluppo non dispone dell'eseguibile Godot 4.7.2, quindi non dichiaro una verifica runtime/mobile che non ho potuto eseguire qui.
