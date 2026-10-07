@@ -79,7 +79,7 @@ jobs:
           test -f project.godot
           test -f runtime_extension_launcher.tscn
           test -f runtime_extension_launcher.gd
-          grep -q 'run/main_scene="res://runtime_extension_launcher.tscn"' project.godot
+          grep -q 'run/main_scene="res://main.tscn"' project.godot
           grep -q 'GDExtensionManager.load_extension' runtime_extension_launcher.gd
           grep -q 'res://addons/terrain_3d/terrain.gdextension' runtime_extension_launcher.gd
           grep -q 'textures/vram_compression/import_etc2_astc=true' project.godot
