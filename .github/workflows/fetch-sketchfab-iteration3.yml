@@ -1,0 +1,70 @@
+name: Fetch Sketchfab assets - Isola Tiberina Iteration 3
+
+on:
+  workflow_dispatch:
+
+jobs:
+  fetch:
+    runs-on: ubuntu-latest
+    env:
+      SKETCHFAB_TOKEN: \${{ secrets.SKETCHFAB_TOKEN }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Check Sketchfab token
+        run: |
+          if [ -z "$SKETCHFAB_TOKEN" ]; then
+            echo "::error::Missing repository secret SKETCHFAB_TOKEN"
+            exit 1
+          fi
+      - name: Install tools
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y jq unzip
+          npm install -g @gltf-transform/cli
+      - name: Download selected Sketchfab models
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p poi_test_tiber_island/poi_test/assets/models
+          declare -A MODELS=(
+            [roman_bridge]="8511381f0b844306ab53e4fbc5660095"
+            [low_poly_church]="132e19cdff9247f092c8d85f903d67fc"
+            [medieval_tower]="6c821f2aae3b4e8db5d94c6f48fb568b"
+            [medieval_house]="bb5406594f4d4dd59daf1e19cb08e88c"
+            [cobblestone_ground]="a70ea3530a004baebe6c33c29cebe1de"
+            [italian_fountain]="8580500134194ba5be3f6df7593049f2"
+            [street_lamp]="17e2bc2ec7de42d08d98e3a6c886a8b2"
+            [low_poly_fountain]="c292f78eaf7042f0bffb9bb079b24951"
+          )
+          for NAME in "\${!MODELS[@]}"; do
+            UID="\${MODELS[$NAME]}"
+            JSON=$(curl -fsSL -H "Authorization: Bearer $SKETCHFAB_TOKEN" "https://api.sketchfab.com/v3/models/$UID/download?archives_flavours=true")
+            URL=$(echo "$JSON" | jq -r '.glb.url // empty')
+            EXT="glb"
+            if [ -z "$URL" ]; then URL=$(echo "$JSON" | jq -r '.gltf.url // empty'); EXT="zip"; fi
+            if [ -z "$URL" ] || [ "$URL" = "null" ]; then exit 1; fi
+            TMP="/tmp/$NAME.$EXT"
+            curl -fsSL "$URL" -o "$TMP"
+            OUT="poi_test_tiber_island/poi_test/assets/models/$NAME"
+            mkdir -p "$OUT"
+            if [ "$EXT" = "glb" ]; then
+              cp "$TMP" "$OUT/$NAME.glb"
+            else
+              unzip -q "$TMP" -d "$OUT/archive"
+              GLTF=$(find "$OUT/archive" -type f -name '*.gltf' | head -n1)
+              if [ -z "$GLTF" ]; then exit 1; fi
+              gltf-transform copy "$GLTF" "$OUT/$NAME.glb"
+            fi
+          done
+      - name: Enforce 100 MB budget
+        run: |
+          TOTAL=$(du -sb poi_test_tiber_island/poi_test/assets/models | awk '{print $1}')
+          MAX=$((100*1024*1024))
+          test "$TOTAL" -le "$MAX"
+      - name: Commit assets
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add poi_test_tiber_island/poi_test/assets/models
+          git commit -m "POI Isola Tiberina Iteration 3 - Sketchfab GLB assets" || echo "No changes"
+          git push
