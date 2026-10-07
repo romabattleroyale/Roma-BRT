@@ -338,6 +338,19 @@ func _find_safe_side_offset(a: Vector3, b: Vector3, road_width: float) -> float:
             return offset
     return NAN
 
+func _area_clear(center: Vector3, width: float, depth: float, extra_clearance: float = 0.35) -> bool:
+    var min_x: float = center.x - width * 0.5 - extra_clearance
+    var max_x: float = center.x + width * 0.5 + extra_clearance
+    var min_z: float = center.z - depth * 0.5 - extra_clearance
+    var max_z: float = center.z + depth * 0.5 + extra_clearance
+    for building in _building_bounds:
+        if building.end.x + extra_clearance < min_x or building.position.x - extra_clearance > max_x:
+            continue
+        if building.end.z + extra_clearance < min_z or building.position.z - extra_clearance > max_z:
+            continue
+        return false
+    return true
+
 func _prop_position_clear(position: Vector3, clearance_m: float = 3.0) -> bool:
     for building in _building_bounds:
         var dx: float = maxf(maxf(building.position.x - position.x, 0.0), position.x - building.end.x)
@@ -426,6 +439,9 @@ func _add_box_between(p0: Vector3, p1: Vector3, width: float, height: float, mat
     instance.look_at_from_position(midpoint, midpoint + direction.normalized(), Vector3.UP)
 
 func _add_intersection(center: Vector3, width: float) -> void:
+    if not _area_clear(center, width, width):
+        print("ROMA ROADS V2: intersection skipped because it overlaps a building at ", center)
+        return
     center.y = _terrain_y(center.x, center.z) + CLEARANCE + ROAD_HEIGHT * 0.5
     var mesh: BoxMesh = BoxMesh.new()
     mesh.size = Vector3(width, ROAD_HEIGHT, width)
@@ -435,13 +451,14 @@ func _add_intersection(center: Vector3, width: float) -> void:
     instance.position = center
     add_child(instance)
 
-    # Four Roman-style zebra crossings and four stop lines.
     for offset in [-5.0, 5.0]:
         _add_zebra(center + Vector3(offset, 0.0, 0.0), Vector3.FORWARD)
         _add_stop_line(center + Vector3(offset * 0.72, 0.0, 0.0), Vector3.FORWARD)
         _add_zebra(center + Vector3(0.0, 0.0, offset), Vector3.RIGHT)
         _add_stop_line(center + Vector3(0.0, 0.0, offset * 0.72), Vector3.RIGHT)
-    _add_nasone_prop(center + Vector3(4.8, 0.0, 4.8), Vector3.FORWARD)
+    var nasone_center: Vector3 = center + Vector3(4.8, 0.0, 4.8)
+    if _prop_position_clear(nasone_center, 3.0):
+        _add_nasone_prop(nasone_center, Vector3.FORWARD)
 
 func _add_road_marking(center: Vector3, direction: Vector3) -> void:
     var dash_center: Vector3 = _surface_point(center.x, center.z, ROAD_HEIGHT + 0.012)
