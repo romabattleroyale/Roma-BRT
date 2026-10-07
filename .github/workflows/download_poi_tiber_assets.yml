@@ -26,3 +26,16 @@ jobs:
         run: |
           set -euo pipefail
           bash tools/download_tiber_assets.sh
+      - name: Package optimized asset pack
+        run: |
+          set -euo pipefail
+          cd poi_test_tiber_island/poi_test
+          zip -qr ../Trastevere_Isola_Tiberina_Optimized_Assets.zip assets/models
+          ls -lh ../Trastevere_Isola_Tiberina_Optimized_Assets.zip
+      - name: Upload optimized asset pack
+        uses: actions/upload-artifact@v4
+        with:
+          name: Trastevere-Isola-Tiberina-Optimized-Assets
+          path: poi_test_tiber_island/Trastevere_Isola_Tiberina_Optimized_Assets.zip
+          if-no-files-found: error
+          retention-days: 14
