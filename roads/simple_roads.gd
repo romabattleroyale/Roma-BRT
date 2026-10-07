@@ -158,33 +158,98 @@ func _build_network() -> void:
         push_error("ROMA ROADS V2: Urban_Grid LOT_RECTS unavailable")
         return
 
-    var sides: Array[Dictionary] = _unique_lot_sides(lot_rects)
+    var corridors: Array[Dictionary] = _build_corridors_between_lots(lot_rects)
     var junctions: Dictionary = {}
-    for side_data in sides:
-        var a: Vector3 = Vector3(float(side_data["ax"]), 0.0, float(side_data["az"]))
-        var b: Vector3 = Vector3(float(side_data["bx"]), 0.0, float(side_data["bz"]))
-        var safe_offset: float = _find_safe_side_offset(a, b, MAIN_WIDTH)
-        if is_nan(safe_offset):
-            print("ROMA ROADS V2: skipped blocked corridor ", a, " -> ", b)
+    var corridor_index: int = 0
+
+    for corridor in corridors:
+        var a: Vector3 = Vector3(float(corridor["ax"]), 0.0, float(corridor["az"]))
+        var b: Vector3 = Vector3(float(corridor["bx"]), 0.0, float(corridor["bz"]))
+        if not _road_segment_clear(a, b, MAIN_WIDTH):
+            print("ROMA ROADS V2: blocked corridor skipped ", a, " -> ", b)
             continue
-        var flat_direction: Vector3 = (b - a).normalized()
-        var normal: Vector3 = Vector3(-flat_direction.z, 0.0, flat_direction.x)
-        var aa: Vector3 = a + normal * safe_offset
-        var bb: Vector3 = b + normal * safe_offset
-        junctions["%.2f,%.2f" % [aa.x, aa.z]] = aa
-        junctions["%.2f,%.2f" % [bb.x, bb.z]] = bb
-        await _add_edge(aa, bb, MAIN_WIDTH, _asphalt, true)
+        junctions["%.2f,%.2f" % [a.x, a.z]] = a
+        junctions["%.2f,%.2f" % [b.x, b.z]] = b
+        await _add_edge(a, b, MAIN_WIDTH, _asphalt, true)
+        corridor_index += 1
+        if corridor_index % 3 == 0:
+            await get_tree().process_frame
 
     for key in junctions:
         _add_intersection(junctions[key], MAIN_WIDTH)
-        await get_tree().process_frame
+        if junctions.size() % 8 == 0:
+            await get_tree().process_frame
 
     await _add_safe_bridge(Vector3(880.0, 0.0, 960.0), Vector3(920.0, 0.0, 960.0))
     await _add_safe_bridge(Vector3(960.0, 0.0, 980.0), Vector3(1000.0, 0.0, 980.0))
     await _add_safe_bridge(Vector3(1040.0, 0.0, 1020.0), Vector3(1080.0, 0.0, 1020.0))
     await _add_safe_bridge(Vector3(1120.0, 0.0, 1040.0), Vector3(1160.0, 0.0, 1040.0))
 
-    print("ROMA ROADS V2: PASS network=Urban_Grid_corridors collision_safe buildings=%d corridors=%d sidewalks=enabled drainage=enabled street_furniture=enabled" % [_building_bounds.size(), sides.size()])
+    print("ROMA ROADS V2: PASS network=Urban_Grid_corridors collision_safe buildings=%d corridors=%d sidewalks=enabled drainage=enabled street_furniture=enabled" % [_building_bounds.size(), corridors.size()])
+
+func _build_corridors_between_lots(lot_rects: Array) -> Array[Dictionary]:
+    var result: Array[Dictionary] = []
+    var seen: Dictionary = {}
+    var max_gap: float = 22.0
+
+    for i in range(lot_rects.size()):
+        if not (lot_rects[i] is Dictionary):
+            continue
+        var a: Dictionary = lot_rects[i] as Dictionary
+        var amin_x: float = float(a.get("min_x", 0.0))
+        var amax_x: float = float(a.get("max_x", 0.0))
+        var amin_z: float = float(a.get("min_z", 0.0))
+        var amax_z: float = float(a.get("max_z", 0.0))
+
+        for j in range(i + 1, lot_rects.size()):
+            if not (lot_rects[j] is Dictionary):
+                continue
+            var b: Dictionary = lot_rects[j] as Dictionary
+            var bmin_x: float = float(b.get("min_x", 0.0))
+            var bmax_x: float = float(b.get("max_x", 0.0))
+            var bmin_z: float = float(b.get("min_z", 0.0))
+            var bmax_z: float = float(b.get("max_z", 0.0))
+
+            var overlap_x: float = minf(amax_x, bmax_x) - maxf(amin_x, bmin_x)
+            var overlap_z: float = minf(amax_z, bmax_z) - maxf(amin_z, bmin_z)
+
+            if overlap_x >= 20.0:
+                var gap_z: float = 0.0
+                var center_z: float = 0.0
+                if amax_z <= bmin_z:
+                    gap_z = bmin_z - amax_z
+                    center_z = (amax_z + bmin_z) * 0.5
+                elif bmax_z <= amin_z:
+                    gap_z = amin_z - bmax_z
+                    center_z = (bmax_z + amin_z) * 0.5
+                if gap_z > 7.0 and gap_z <= max_gap:
+                    var ax: float = maxf(amin_x, bmin_x)
+                    var bx: float = minf(amax_x, bmax_x)
+                    if bx - ax >= 20.0:
+                        var key: String = "H:%.1f:%.1f:%.1f" % [ax, bx, center_z]
+                        if not seen.has(key):
+                            seen[key] = true
+                            result.append({"ax":ax, "az":center_z, "bx":bx, "bz":center_z})
+
+            if overlap_z >= 20.0:
+                var gap_x: float = 0.0
+                var center_x: float = 0.0
+                if amax_x <= bmin_x:
+                    gap_x = bmin_x - amax_x
+                    center_x = (amax_x + bmin_x) * 0.5
+                elif bmax_x <= amin_x:
+                    gap_x = amin_x - bmax_x
+                    center_x = (bmax_x + amin_x) * 0.5
+                if gap_x > 7.0 and gap_x <= max_gap:
+                    var az: float = maxf(amin_z, bmin_z)
+                    var bz: float = minf(amax_z, bmax_z)
+                    if bz - az >= 20.0:
+                        var key: String = "V:%.1f:%.1f:%.1f" % [az, bz, center_x]
+                        if not seen.has(key):
+                            seen[key] = true
+                            result.append({"ax":center_x, "az":az, "bx":center_x, "bz":bz})
+
+    return result
 
 func _get_urban_lot_rects() -> Array:
     var grid: Node = get_tree().current_scene.get_node_or_null("Urban_Grid")
