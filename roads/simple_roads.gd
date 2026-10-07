@@ -43,6 +43,7 @@ var _gutter: StandardMaterial3D
 var _metal: StandardMaterial3D
 var _marking: StandardMaterial3D
 var _lamp: StandardMaterial3D
+var _building_bounds: Array[AABB] = []
 
 func _ready() -> void:
     _asphalt = _procedural_asphalt()
@@ -107,10 +108,55 @@ func _wait_for_terrain() -> void:
                     height_range = range_variant
                 if height_range.y - height_range.x > 0.5:
                     print("ROMA ROADS V2: terrain ready range=", height_range)
+                    await _wait_for_buildings()
+                    _collect_building_bounds()
                     _build_network()
                     return
         await get_tree().process_frame
     push_error("ROMA ROADS V2: timeout waiting for Terrain3D height data")
+
+func _wait_for_buildings() -> void:
+    for _i in range(1200):
+        var bridge: Node = get_tree().current_scene.find_child("V11BuildingBridge", true, false)
+        if bridge != null and bool(bridge.get("built")):
+            return
+        await get_tree().process_frame
+    push_warning("ROMA ROADS V2: building bridge not ready; collision guard will use available geometry")
+
+func _collect_building_bounds() -> void:
+    _building_bounds.clear()
+    var world: Node = get_tree().current_scene.find_child("V37World", true, false)
+    if world == null:
+        return
+    for child in world.get_children():
+        if child.has_meta("runtime_placement"):
+            var bounds: AABB = _node_world_aabb(child)
+            if bounds.size.x > 0.01 and bounds.size.z > 0.01:
+                _building_bounds.append(bounds)
+    print("ROMA ROADS V2: collision guard buildings=", _building_bounds.size())
+
+ee().process_frame
+    push_error("ROMA ROADS V2: timeout waiting for Terrain3D height data")
+
+func _wait_for_buildings() -> void:
+    for _i in range(1200):
+        var bridge: Node = get_tree().current_scene.find_child("V11BuildingBridge", true, false)
+        if bridge != null and bool(bridge.get("built")):
+            return
+        await get_tree().process_frame
+    push_warning("ROMA ROADS V2: building bridge not ready; collision guard will use available geometry")
+
+func _collect_building_bounds() -> void:
+    _building_bounds.clear()
+    var world: Node = get_tree().current_scene.find_child("V37World", true, false)
+    if world == null:
+        return
+    for child in world.get_children():
+        if child.has_meta("runtime_placement"):
+            var bounds: AABB = _node_world_aabb(child)
+            if bounds.size.x > 0.01 and bounds.size.z > 0.01:
+                _building_bounds.append(bounds)
+    print("ROMA ROADS V2: collision guard buildings=", _building_bounds.size())
 
 func _terrain_y(x: float, z: float) -> float:
     if _terrain_data == null:
@@ -130,49 +176,164 @@ func _build_network() -> void:
     if _built:
         return
     _built = true
+    var lot_rects: Array = _get_urban_lot_rects()
+    if lot_rects.is_empty():
+        push_error("ROMA ROADS V2: Urban_Grid LOT_RECTS unavailable")
+        return
 
-    var nodes: Array[Vector3] = []
-    for local_center in DISTRICT_CENTERS:
-        var p: Vector3 = _world(Vector2(local_center.x, local_center.z))
-        p.y = _terrain_y(p.x, p.z)
-        nodes.append(p)
+    var sides: Array[Dictionary] = _unique_lot_sides(lot_rects)
+    var junctions: Dictionary = {}
+    for side_data in sides:
+        var a: Vector3 = Vector3(float(side_data["ax"]), 0.0, float(side_data["az"]))
+        var b: Vector3 = Vector3(float(side_data["bx"]), 0.0, float(side_data["bz"]))
+        var safe_offset: float = _find_safe_side_offset(a, b, MAIN_WIDTH)
+        if is_nan(safe_offset):
+            print("ROMA ROADS V2: skipped blocked corridor ", a, " -> ", b)
+            continue
+        var flat_direction: Vector3 = (b - a).normalized()
+        var normal: Vector3 = Vector3(-flat_direction.z, 0.0, flat_direction.x)
+        var aa: Vector3 = a + normal * safe_offset
+        var bb: Vector3 = b + normal * safe_offset
+        junctions["%.2f,%.2f" % [aa.x, aa.z]] = aa
+        junctions["%.2f,%.2f" % [bb.x, bb.z]] = bb
+        await _add_edge(aa, bb, MAIN_WIDTH, _asphalt, true)
 
-    # Main 8m network: 17 links joining all 12 districts.
-    var work_counter: int = 0
-    for row in range(3):
-        for col in range(4):
-            var index: int = row * 4 + col
-            if col < 3:
-                await _add_edge(nodes[index], nodes[index + 1], MAIN_WIDTH, _asphalt, true)
-            if row < 2:
-                await _add_edge(nodes[index], nodes[index + 4], MAIN_WIDTH, _asphalt, true)
-            work_counter += 1
-            if work_counter % 2 == 0:
-                await get_tree().process_frame
+    for key in junctions:
+        _add_intersection(junctions[key], MAIN_WIDTH)
+        await get_tree().process_frame
 
-    # Local Roman streets inside each district.
-    for local_center in DISTRICT_CENTERS:
-        var center: Vector3 = _world(Vector2(local_center.x, local_center.z))
-        for offset in [-LOCAL_SPACING, 0.0, LOCAL_SPACING]:
-            var a: Vector3 = Vector3(center.x - LOCAL_HALF_EXTENT, 0.0, center.z + offset)
-            var b: Vector3 = Vector3(center.x + LOCAL_HALF_EXTENT, 0.0, center.z + offset)
-            await _add_edge(a, b, ALLEY_WIDTH, _sampietrini, false)
-            var c: Vector3 = Vector3(center.x + offset, 0.0, center.z - LOCAL_HALF_EXTENT)
-            var d: Vector3 = Vector3(center.x + offset, 0.0, center.z + LOCAL_HALF_EXTENT)
-            await _add_edge(c, d, ALLEY_WIDTH, _sampietrini, false)
-        _add_intersection(center, MAIN_WIDTH)
-        work_counter += 1
-        if work_counter % 2 == 0:
-            await get_tree().process_frame
+    await _add_safe_bridge(Vector3(880.0, 0.0, 960.0), Vector3(920.0, 0.0, 960.0))
+    await _add_safe_bridge(Vector3(960.0, 0.0, 980.0), Vector3(1000.0, 0.0, 980.0))
+    await _add_safe_bridge(Vector3(1040.0, 0.0, 1020.0), Vector3(1080.0, 0.0, 1020.0))
+    await _add_safe_bridge(Vector3(1120.0, 0.0, 1040.0), Vector3(1160.0, 0.0, 1040.0))
 
-    # Bridge placeholders remain on the existing network coordinates.
-    _add_bridge(Vector3(880.0, 0.0, 960.0), Vector3(920.0, 0.0, 960.0))
-    _add_bridge(Vector3(960.0, 0.0, 980.0), Vector3(1000.0, 0.0, 980.0))
-    _add_bridge(Vector3(1040.0, 0.0, 1020.0), Vector3(1080.0, 0.0, 1020.0))
-    _add_bridge(Vector3(1120.0, 0.0, 1040.0), Vector3(1160.0, 0.0, 1040.0))
-    await get_tree().process_frame
+    print("ROMA ROADS V2: PASS network=Urban_Grid_corridors collision_safe buildings=%d corridors=%d sidewalks=enabled drainage=enabled street_furniture=enabled" % [_building_bounds.size(), sides.size()])
 
-    print("ROMA ROADS V2: PASS network=12_districts main_edges=17 sidewalks=enabled drainage=enabled street_furniture=enabled")
+func _get_urban_lot_rects() -> Array:
+    var grid: Node = get_tree().current_scene.get_node_or_null("Urban_Grid")
+    if grid == null:
+        return []
+    var rects_variant: Variant = grid.get_meta("lot_rects", [])
+    if rects_variant is Array:
+        return rects_variant as Array
+    return []
+
+func _unique_lot_sides(lot_rects: Array) -> Array[Dictionary]:
+    var result: Array[Dictionary] = []
+    var seen: Dictionary = {}
+    for rect_variant in lot_rects:
+        if not (rect_variant is Dictionary):
+            continue
+        var rect: Dictionary = rect_variant as Dictionary
+        var min_x: float = float(rect.get("min_x", 0.0))
+        var max_x: float = float(rect.get("max_x", 0.0))
+        var min_z: float = float(rect.get("min_z", 0.0))
+        var max_z: float = float(rect.get("max_z", 0.0))
+        var raw: Array = [
+            [min_x, min_z, max_x, min_z],
+            [max_x, min_z, max_x, max_z],
+            [max_x, max_z, min_x, max_z],
+            [min_x, max_z, min_x, min_z]
+        ]
+        for side in raw:
+            var ax: float = float(side[0])
+            var az: float = float(side[1])
+            var bx: float = float(side[2])
+            var bz: float = float(side[3])
+            var first: String = "%.2f,%.2f" % [ax, az]
+            var second: String = "%.2f,%.2f" % [bx, bz]
+            var key: String = first + "|" + second if first < second else second + "|" + first
+            if not seen.has(key):
+                seen[key] = true
+                result.append({"ax":ax, "az":az, "bx":bx, "bz":bz})
+    return result
+
+func _node_world_aabb(root: Node) -> AABB:
+    var result: AABB = AABB()
+    var has_bounds: bool = false
+    var stack: Array[Node] = [root]
+    while not stack.is_empty():
+        var node: Node = stack.pop_back()
+        if node is MeshInstance3D:
+            var mesh_instance: MeshInstance3D = node as MeshInstance3D
+            var local_aabb: AABB = mesh_instance.get_aabb()
+            var corners: Array[Vector3] = [
+                Vector3(local_aabb.position.x, local_aabb.position.y, local_aabb.position.z),
+                Vector3(local_aabb.end.x, local_aabb.position.y, local_aabb.position.z),
+                Vector3(local_aabb.position.x, local_aabb.end.y, local_aabb.position.z),
+                Vector3(local_aabb.end.x, local_aabb.end.y, local_aabb.position.z),
+                Vector3(local_aabb.position.x, local_aabb.position.y, local_aabb.end.z),
+                Vector3(local_aabb.end.x, local_aabb.position.y, local_aabb.end.z),
+                Vector3(local_aabb.position.x, local_aabb.end.y, local_aabb.end.z),
+                Vector3(local_aabb.end.x, local_aabb.end.y, local_aabb.end.z)
+            ]
+            for corner in corners:
+                var world_point: Vector3 = mesh_instance.global_transform * corner
+                if not has_bounds:
+                    result = AABB(world_point, Vector3.ZERO)
+                    has_bounds = true
+                else:
+                    result = result.expand(world_point)
+        for child in node.get_children():
+            stack.append(child)
+    return result
+
+func _road_segment_clear(a: Vector3, b: Vector3, road_width: float, extra_clearance: float = 0.35) -> bool:
+    var half_width: float = road_width * 0.5 + extra_clearance
+    for building in _building_bounds:
+        var min_x: float = building.position.x - half_width
+        var max_x: float = building.end.x + half_width
+        var min_z: float = building.position.z - half_width
+        var max_z: float = building.end.z + half_width
+        if _segment_intersects_rect(Vector2(a.x, a.z), Vector2(b.x, b.z), min_x, max_x, min_z, max_z):
+            return false
+    return true
+
+func _segment_intersects_rect(a: Vector2, b: Vector2, min_x: float, max_x: float, min_z: float, max_z: float) -> bool:
+    var dx: float = b.x - a.x
+    var dz: float = b.y - a.y
+    var t_min: float = 0.0
+    var t_max: float = 1.0
+    for pair in [[-dx, a.x - min_x], [dx, max_x - a.x], [-dz, a.y - min_z], [dz, max_z - a.y]]:
+        var p: float = float(pair[0])
+        var q: float = float(pair[1])
+        if absf(p) < 0.00001:
+            if q < 0.0:
+                return false
+        else:
+            var t: float = q / p
+            if p < 0.0:
+                t_min = maxf(t_min, t)
+            else:
+                t_max = minf(t_max, t)
+            if t_min > t_max:
+                return false
+    return true
+
+func _find_safe_side_offset(a: Vector3, b: Vector3, road_width: float) -> float:
+    var direction: Vector3 = (b - a).normalized()
+    var normal: Vector3 = Vector3(-direction.z, 0.0, direction.x)
+    var candidates: Array[float] = [0.0, 1.0, -1.0, 2.0, -2.0, 3.0, -3.0, 4.0, -4.0, 5.0, -5.0, 6.0, -6.0, 7.0, -7.0, 8.0, -8.0, 9.0, -9.0, 10.0, -10.0]
+    for offset in candidates:
+        var aa: Vector3 = a + normal * offset
+        var bb: Vector3 = b + normal * offset
+        if _road_segment_clear(aa, bb, road_width):
+            return offset
+    return NAN
+
+func _prop_position_clear(position: Vector3, clearance_m: float = 3.0) -> bool:
+    for building in _building_bounds:
+        var dx: float = maxf(maxf(building.position.x - position.x, 0.0), position.x - building.end.x)
+        var dz: float = maxf(maxf(building.position.z - position.z, 0.0), position.z - building.end.z)
+        if sqrt(dx * dx + dz * dz) < clearance_m:
+            return false
+    return true
+
+func _add_safe_bridge(a: Vector3, b: Vector3) -> void:
+    if _road_segment_clear(a, b, MAIN_WIDTH):
+        _add_bridge(a, b)
+    else:
+        print("ROMA ROADS V2: bridge skipped because it intersects a building")
 
 func _add_edge(a: Vector3, b: Vector3, width: float, material: Material, main_road: bool) -> void:
     var flat_a: Vector3 = Vector3(a.x, 0.0, a.z)
@@ -189,20 +350,33 @@ func _add_edge(a: Vector3, b: Vector3, width: float, material: Material, main_ro
         var t1: float = float(i + 1) / float(steps)
         var p0: Vector3 = flat_a.lerp(flat_b, t0)
         var p1: Vector3 = flat_a.lerp(flat_b, t1)
+        if not _road_segment_clear(p0, p1, width):
+            print("ROMA ROADS V2: blocked road segment skipped at ", p0, " -> ", p1)
+            await get_tree().process_frame
+            continue
+
         var ground0: Vector3 = _surface_point(p0.x, p0.z, ROAD_HEIGHT * 0.5)
         var ground1: Vector3 = _surface_point(p1.x, p1.z, ROAD_HEIGHT * 0.5)
-        var length: float = p0.distance_to(p1) + OVERLAP
         _add_box_between(ground0, ground1, width, ROAD_HEIGHT, material)
 
         if main_road:
             Sidewalks.add_pair(self, _terrain_data, p0, p1, width, SIDEWALK_WIDTH)
-            if i % 2 == 0:
-                _add_lamp_prop((p0 + p1) * 0.5 + side * (width * 0.5 + SIDEWALK_WIDTH * 0.55), direction)
-                _add_street_tree((p0 + p1) * 0.5 + side * (width * 0.5 + SIDEWALK_WIDTH * 0.55), direction, (i / 2) % 2 == 0)
+            var prop_base: Vector3 = (p0 + p1) * 0.5 + side * (width * 0.5 + SIDEWALK_WIDTH * 0.55)
+            var prop_side: Vector3 = side
+            if not _prop_position_clear(prop_base, 3.0):
+                prop_base = (p0 + p1) * 0.5 - side * (width * 0.5 + SIDEWALK_WIDTH * 0.55)
+                prop_side = -side
+            if i % 2 == 0 and _prop_position_clear(prop_base, 3.0):
+                _add_lamp_prop(prop_base, direction)
+                _add_street_tree(prop_base, direction, (i / 2) % 2 == 0)
             if i % 5 == 0:
-                _add_street_sign((p0 + p1) * 0.5 + side * (width * 0.5 + SIDEWALK_WIDTH * 0.75), direction, _street_name((p0 + p1) * 0.5))
+                var sign_pos: Vector3 = (p0 + p1) * 0.5 + prop_side * (width * 0.5 + SIDEWALK_WIDTH * 0.75)
+                if _prop_position_clear(sign_pos, 3.0):
+                    _add_street_sign(sign_pos, direction, _street_name((p0 + p1) * 0.5))
             if i % 10 == 0:
-                _add_nasone_prop((p0 + p1) * 0.5 + side * (width * 0.5 + SIDEWALK_WIDTH * 0.35), direction)
+                var nasone_pos: Vector3 = (p0 + p1) * 0.5 + prop_side * (width * 0.5 + SIDEWALK_WIDTH * 0.35)
+                if _prop_position_clear(nasone_pos, 3.0):
+                    _add_nasone_prop(nasone_pos, direction)
             if i % 3 == 1:
                 _add_road_marking((p0 + p1) * 0.5, direction)
             if i % 4 == 1:
@@ -212,11 +386,12 @@ func _add_edge(a: Vector3, b: Vector3, width: float, material: Material, main_ro
             if i % 4 == 0:
                 for side_sign in [-1.0, 1.0]:
                     var edge_center: Vector3 = (p0 + p1) * 0.5 + side * side_sign * (width * 0.5 + 0.10)
-                    var e0: Vector3 = _surface_point(edge_center.x - direction.x * length * 0.5, edge_center.z - direction.z * length * 0.5, 0.035)
-                    var e1: Vector3 = _surface_point(edge_center.x + direction.x * length * 0.5, edge_center.z + direction.z * length * 0.5, 0.035)
+                    var e0: Vector3 = _surface_point(edge_center.x - direction.x * 4.0, edge_center.z - direction.z * 4.0, 0.035)
+                    var e1: Vector3 = _surface_point(edge_center.x + direction.x * 4.0, edge_center.z + direction.z * 4.0, 0.035)
                     _add_box_between(e0, e1, 0.20, 0.07, _curb)
             if i % 5 == 2:
                 _add_manhole((p0 + p1) * 0.5)
+
         await get_tree().process_frame
 
 func _add_box_between(p0: Vector3, p1: Vector3, width: float, height: float, material: Material) -> void:
