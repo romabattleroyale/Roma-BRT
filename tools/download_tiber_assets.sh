@@ -27,6 +27,7 @@ for item in "${assets[@]}"; do
   DL="/tmp/${NAME}-download.json"
   ZIP="/tmp/${NAME}.zip"
   DIR="/tmp/${NAME}"
+  RAW="/tmp/${NAME}-raw.glb"
   OUT="$ROOT/${NAME}.glb"
 
   echo "Downloading ${NAME} (${MODEL_UID})"
@@ -55,7 +56,10 @@ for item in "${assets[@]}"; do
   GLTF=$(find "${DIR}" -type f -name '*.gltf' | head -n 1)
   test -n "${GLTF}"
 
-  gltf-transform copy "${GLTF}" "${OUT}"
+  gltf-transform copy "${GLTF}" "${RAW}"
+  # Android/mobile optimization: 1024px textures, WebP, meshopt, prune and scene flattening.
+  gltf-transform optimize "${RAW}" "${OUT}" --compress meshopt --texture-compress webp --texture-size 1024 --flatten true --join true --prune true
+  rm -f "${RAW}"
   rm -rf "${DIR}" "${ZIP}" "${DL}" "${META}"
   test -s "${OUT}"
 done
@@ -70,10 +74,15 @@ python3 - <<'PY'
 from pathlib import Path
 from pygltflib import GLTF2
 root=Path("poi_test_tiber_island/poi_test/assets/models")
+files=sorted(root.glob("*.glb"))
+size=sum(p.stat().st_size for p in files)
+print("Optimized GLB sizes:")
+for p in files:
+    print(p.name, f"{p.stat().st_size/1024/1024:.2f} MB")
+if size >= 50*1024*1024:
+    raise SystemExit("GLB budget exceeded")
 total=0
-size=sum(p.stat().st_size for p in root.glob("*.glb"))
-if size >= 50*1024*1024: raise SystemExit("GLB budget exceeded")
-for p in sorted(root.glob("*.glb")):
+for p in files:
     g=GLTF2().load_binary(str(p))
     tris=0
     for mesh in g.meshes or []:
@@ -86,10 +95,13 @@ for p in sorted(root.glob("*.glb")):
                 n=0
             tris += n//3
     print(p.name, tris, "triangles")
-    if tris>15000: raise SystemExit(f"{p.name} exceeds 15000 triangles")
+    if tris>15000:
+        raise SystemExit(f"{p.name} exceeds 15000 triangles")
     total += tris
     for image in g.images or []:
-        if image.uri: raise SystemExit(f"{p.name} has external texture")
-if total>=200000: raise SystemExit("Total triangle budget exceeded")
+        if image.uri:
+            raise SystemExit(f"{p.name} has external texture")
+if total>=200000:
+    raise SystemExit("Total triangle budget exceeded")
 print("PASS", total, "triangles", size, "bytes")
 PY
