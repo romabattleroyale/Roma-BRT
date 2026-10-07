@@ -135,29 +135,6 @@ func _collect_building_bounds() -> void:
                 _building_bounds.append(bounds)
     print("ROMA ROADS V2: collision guard buildings=", _building_bounds.size())
 
-ee().process_frame
-    push_error("ROMA ROADS V2: timeout waiting for Terrain3D height data")
-
-func _wait_for_buildings() -> void:
-    for _i in range(1200):
-        var bridge: Node = get_tree().current_scene.find_child("V11BuildingBridge", true, false)
-        if bridge != null and bool(bridge.get("built")):
-            return
-        await get_tree().process_frame
-    push_warning("ROMA ROADS V2: building bridge not ready; collision guard will use available geometry")
-
-func _collect_building_bounds() -> void:
-    _building_bounds.clear()
-    var world: Node = get_tree().current_scene.find_child("V37World", true, false)
-    if world == null:
-        return
-    for child in world.get_children():
-        if child.has_meta("runtime_placement"):
-            var bounds: AABB = _node_world_aabb(child)
-            if bounds.size.x > 0.01 and bounds.size.z > 0.01:
-                _building_bounds.append(bounds)
-    print("ROMA ROADS V2: collision guard buildings=", _building_bounds.size())
-
 func _terrain_y(x: float, z: float) -> float:
     if _terrain_data == null:
         return 0.0
