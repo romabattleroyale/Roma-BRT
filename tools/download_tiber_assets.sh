@@ -15,8 +15,8 @@ assets=(
   "casa_01|bb5406594f4d4dd59daf1e19cb08e88c"
   "pavimento|a70ea3530a004baebe6c33c29cebe1de"
   "fontana|8580500134194ba5be3f6df7593049f2"
-  "lampione|d75f8d8a26054e3584f55eb07644801a"
-  "albero|196525a9936a40c1ba7e74ce5c071d59"
+  "lampione|17e2bc2ec7de42d08d98e3a6c886a8b2"
+  "albero|430f1d7b0d2748888a67539c18626eb9"
 )
 
 for item in "${assets[@]}"; do
