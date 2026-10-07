@@ -2,7 +2,27 @@ extends RefCounted
 ## Reusable Roman travertine sidewalk builder.
 ## Keeps geometry low-poly and samples Terrain3D only for Y placement.
 
+static var _travertine_mat: StandardMaterial3D
+static var _curb_mat: StandardMaterial3D
+static var _gutter_mat: StandardMaterial3D
+static var _joint_mat: StandardMaterial3D
+
+static func _ensure_materials() -> void:
+    if _travertine_mat != null:
+        return
+    _travertine_mat = _make_material(Color("#D4C8B0"), 0.90)
+    _curb_mat = _make_material(Color("#C7BDA9"), 0.92)
+    _gutter_mat = _make_material(Color("#514F4A"), 0.98)
+    _joint_mat = _make_material(Color("#8E846F"), 0.98)
+
+static func _make_material(color: Color, roughness: float) -> StandardMaterial3D:
+    var material: StandardMaterial3D = StandardMaterial3D.new()
+    material.albedo_color = color
+    material.roughness = roughness
+    return material
+
 static func add_pair(parent: Node3D, terrain_data: Object, p0: Vector3, p1: Vector3, road_width: float = 8.0, sidewalk_width: float = 1.5) -> void:
+    _ensure_materials()
     var flat_a: Vector3 = Vector3(p0.x, 0.0, p0.z)
     var flat_b: Vector3 = Vector3(p1.x, 0.0, p1.z)
     var direction: Vector3 = (flat_b - flat_a).normalized()
@@ -12,17 +32,17 @@ static func add_pair(parent: Node3D, terrain_data: Object, p0: Vector3, p1: Vect
 
     for side_sign in [-1.0, 1.0]:
         var sidewalk_center: Vector3 = center + side * side_sign * 5.0
-        _add_box(parent, terrain_data, sidewalk_center, direction, sidewalk_width, 0.15, length, 0.08, _travertine())
+        _add_box(parent, terrain_data, sidewalk_center, direction, sidewalk_width, 0.15, length, 0.08, _travertine_mat)
         var curb_center: Vector3 = center + side * side_sign * 4.10
-        _add_box(parent, terrain_data, curb_center, direction, 0.22, 0.16, length, 0.16, _curb())
+        _add_box(parent, terrain_data, curb_center, direction, 0.22, 0.16, length, 0.16, _curb_mat)
         var gutter_center: Vector3 = center + side * side_sign * 4.22
-        _add_box(parent, terrain_data, gutter_center, direction, 0.20, 0.06, length, 0.06, _gutter())
+        _add_box(parent, terrain_data, gutter_center, direction, 0.20, 0.06, length, 0.06, _gutter_mat)
 
         # Visible travertine slab joints, kept sparse for Android.
         for joint in range(1, int(length / 4.0)):
             var t: float = float(joint * 4.0) / length
             var joint_center: Vector3 = flat_a.lerp(flat_b, t) + side * side_sign * 5.0
-            _add_box(parent, terrain_data, joint_center, direction, 0.025, 0.156, 0.012, 0.16, _joint())
+            _add_box(parent, terrain_data, joint_center, direction, 0.025, 0.156, 0.012, 0.16, _joint_mat)
 
 static func _surface(terrain_data: Object, x: float, z: float, extra: float) -> Vector3:
     var y: float = 0.0
