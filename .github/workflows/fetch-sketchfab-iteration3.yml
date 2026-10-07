@@ -35,6 +35,8 @@ jobs:
             [italian_fountain]="8580500134194ba5be3f6df7593049f2"
             [street_lamp]="17e2bc2ec7de42d08d98e3a6c886a8b2"
             [low_poly_fountain]="c292f78eaf7042f0bffb9bb079b24951"
+            [low_poly_tree]="430f1d7b0d2748888a67539c18626eb9"
+            [bench]="01a5b64427984632bb44242da3813bb1"
           )
           for NAME in "\${!MODELS[@]}"; do
             UID="\${MODELS[$NAME]}"
