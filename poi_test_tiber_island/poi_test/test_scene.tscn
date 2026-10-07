@@ -1,0 +1,63 @@
+[gd_scene load_steps=6 format=3]
+
+[ext_resource type="PackedScene" path="res://poi_test/tiber_island.tscn" id="1_poi"]
+
+[sub_resource type="PlaneMesh" id="Plane_ground"]
+size = Vector2(420, 300)
+subdivide_width = 1
+subdivide_depth = 1
+
+[sub_resource type="StandardMaterial3D" id="Mat_ground"]
+albedo_color = Color(0.19, 0.20, 0.17, 1)
+roughness = 1.0
+
+[sub_resource type="PlaneMesh" id="Plane_water"]
+size = Vector2(420, 300)
+subdivide_width = 1
+subdivide_depth = 1
+
+[sub_resource type="StandardMaterial3D" id="Mat_water"]
+albedo_color = Color(0.025, 0.30, 0.39, 1)
+metallic = 0.0
+roughness = 0.85
+
+[sub_resource type="Environment" id="Env"]
+background_mode = 1
+background_color = Color(0.055, 0.075, 0.10, 1)
+ambient_light_source = 3
+ambient_light_color = Color(0.72, 0.78, 0.86, 1)
+ambient_light_energy = 0.75
+
+[node name="TiberIslandTest" type="Node3D"]
+
+[node name="Environment" type="WorldEnvironment" parent="."]
+environment = SubResource("Env")
+
+[node name="Sun" type="DirectionalLight3D" parent="."]
+rotation_degrees = Vector3(-48, -28, 0)
+light_energy = 1.35
+shadow_enabled = true
+
+[node name="GroundPlane" type="MeshInstance3D" parent="."]
+mesh = SubResource("Plane_ground")
+material_override = SubResource("Mat_ground")
+position = Vector3(0, -0.65, 0)
+
+[node name="WaterPlane" type="MeshInstance3D" parent="."]
+mesh = SubResource("Plane_water")
+material_override = SubResource("Mat_water")
+position = Vector3(0, 0, 0)
+
+[node name="TiberIsland" parent="." instance=ExtResource("1_poi")]
+
+[node name="CameraTop" type="Camera3D" parent="."]
+position = Vector3(0, 145, 145)
+rotation_degrees = Vector3(-43, 0, 180)
+fov = 52.0
+current = true
+
+[node name="CameraGround" type="Camera3D" parent="."]
+position = Vector3(0, 8, 115)
+rotation_degrees = Vector3(-7, 180, 0)
+fov = 62.0
+current = false
