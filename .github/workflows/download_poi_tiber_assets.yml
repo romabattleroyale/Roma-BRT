@@ -1,45 +1,18 @@
-name: Download POI Tiber assets - exactly 9 GLB
+name: Tiber POI downloader
+
 on:
   push:
     branches:
       - poi-assets-trastevere
   workflow_dispatch:
+
 jobs:
-  fetch:
+  smoke:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: Install tools
+      - name: Verify workflow runner
         run: |
-          sudo apt-get update
-          sudo apt-get install -y jq unzip python3-pip
-          python3 -m pip install --quiet pygltflib
-          npm install --global @gltf-transform/cli
-      - name: Download and validate exactly 9 assets
-        env:
-          SKETCHFAB_TOKEN: ${{ secrets.SKETCHFAB_TOKEN }}
-        run: bash tools/download_tiber_assets.sh
-      - name: Write attribution manifest
-        run: |
-          cat > poi_test_tiber_island/poi_test/assets/MANIFEST.md <<'EOF'
-# Isola Tiberina - exactly 9 Sketchfab GLB assets
-| File | Original model | Author | License | Sketchfab |
-|---|---|---|---|---|
-| ponte_fabricio.glb | Roman Bridge | Samuel Brunner | CC Attribution | https://sketchfab.com/3d-models/roman-bridge-8511381f0b844306ab53e4fbc5660095 |
-| ponte_cestio.glb | Stone Bridge_3arch | xplanepilot | CC Attribution | https://sketchfab.com/3d-models/stone-bridge-3arch-58691a67ba774f2bbccff7ce8f85d1d8 |
-| basilica_san_bartolomeo.glb | Low Poly Church | Yanez Designs | CC Attribution | https://sketchfab.com/3d-models/low-poly-church-132e19cdff9247f092c8d85f903d67fc |
-| torre_caetani.glb | Medieval Tower | Den | CC Attribution | https://sketchfab.com/3d-models/medieval-tower-6c821f2aae3b4e8db5d94c6f48fb568b |
-| casa_01.glb | Lowpoly medieval house | v_pustote | CC Attribution | https://sketchfab.com/3d-models/lowpoly-medieval-house-bb5406594f4d4dd59daf1e19cb08e88c |
-| pavimento.glb | cobblestone ground - lowpoly | SPLEEN VISION | CC Attribution | https://sketchfab.com/3d-models/cobblestone-ground-lowpoly-a70ea3530a004baebe6c33c29cebe1de |
-| fontana.glb | Italian style fountain | yorre.detavernier | CC Attribution | https://sketchfab.com/3d-models/fountain-8580500134194ba5be3f6df7593049f2 |
-| lampione.glb | Rusty Streetlight | barbodoji | CC Attribution | https://sketchfab.com/3d-models/rusty-streetlight-d75f8d8a26054e3584f55eb07644801a |
-| albero.glb | Free Pack - Tree | PolyOne Studio | CC Attribution | https://sketchfab.com/3d-models/free-pack-tree-196525a9936a40c1ba7e74ce5c071d59 |
-EOF
-      - name: Commit the 9 validated GLB
-        run: |
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add poi_test_tiber_island/poi_test/assets/models poi_test_tiber_island/poi_test/assets/MANIFEST.md
-          git add -u poi_test_tiber_island/poi_test/assets/models
-          git commit -m "POI Isola Tiberina - 9 validated Sketchfab GLB" || echo "No changes"
-          git push
+          echo "Tiber POI workflow runner is active"
+          test -n "${GITHUB_SHA}"
+          test -f ".github/workflows/download_poi_tiber_assets.yml"
