@@ -132,7 +132,7 @@ func _import_raw(path: String) -> void:
         _set_status("ERRORE: impossibile creare Image RF")
         return
 
-    var maps: Array[Image]
+    var maps: Array
     maps.resize(4)
     maps[0] = img
     maps[1] = _build_manual_control_map(values, width, height)
