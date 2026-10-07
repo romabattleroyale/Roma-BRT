@@ -1,4 +1,4 @@
-name: Download POI Tiber assets — exactly 9 GLB
+name: Download POI Tiber assets - exactly 9 GLB
 
 on:
   push:
@@ -13,125 +13,129 @@ jobs:
       SKETCHFAB_TOKEN: ${{ secrets.SKETCHFAB_TOKEN }}
     steps:
       - uses: actions/checkout@v4
-      - name: Check Sketchfab token
+
+      - name: Check token
+        shell: bash
         run: |
-          set -euo pipefail
-          test -n "$SKETCHFAB_TOKEN" || { echo "::error::Missing SKETCHFAB_TOKEN"; exit 1; }
-      - name: Install validation tools
+          set -e
+          test -n "$SKETCHFAB_TOKEN"
+
+      - name: Install tools
+        shell: bash
         run: |
+          set -e
           sudo apt-get update
           sudo apt-get install -y jq unzip python3-pip
           python3 -m pip install --quiet pygltflib
-      - name: Download ONLY the 9 approved assets
+          npm install --global @gltf-transform/cli
+
+      - name: Download exactly 9 Sketchfab assets
         shell: bash
         run: |
           set -euo pipefail
           ROOT="poi_test_tiber_island/poi_test/assets/models"
           rm -rf "$ROOT"
           mkdir -p "$ROOT"
-          declare -A MODELS=(
-            [ponte_fabricio]="8511381f0b844306ab53eb40b0dcae78030e828ac"
-          )
-          MODELS[ponte_fabricio]="8511381f0b844306ab53e4fbc5660095"
-          MODELS[ponte_cestio]="58691a67ba774f2bbccff7ce8f85d1d8"
-          MODELS[basilica_san_bartolomeo]="132e19cdff9247f092c8d85f903d67fc"
-          MODELS[torre_caetani]="6c821f2aae3b4e8db5d94c6f48fb568b"
-          MODELS[casa_01]="bb5406594f4d4dd59daf1e19cb08e88c"
-          MODELS[pavimento]="a70ea3530a004baebe6c33c29cebe1de"
-          MODELS[fontana]="8580500134194ba5be3f6df7593049f2"
-          MODELS[lampione]="d75f8d8a26054e3584f55eb07644801a"
-          MODELS[albero]="196525a9936a40c1ba7e74ce5c071d59"
-          test "${#MODELS[@]}" -eq 9
-          auth_download() {
-            local uid="$1" out="$2" status
-            status=$(curl -sS -o "$out" -w "%{http_code}" -H "Authorization: Bearer $SKETCHFAB_TOKEN" "https://api.sketchfab.com/v3/models/$uid/download")
-            if [ "$status" = "200" ]; then return 0; fi
-            status=$(curl -sS -o "$out" -w "%{http_code}" -H "Authorization: Token $SKETCHFAB_TOKEN" "https://api.sketchfab.com/v3/models/$uid/download")
-            [ "$status" = "200" ]
-          }
-          for NAME in "${!MODELS[@]}"; do
-            UID="${MODELS[$NAME]}"
-            META="/tmp/$NAME.meta.json"
-            DL="/tmp/$NAME.download.json"
-            ARCHIVE="/tmp/$NAME.zip"
-            WORK="/tmp/$NAME"
-            OUT="$ROOT/$NAME.glb"
-            curl -fsSL "https://api.sketchfab.com/v3/models/$UID" -o "$META"
-            LICENSE=$(jq -r '.license.label // empty' "$META")
-            DOWNLOADABLE=$(jq -r '.isDownloadable // false' "$META")
-            case "$LICENSE" in "CC Attribution"|"CC0") ;; *) echo "::error::$NAME rejected: license=$LICENSE"; exit 1 ;; esac
-            [ "$DOWNLOADABLE" = "true" ] || { echo "::error::$NAME is not downloadable"; exit 1; }
-            auth_download "$UID" "$DL" || { echo "::error::Download API rejected $NAME"; exit 1; }
-            URL=$(jq -r '.gltf.url // empty' "$DL")
-            [ -n "$URL" ] || { echo "::error::No glTF archive URL for $NAME"; exit 1; }
-            curl -fsSL "$URL" -o "$ARCHIVE"
-            rm -rf "$WORK"; mkdir -p "$WORK"; unzip -q "$ARCHIVE" -d "$WORK"
-            GLTF=$(find "$WORK" -type f -name '*.gltf' | head -n 1)
-            [ -n "$GLTF" ] || { echo "::error::No .gltf inside archive for $NAME"; exit 1; }
-            python3 - "$GLTF" "$OUT" <<'PY'
-import sys
-from pathlib import Path
-from pygltflib import GLTF2
-src, dst = sys.argv[1], sys.argv[2]
-g = GLTF2().load(src)
-base = Path(src).parent
-for b in g.buffers or []:
-    if b.uri:
-        p = base / b.uri
-        if p.exists():
-            b.set_binary_blob(p.read_bytes())
-            b.uri = None
-for img in g.images or []:
-    if img.uri:
-        p = base / img.uri
-        if p.exists():
-            img.set_image_data(p.read_bytes())
-            img.uri = None
-g.save_binary(dst)
-PY
-            rm -rf "$WORK" "$ARCHIVE" "$DL" "$META"
-            test -f "$OUT"
+
+          assets=(
+            "ponte_fabricio|8511381f0b844306ab53e4fbc5660095"
+            "ponte_cestio|58691a67ba774f2bbccff7ce8f85d1d8"
+            "basilica_san_bartolomeo|132e19cdff9247f092c8d85f903d67fc"
+            "torre_caetani|6c821f2aae3b4e8db5d94c6f48fb568b"
+            "casa_01|bb5406594f4d4dd59daf1e19cb08e88c"
+            "pavimento|a70ea3530a004baebe6c33c29cebe1de"
+            "fontana|8580500134194ba5be3f6df7593049f2"
+            "lampione|d75f8d8a26054e3584f55eb07644801a"
+            "albero|196525a9936a40c1ba7e74ce5c071d59"
+          ]
+
+          for item in "${assets[@]}"; do
+            NAME="${item%%|*}"
+            UID="${item##*|}"
+            META="/tmp/${NAME}.json"
+            DL="/tmp/${NAME}-download.json"
+            ZIP="/tmp/${NAME}.zip"
+            DIR="/tmp/${NAME}"
+            OUT="$ROOT/${NAME}.glb"
+
+            curl -fsSL "https://api.sketchfab.com/v3/models/${UID}" -o "${META}"
+            LICENSE=$(jq -r '.license.label // empty' "${META}")
+            DOWNLOADABLE=$(jq -r '.isDownloadable // false' "${META}")
+            case "${LICENSE}" in
+              "CC Attribution"|"CC0") ;;
+              *) echo "Rejected ${NAME}: license=${LICENSE}"; exit 1 ;;
+            esac
+            test "${DOWNLOADABLE}" = "true"
+
+            CODE=$(curl -sS -o "${DL}" -w "%{http_code}" -H "Authorization: Bearer ${SKETCHFAB_TOKEN}" "https://api.sketchfab.com/v3/models/${UID}/download")
+            if [ "${CODE}" != "200" ]; then
+              CODE=$(curl -sS -o "${DL}" -w "%{http_code}" -H "Authorization: Token ${SKETCHFAB_TOKEN}" "https://api.sketchfab.com/v3/models/${UID}/download")
+            fi
+            test "${CODE}" = "200"
+
+            URL=$(jq -r '.gltf.url // empty' "${DL}")
+            test -n "${URL}"
+            curl -fsSL "${URL}" -o "${ZIP}"
+
+            rm -rf "${DIR}"
+            mkdir -p "${DIR}"
+            unzip -q "${ZIP}" -d "${DIR}"
+            GLTF=$(find "${DIR}" -type f -name '*.gltf' | head -n 1)
+            test -n "${GLTF}"
+
+            gltf-transform copy "${GLTF}" "${OUT}"
+
+            rm -rf "${DIR}" "${ZIP}" "${DL}" "${META}"
+            test -s "${OUT}"
           done
-      - name: Enforce exactly 9 GLB — no extras
+
+      - name: Validate exact 9 files and budgets
+        shell: bash
         run: |
           set -euo pipefail
           ROOT="poi_test_tiber_island/poi_test/assets/models"
           EXPECTED="albero basilica_san_bartolomeo casa_01 fontana lampione pavimento ponte_cestio ponte_fabricio torre_caetani"
           ACTUAL=$(find "$ROOT" -maxdepth 1 -type f -name '*.glb' -printf '%f\n' | sed 's/\.glb$//' | sort | tr '\n' ' ')
-          test "$ACTUAL" = "$(printf '%s\n' $EXPECTED | sort | tr '\n' ' ')"
-          test "$(find "$ROOT" -maxdepth 1 -type f | wc -l)" -eq 9
-      - name: Validate triangle and size budgets
-        run: |
-          set -euo pipefail
+          WANT=$(printf '%s\n' $EXPECTED | sort | tr '\n' ' ')
+          test "$ACTUAL" = "$WANT"
+          test "$(find "$ROOT" -maxdepth 1 -type f -name '*.glb' | wc -l)" -eq 9
+          test "$(find "$ROOT" -type f | wc -l)" -eq 9
+
           python3 - <<'PY'
 from pathlib import Path
 from pygltflib import GLTF2
-root = Path("poi_test_tiber_island/poi_test/assets/models")
-files = sorted(root.glob("*.glb"))
-if len(files) != 9: raise SystemExit("Expected exactly 9 GLB files")
-total_tris = 0
-for f in files:
-    g = GLTF2().load_binary(str(f)); tris = 0
+root=Path("poi_test_tiber_island/poi_test/assets/models")
+total=0
+size=sum(p.stat().st_size for p in root.glob("*.glb"))
+if size >= 50*1024*1024: raise SystemExit("GLB budget exceeded")
+for p in sorted(root.glob("*.glb")):
+    g=GLTF2().load_binary(str(p))
+    tris=0
     for mesh in g.meshes or []:
         for prim in mesh.primitives:
-            count = g.accessors[prim.indices].count if prim.indices is not None else (g.accessors[prim.attributes.POSITION].count if prim.attributes.POSITION is not None else 0)
-            tris += count // 3
-    print(f"{f.name}: {tris} triangles")
-    if tris > 15000: raise SystemExit(f"{f.name}: over 15,000 triangles")
-    total_tris += tris
-    for i, image in enumerate(g.images or []):
-        if image.uri: raise SystemExit(f"{f.name}: texture {i} is external")
-if total_tris >= 200000: raise SystemExit(f"Total triangles {total_tris} >= 200,000")
-size = sum(f.stat().st_size for f in files)
-if size >= 50 * 1024 * 1024: raise SystemExit(f"Total GLB size {size} >= 50 MB")
-print(f"PASS: 9 GLB, {total_tris} triangles, {size/1024/1024:.2f} MB")
+            if prim.indices is not None:
+                n=g.accessors[prim.indices].count
+            elif prim.attributes.POSITION is not None:
+                n=g.accessors[prim.attributes.POSITION].count
+            else:
+                n=0
+            tris += n//3
+    print(p.name, tris, "triangles")
+    if tris>15000: raise SystemExit(f"{p.name} exceeds 15000 triangles")
+    total += tris
+    for image in g.images or []:
+        if image.uri: raise SystemExit(f"{p.name} has external texture")
+if total>=200000: raise SystemExit("Total triangle budget exceeded")
+print("PASS", total, "triangles", size, "bytes")
 PY
-      - name: Write attribution manifest
+
+      - name: Write manifest
+        shell: bash
         run: |
           cat > poi_test_tiber_island/poi_test/assets/MANIFEST.md <<'EOF'
-# Isola Tiberina — exactly 9 Sketchfab GLB assets
-Only these nine files are permitted in poi_test/assets/models/.
-| File | Nome originale | Autore | Licenza | URL Sketchfab |
+# Isola Tiberina - exactly 9 Sketchfab GLB assets
+
+| File | Original model | Author | License | Sketchfab |
 |---|---|---|---|---|
 | ponte_fabricio.glb | Roman Bridge | Samuel Brunner | CC Attribution | https://sketchfab.com/3d-models/roman-bridge-8511381f0b844306ab53e4fbc5660095 |
 | ponte_cestio.glb | Stone Bridge_3arch | xplanepilot | CC Attribution | https://sketchfab.com/3d-models/stone-bridge-3arch-58691a67ba774f2bbccff7ce8f85d1d8 |
@@ -143,12 +147,14 @@ Only these nine files are permitted in poi_test/assets/models/.
 | lampione.glb | Rusty Streetlight | barbodoji | CC Attribution | https://sketchfab.com/3d-models/rusty-streetlight-d75f8d8a26054e3584f55eb07644801a |
 | albero.glb | Free Pack - Tree | PolyOne Studio | CC Attribution | https://sketchfab.com/3d-models/free-pack-tree-196525a9936a40c1ba7e74ce5c071d59 |
 EOF
-      - name: Commit downloaded assets
+
+      - name: Commit the 9 validated GLB
+        shell: bash
         run: |
-          set -euo pipefail
+          set -e
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add poi_test_tiber_island/poi_test/assets/models poi_test_tiber_island/poi_test/assets/MANIFEST.md
           git add -u poi_test_tiber_island/poi_test/assets/models
-          git commit -m "POI Isola Tiberina - download exactly 9 validated Sketchfab GLB" || echo "No asset changes"
+          git commit -m "POI Isola Tiberina - 9 validated Sketchfab GLB" || echo "No changes"
           git push
