@@ -6,6 +6,7 @@ set -euo pipefail
 ROOT="poi_test_tiber_island/poi_test/assets/models"
 rm -rf "$ROOT"
 mkdir -p "$ROOT"
+echo "Starting verified 9-asset Sketchfab download"
 
 assets=(
   "ponte_fabricio|8511381f0b844306ab53e4fbc5660095"
@@ -28,6 +29,7 @@ for item in "${assets[@]}"; do
   DIR="/tmp/${NAME}"
   OUT="$ROOT/${NAME}.glb"
 
+  echo "Downloading ${NAME} (${UID})"
   curl -fsSL "https://api.sketchfab.com/v3/models/${UID}" -o "${META}"
   LICENSE=$(jq -r '.license.label // empty' "${META}")
   DOWNLOADABLE=$(jq -r '.isDownloadable // false' "${META}")
@@ -54,7 +56,6 @@ for item in "${assets[@]}"; do
   test -n "${GLTF}"
 
   gltf-transform copy "${GLTF}" "${OUT}"
-
   rm -rf "${DIR}" "${ZIP}" "${DL}" "${META}"
   test -s "${OUT}"
 done
