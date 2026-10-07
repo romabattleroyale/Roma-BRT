@@ -290,24 +290,41 @@ func _road_segment_clear(a: Vector3, b: Vector3, road_width: float, extra_cleara
     return true
 
 func _segment_intersects_rect(a: Vector2, b: Vector2, min_x: float, max_x: float, min_z: float, max_z: float) -> bool:
-    var dx: float = b.x - a.x
-    var dz: float = b.y - a.y
     var t_min: float = 0.0
     var t_max: float = 1.0
-    for pair in [[-dx, a.x - min_x], [dx, max_x - a.x], [-dz, a.y - min_z], [dz, max_z - a.y]]:
-        var p: float = float(pair[0])
-        var q: float = float(pair[1])
-        if absf(p) < 0.00001:
-            if q < 0.0:
-                return false
-        else:
-            var t: float = q / p
-            if p < 0.0:
-                t_min = maxf(t_min, t)
-            else:
-                t_max = minf(t_max, t)
-            if t_min > t_max:
-                return false
+    var dx: float = b.x - a.x
+    var dz: float = b.y - a.y
+
+    if absf(dx) < 0.00001:
+        if a.x < min_x or a.x > max_x:
+            return false
+    else:
+        var tx1: float = (min_x - a.x) / dx
+        var tx2: float = (max_x - a.x) / dx
+        if tx1 > tx2:
+            var temp_x: float = tx1
+            tx1 = tx2
+            tx2 = temp_x
+        t_min = maxf(t_min, tx1)
+        t_max = minf(t_max, tx2)
+        if t_min > t_max:
+            return false
+
+    if absf(dz) < 0.00001:
+        if a.y < min_z or a.y > max_z:
+            return false
+    else:
+        var tz1: float = (min_z - a.y) / dz
+        var tz2: float = (max_z - a.y) / dz
+        if tz1 > tz2:
+            var temp_z: float = tz1
+            tz1 = tz2
+            tz2 = temp_z
+        t_min = maxf(t_min, tz1)
+        t_max = minf(t_max, tz2)
+        if t_min > t_max:
+            return false
+
     return true
 
 func _find_safe_side_offset(a: Vector3, b: Vector3, road_width: float) -> float:
