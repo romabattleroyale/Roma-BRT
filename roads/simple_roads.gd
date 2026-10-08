@@ -45,7 +45,12 @@ var _marking: StandardMaterial3D
 var _lamp: StandardMaterial3D
 var _building_bounds: Array[AABB] = []
 var _building_spatial_index: Dictionary = {}
+var _road_blocked_cells: Dictionary = {}
+var _prop_blocked_cells: Dictionary = {}
 const BUILDING_INDEX_CELL := 50.0
+const ROAD_COLLISION_CELL := 2.5
+const ROAD_COLLISION_RADIUS := 4.35
+const PROP_COLLISION_RADIUS := 3.0
 
 func _ready() -> void:
     _asphalt = _procedural_asphalt()
@@ -318,6 +323,30 @@ func _rebuild_building_spatial_index() -> void:
                 bucket.append(index)
                 _building_spatial_index[key] = bucket
 
+    _road_blocked_cells.clear()
+    _prop_blocked_cells.clear()
+    for bounds in _building_bounds:
+        _mark_blocked_cells(_road_blocked_cells, bounds, ROAD_COLLISION_RADIUS)
+        _mark_blocked_cells(_prop_blocked_cells, bounds, PROP_COLLISION_RADIUS)
+
+func _mark_blocked_cells(target: Dictionary, bounds: AABB, radius: float) -> void:
+    var min_x: float = bounds.position.x - radius
+    var max_x: float = bounds.end.x + radius
+    var min_z: float = bounds.position.z - radius
+    var max_z: float = bounds.end.z + radius
+    var min_cell_x: int = floori(min_x / ROAD_COLLISION_CELL)
+    var max_cell_x: int = floori(max_x / ROAD_COLLISION_CELL)
+    var min_cell_z: int = floori(min_z / ROAD_COLLISION_CELL)
+    var max_cell_z: int = floori(max_z / ROAD_COLLISION_CELL)
+    for cx in range(min_cell_x, max_cell_x + 1):
+        for cz in range(min_cell_z, max_cell_z + 1):
+            target["%d:%d" % [cx, cz]] = true
+
+func _collision_cell_blocked(target: Dictionary, x: float, z: float) -> bool:
+    var cx: int = floori(x / ROAD_COLLISION_CELL)
+    var cz: int = floori(z / ROAD_COLLISION_CELL)
+    return bool(target.get("%d:%d" % [cx, cz], false))
+
 func _candidate_building_indices(min_x: float, max_x: float, min_z: float, max_z: float) -> Array:
     var result: Array = []
     var seen: Dictionary = {}
@@ -338,19 +367,15 @@ func _candidate_building_indices(min_x: float, max_x: float, min_z: float, max_z
     return result
 
 func _road_segment_clear(a: Vector3, b: Vector3, road_width: float, extra_clearance: float = 0.35) -> bool:
-    var half_width: float = road_width * 0.5 + extra_clearance
-    var min_x: float = minf(a.x, b.x) - half_width
-    var max_x: float = maxf(a.x, b.x) + half_width
-    var min_z: float = minf(a.z, b.z) - half_width
-    var max_z: float = maxf(a.z, b.z) + half_width
-    var candidates: Array = _candidate_building_indices(min_x, max_x, min_z, max_z)
-    for index_variant in candidates:
-        var building: AABB = _building_bounds[int(index_variant)]
-        var building_min_x: float = building.position.x - half_width
-        var building_max_x: float = building.end.x + half_width
-        var building_min_z: float = building.position.z - half_width
-        var building_max_z: float = building.end.z + half_width
-        if _segment_intersects_rect(Vector2(a.x, a.z), Vector2(b.x, b.z), building_min_x, building_max_x, building_min_z, building_max_z):
+    # The collision mask is rasterized directly from the real building AABBs.
+    # Sampling every 2.5m is conservative for these axis-aligned road/building
+    # footprints and avoids an O(buildings) scan for every road segment.
+    var distance: float = Vector2(b.x - a.x, b.z - a.z).length()
+    var steps: int = maxi(1, ceili(distance / ROAD_COLLISION_CELL))
+    for i in range(steps + 1):
+        var t: float = float(i) / float(steps)
+        var p: Vector3 = a.lerp(b, t)
+        if _collision_cell_blocked(_road_blocked_cells, p.x, p.z):
             return false
     return true
 
@@ -404,31 +429,23 @@ func _find_safe_side_offset(a: Vector3, b: Vector3, road_width: float) -> float:
     return NAN
 
 func _area_clear(center: Vector3, width: float, depth: float, extra_clearance: float = 0.35) -> bool:
-    var min_x: float = center.x - width * 0.5 - extra_clearance
-    var max_x: float = center.x + width * 0.5 + extra_clearance
-    var min_z: float = center.z - depth * 0.5 - extra_clearance
-    var max_z: float = center.z + depth * 0.5 + extra_clearance
-    for index_variant in _candidate_building_indices(min_x, max_x, min_z, max_z):
-        var building: AABB = _building_bounds[int(index_variant)]
-        if building.end.x + extra_clearance < min_x or building.position.x - extra_clearance > max_x:
-            continue
-        if building.end.z + extra_clearance < min_z or building.position.z - extra_clearance > max_z:
-            continue
-        return false
-    return true
+    var min_x: float = center.x - width * 0.5
+    var max_x: float = center.x + width * 0.5
+    var min_z: float = center.z - depth * 0.5
+    var max_z: float = center.z + depth * 0.5
+    var step: float = ROAD_COLLISION_CELL
+    var x: float = min_x
+    while x <= max_x:
+        var z: float = min_z
+        while z <= max_z:
+            if _collision_cell_blocked(_road_blocked_cells, x, z):
+                return false
+            z += step
+        x += step
+    return false if _collision_cell_blocked(_road_blocked_cells, max_x, max_z) else true
 
 func _prop_position_clear(position: Vector3, clearance_m: float = 3.0) -> bool:
-    var min_x: float = position.x - clearance_m
-    var max_x: float = position.x + clearance_m
-    var min_z: float = position.z - clearance_m
-    var max_z: float = position.z + clearance_m
-    for index_variant in _candidate_building_indices(min_x, max_x, min_z, max_z):
-        var building: AABB = _building_bounds[int(index_variant)]
-        var dx: float = maxf(maxf(building.position.x - position.x, 0.0), position.x - building.end.x)
-        var dz: float = maxf(maxf(building.position.z - position.z, 0.0), position.z - building.end.z)
-        if sqrt(dx * dx + dz * dz) < clearance_m:
-            return false
-    return true
+    return not _collision_cell_blocked(_prop_blocked_cells, position.x, position.z)
 
 func _add_safe_bridge(a: Vector3, b: Vector3) -> void:
     if _road_segment_clear(a, b, MAIN_WIDTH):
