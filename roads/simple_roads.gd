@@ -74,6 +74,7 @@ func _procedural_asphalt() -> StandardMaterial3D:
     var asphalt_mat := StandardMaterial3D.new()
     asphalt_mat.albedo_color = Color("#252729")
     asphalt_mat.roughness = 0.97
+    asphalt_mat.cull_mode = BaseMaterial3D.CULL_DISABLED
     return asphalt_mat
 
 func _procedural_sampietrini() -> StandardMaterial3D:
@@ -434,7 +435,7 @@ func _add_edge(a: Vector3, b: Vector3, width: float, material: Material, main_ro
             # cuts the road surface to a handful of draw nodes.
             if i == 0:
                 _add_terrain_road_strip(flat_a, flat_b, width, material)
-            Sidewalks.add_pair(self, _terrain_data, p0, p1, width, SIDEWALK_WIDTH)
+                _add_terrain_sidewalk_pair(flat_a, flat_b, width, SIDEWALK_WIDTH)
             var prop_base: Vector3 = (p0 + p1) * 0.5 + side * (width * 0.5 + SIDEWALK_WIDTH * 0.55)
             var prop_side: Vector3 = side
             if not _prop_position_clear(prop_base, 3.0):
@@ -485,8 +486,8 @@ func _add_terrain_road_strip(a: Vector3, b: Vector3, width: float, material: Mat
         var p := a.lerp(b, t)
         var left := p + side * (width * 0.5)
         var right := p - side * (width * 0.5)
-        left.y = _terrain_y(left.x, left.z) + CLEARANCE + ROAD_HEIGHT
-        right.y = _terrain_y(right.x, right.z) + CLEARANCE + ROAD_HEIGHT
+        left.y = _terrain_y(left.x, left.z) + 0.30
+        right.y = _terrain_y(right.x, right.z) + 0.30
         vertices.append(left)
         vertices.append(right)
         normals.append(Vector3.UP)
@@ -515,6 +516,65 @@ func _add_terrain_road_strip(a: Vector3, b: Vector3, width: float, material: Mat
     var instance := MeshInstance3D.new()
     instance.name = "RoadSurface"
     instance.mesh = mesh
+    instance.material_override = material
+    add_child(instance)
+
+func _add_terrain_sidewalk_pair(a: Vector3, b: Vector3, road_width: float, sidewalk_width: float) -> void:
+    var direction := (b - a).normalized()
+    var side := Vector3(-direction.z, 0.0, direction.x)
+    for side_sign in [-1.0, 1.0]:
+        var inner_offset := road_width * 0.5 + sidewalk_width * 0.5
+        var center_a := a + side * side_sign * inner_offset
+        var center_b := b + side * side_sign * inner_offset
+        _add_terrain_strip(center_a, center_b, sidewalk_width, _sidewalk, 0.25, "SidewalkSurface")
+        var curb_offset := road_width * 0.5 + 0.10
+        var curb_a := a + side * side_sign * curb_offset
+        var curb_b := b + side * side_sign * curb_offset
+        _add_terrain_strip(curb_a, curb_b, CURB_WIDTH, _curb, 0.28, "CurbSurface")
+
+func _add_terrain_strip(a: Vector3, b: Vector3, width: float, material: Material, lift: float, node_name: String) -> void:
+    var direction := (b - a).normalized()
+    var distance := a.distance_to(b)
+    var side := Vector3(-direction.z, 0.0, direction.x)
+    var samples: int = maxi(2, ceili(distance / 10.0) + 1)
+    var vertices := PackedVector3Array()
+    var normals := PackedVector3Array()
+    var uvs := PackedVector2Array()
+    var indices := PackedInt32Array()
+    for i in range(samples):
+        var t := float(i) / float(samples - 1)
+        var p := a.lerp(b, t)
+        var left := p + side * (width * 0.5)
+        var right := p - side * (width * 0.5)
+        left.y = _terrain_y(left.x, left.z) + lift
+        right.y = _terrain_y(right.x, right.z) + lift
+        vertices.append(left)
+        vertices.append(right)
+        normals.append(Vector3.UP)
+        normals.append(Vector3.UP)
+        uvs.append(Vector2(t * distance / 4.0, 0.0))
+        uvs.append(Vector2(t * distance / 4.0, 1.0))
+    for i in range(samples - 1):
+        var base := i * 2
+        indices.append(base)
+        indices.append(base + 2)
+        indices.append(base + 1)
+        indices.append(base + 1)
+        indices.append(base + 2)
+        indices.append(base + 3)
+    var arrays := []
+    arrays.resize(Mesh.ARRAY_MAX)
+    arrays[Mesh.ARRAY_VERTEX] = vertices
+    arrays[Mesh.ARRAY_NORMAL] = normals
+    arrays[Mesh.ARRAY_TEX_UV] = uvs
+    arrays[Mesh.ARRAY_INDEX] = indices
+    var mesh := ArrayMesh.new()
+    mesh.add_surface_from_arrays(Mesh.PRIMITIVE_TRIANGLES, arrays)
+    mesh.surface_set_material(0, material)
+    var instance := MeshInstance3D.new()
+    instance.name = node_name
+    instance.mesh = mesh
+    instance.material_override = material
     add_child(instance)
 
 func _add_box_between(p0: Vector3, p1: Vector3, width: float, height: float, material: Material) -> void:
@@ -536,14 +596,7 @@ func _add_intersection(center: Vector3, width: float) -> void:
     # junction after the graph has declared it.
     if not _area_clear(center, width, width):
         push_error("ROMA ROADS V2: junction validation FAILED at %s" % center)
-    center.y = _terrain_y(center.x, center.z) + CLEARANCE + ROAD_HEIGHT * 0.5
-    var mesh: BoxMesh = BoxMesh.new()
-    mesh.size = Vector3(width, ROAD_HEIGHT, width)
-    var instance: MeshInstance3D = MeshInstance3D.new()
-    instance.mesh = mesh
-    instance.material_override = _asphalt
-    instance.position = center
-    add_child(instance)
+    _add_terrain_road_patch(center, width, _asphalt)
 
     for offset in [-5.0, 5.0]:
         _add_zebra(center + Vector3(offset, 0.0, 0.0), Vector3.FORWARD)
@@ -553,6 +606,29 @@ func _add_intersection(center: Vector3, width: float) -> void:
     var nasone_center: Vector3 = center + Vector3(4.8, 0.0, 4.8)
     if _prop_position_clear(nasone_center, 3.0):
         _add_nasone_prop(nasone_center, Vector3.FORWARD)
+
+func _add_terrain_road_patch(center: Vector3, width: float, material: Material) -> void:
+    var half := width * 0.5
+    var vertices := PackedVector3Array([
+        Vector3(center.x-half, _terrain_y(center.x-half, center.z-half) + 0.30, center.z-half),
+        Vector3(center.x+half, _terrain_y(center.x+half, center.z-half) + 0.30, center.z-half),
+        Vector3(center.x-half, _terrain_y(center.x-half, center.z+half) + 0.30, center.z+half),
+        Vector3(center.x+half, _terrain_y(center.x+half, center.z+half) + 0.30, center.z+half)
+    ])
+    var arrays := []
+    arrays.resize(Mesh.ARRAY_MAX)
+    arrays[Mesh.ARRAY_VERTEX] = vertices
+    arrays[Mesh.ARRAY_NORMAL] = PackedVector3Array([Vector3.UP,Vector3.UP,Vector3.UP,Vector3.UP])
+    arrays[Mesh.ARRAY_TEX_UV] = PackedVector2Array([Vector2.ZERO,Vector2(1,0),Vector2(0,1),Vector2.ONE])
+    arrays[Mesh.ARRAY_INDEX] = PackedInt32Array([0,2,1,2,3,1])
+    var mesh := ArrayMesh.new()
+    mesh.add_surface_from_arrays(Mesh.PRIMITIVE_TRIANGLES, arrays)
+    mesh.surface_set_material(0, material)
+    var instance := MeshInstance3D.new()
+    instance.name = "RoadIntersection"
+    instance.mesh = mesh
+    instance.material_override = material
+    add_child(instance)
 
 func _add_road_marking(center: Vector3, direction: Vector3) -> void:
     var dash_center: Vector3 = _surface_point(center.x, center.z, ROAD_HEIGHT + 0.012)
