@@ -110,19 +110,24 @@ func _load_placement(i: int) -> void:
     var template_floors := int(root.get_meta("template_floors", 3))
     var floors := clampi(int(d.get("floors", template_floors)), 3, 5)
     root.scale.y = float(floors) / float(maxi(1, template_floors))
-    var original_world_position := root.position
-    var corrected_position := _resolve_road_clearance(root, original_world_position)
-    if corrected_position.distance_to(original_world_position) > 0.01:
-        corrected_position = _find_non_overlapping_position(root, original_world_position, corrected_position)
-        root.position = corrected_position
-        root.set_meta("road_clearance_shift", corrected_position - original_world_position)
     root.set_meta("runtime_placement", i)
     root.set_meta("ready_signature", "%d|f%d|c%d|r%d" % [ti, floors, int(d.get("facade_index", 0)), int(d.get("roof_index", 0))])
     root.set_meta("terrain_y", terrain_y)
     if _variation_script != null:
         _variation_script.apply(root, int(d.get("seed", i)), floors)
     _set_native_visibility(root)
+
+    # The instance must be inside the scene tree before querying global mesh
+    # bounds. Otherwise Godot returns an invalid global transform and the road
+    # reservation pass cannot see the building footprint.
     _city_root.add_child(root)
+
+    var original_world_position := root.global_position
+    var corrected_position := _resolve_road_clearance(root, original_world_position)
+    if corrected_position.distance_to(original_world_position) > 0.01:
+        corrected_position = _find_non_overlapping_position(root, original_world_position, corrected_position)
+        root.global_position = corrected_position
+        root.set_meta("road_clearance_shift", corrected_position - original_world_position)
     _placed_bounds.append(_node_world_aabb(root))
 
 func _load_road_corridors() -> void:
@@ -194,7 +199,7 @@ func _xz_overlap(a: AABB, b: AABB, gap: float = 0.0) -> bool:
     return a.position.x < b.end.x + gap and a.end.x > b.position.x - gap and a.position.z < b.end.z + gap and a.end.z > b.position.z - gap
 
 func _resolve_road_clearance(root: Node3D, requested: Vector3) -> Vector3:
-    root.position = requested
+    root.global_position = requested
     for _pass in range(8):
         var bounds := _node_world_aabb(root)
         var moved := false
@@ -240,9 +245,9 @@ func _find_non_overlapping_position(root: Node3D, original: Vector3, resolved: V
     var best := resolved
     var best_distance := INF
     for candidate in candidates:
-        root.position = candidate
+        root.global_position = candidate
         var corrected := _resolve_road_clearance(root, candidate)
-        root.position = corrected
+        root.global_position = corrected
         var bounds := _node_world_aabb(root)
         var collides := false
         for other in _placed_bounds:
@@ -254,7 +259,7 @@ func _find_non_overlapping_position(root: Node3D, original: Vector3, resolved: V
             if distance < best_distance:
                 best_distance = distance
                 best = corrected
-    root.position = best
+    root.global_position = best
     return best
 
 func _get_terrain_height(x: float, z: float) -> float:
