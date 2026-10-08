@@ -524,12 +524,12 @@ func _add_terrain_sidewalk_pair(a: Vector3, b: Vector3, road_width: float, sidew
     var side := Vector3(-direction.z, 0.0, direction.x)
     for side_sign in [-1.0, 1.0]:
         var inner_offset := road_width * 0.5 + sidewalk_width * 0.5
-        var center_a := a + side * side_sign * inner_offset
-        var center_b := b + side * side_sign * inner_offset
+        var center_a: Vector3 = a + side * side_sign * inner_offset
+        var center_b: Vector3 = b + side * side_sign * inner_offset
         _add_terrain_strip(center_a, center_b, sidewalk_width, _sidewalk, 0.25, "SidewalkSurface")
         var curb_offset := road_width * 0.5 + 0.10
-        var curb_a := a + side * side_sign * curb_offset
-        var curb_b := b + side * side_sign * curb_offset
+        var curb_a: Vector3 = a + side * side_sign * curb_offset
+        var curb_b: Vector3 = b + side * side_sign * curb_offset
         _add_terrain_strip(curb_a, curb_b, CURB_WIDTH, _curb, 0.28, "CurbSurface")
 
 func _add_terrain_strip(a: Vector3, b: Vector3, width: float, material: Material, lift: float, node_name: String) -> void:
