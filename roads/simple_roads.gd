@@ -195,21 +195,40 @@ func _build_network() -> void:
     print("ROMA ROADS V2: PASS network=Urban_Grid_corridors collision_safe buildings=%d corridors=%d sidewalks=enabled drainage=enabled street_furniture=enabled" % [_building_bounds.size(), corridors.size()])
 
 func _build_corridors_between_lots(lot_rects: Array) -> Array[Dictionary]:
-    # LOT_RECTS touch at their block boundaries. The empty road corridor is
-    # therefore the shared/perimeter side itself, not a positive gap between
-    # two rectangles. Build roads from those sides, then let the real building
-    # AABBs veto any segment that violates the 10m setback.
-    var result: Array[Dictionary] = []
-    var sides: Array[Dictionary] = _unique_lot_sides(lot_rects)
-    for side in sides:
-        var ax: float = float(side["ax"])
-        var az: float = float(side["az"])
-        var bx: float = float(side["bx"])
-        var bz: float = float(side["bz"])
-        var length: float = Vector2(bx - ax, bz - az).length()
-        if length < 20.0:
+    # LOT_RECTS touch at block boundaries. Only a side shared by two lots is
+    # a true internal street corridor; outer lot edges are not generated as
+    # roads, preventing perimeter roads from cutting through unrelated city.
+    var counts: Dictionary = {}
+    var representative: Dictionary = {}
+    for rect_variant in lot_rects:
+        if not (rect_variant is Dictionary):
             continue
-        result.append({"ax": ax, "az": az, "bx": bx, "bz": bz})
+        var rect: Dictionary = rect_variant as Dictionary
+        var raw_sides: Array = [
+            [float(rect.get("min_x", 0.0)), float(rect.get("min_z", 0.0)), float(rect.get("max_x", 0.0)), float(rect.get("min_z", 0.0))],
+            [float(rect.get("max_x", 0.0)), float(rect.get("min_z", 0.0)), float(rect.get("max_x", 0.0)), float(rect.get("max_z", 0.0))],
+            [float(rect.get("max_x", 0.0)), float(rect.get("max_z", 0.0)), float(rect.get("min_x", 0.0)), float(rect.get("max_z", 0.0))],
+            [float(rect.get("min_x", 0.0)), float(rect.get("max_z", 0.0)), float(rect.get("min_x", 0.0)), float(rect.get("min_z", 0.0))]
+        ]
+        for side in raw_sides:
+            var ax: float = float(side[0])
+            var az: float = float(side[1])
+            var bx: float = float(side[2])
+            var bz: float = float(side[3])
+            var first: String = "%.2f,%.2f" % [ax, az]
+            var second: String = "%.2f,%.2f" % [bx, bz]
+            var key: String = first + "|" + second if first < second else second + "|" + first
+            counts[key] = int(counts.get(key, 0)) + 1
+            representative[key] = {"ax": ax, "az": az, "bx": bx, "bz": bz}
+
+    var result: Array[Dictionary] = []
+    for key in counts:
+        if int(counts[key]) < 2:
+            continue
+        var side: Dictionary = representative[key] as Dictionary
+        var length: float = Vector2(float(side["bx"]) - float(side["ax"]), float(side["bz"]) - float(side["az"])).length()
+        if length >= 20.0:
+            result.append(side)
     return result
 
 func _get_urban_lot_rects() -> Array:
@@ -401,7 +420,8 @@ func _add_edge(a: Vector3, b: Vector3, width: float, material: Material, main_ro
                 prop_side = -side
             if i % 2 == 0 and _prop_position_clear(prop_base, 3.0):
                 _add_lamp_prop(prop_base, direction)
-                _add_street_tree(prop_base, direction, (i / 2) % 2 == 0)
+                if i % 4 == 0:
+                    _add_street_tree(prop_base, direction, (i / 4) % 2 == 0)
             if i % 5 == 0:
                 var sign_pos: Vector3 = (p0 + p1) * 0.5 + prop_side * (width * 0.5 + SIDEWALK_WIDTH * 0.75)
                 if _prop_position_clear(sign_pos, 3.0):
