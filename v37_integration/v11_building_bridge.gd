@@ -214,7 +214,7 @@ func _resolve_road_clearance(root: Node3D, requested: Vector3) -> Vector3:
                     var target_z := line_z - ROAD_CLEARANCE if bounds.get_center().z <= line_z else line_z + ROAD_CLEARANCE
                     var delta_z := target_z - (bounds.end.z if bounds.get_center().z <= line_z else bounds.position.z)
                     if absf(delta_z) > 0.01:
-                        root.position.z += delta_z
+                        root.global_position = root.global_position + Vector3(0.0, delta_z, 0.0)
                         moved = true
                         break
             else:
@@ -225,12 +225,12 @@ func _resolve_road_clearance(root: Node3D, requested: Vector3) -> Vector3:
                     var target_x := line_x - ROAD_CLEARANCE if bounds.get_center().x <= line_x else line_x + ROAD_CLEARANCE
                     var delta_x := target_x - (bounds.end.x if bounds.get_center().x <= line_x else bounds.position.x)
                     if absf(delta_x) > 0.01:
-                        root.position.x += delta_x
+                        root.global_position = root.global_position + Vector3(delta_x, 0.0, 0.0)
                         moved = true
                         break
         if not moved:
             break
-    return root.position
+    return root.global_position
 
 func _find_non_overlapping_position(root: Node3D, original: Vector3, resolved: Vector3) -> Vector3:
     var candidates: Array[Vector3] = [resolved]
