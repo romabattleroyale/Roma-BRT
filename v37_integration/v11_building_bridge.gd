@@ -12,7 +12,13 @@ const DISTRICT_PLANE_Y := 0.5
 const ROAD_WIDTH := 8.0
 const ROAD_SIDEWALK_WIDTH := 1.5
 const ROAD_BUILDING_BUFFER := 1.0
+const ROAD_COLLISION_GUARD_RADIUS := 4.35
+const ROAD_COLLISION_CELL := 2.5
+const ROAD_COLLISION_MARGIN := 0.35
 const ROAD_CLEARANCE := ROAD_WIDTH * 0.5 + ROAD_SIDEWALK_WIDTH + ROAD_BUILDING_BUFFER
+# Must cover the authoritative rasterized road collision mask, including
+# one whole cell of quantization and the guard's sampling margin.
+const ROAD_RESERVATION_CLEARANCE := maxf(ROAD_CLEARANCE, ROAD_COLLISION_GUARD_RADIUS + ROAD_COLLISION_CELL + ROAD_COLLISION_MARGIN)
 const BUILDING_GAP := 0.75
 const DISTRICT_CENTERS := [Vector3(-800,0,-650),Vector3(-400,0,-650),Vector3(400,0,-650),Vector3(800,0,-650),Vector3(-800,0,0),Vector3(-400,0,0),Vector3(400,0,0),Vector3(800,0,0),Vector3(-800,0,650),Vector3(-400,0,650),Vector3(400,0,650),Vector3(800,0,650)]
 const DISTRICT_COLORS := [Color("#C58B62"),Color("#B97845"),Color("#D1A15A"),Color("#B96F73"),Color("#C7AA83"),Color("#A9573B"),Color("#B88D6A"),Color("#D3A63A"),Color("#A99A7E"),Color("#C98D68"),Color("#A96D54"),Color("#C6A47B")]
@@ -117,9 +123,6 @@ func _load_placement(i: int) -> void:
         _variation_script.apply(root, int(d.get("seed", i)), floors)
     _set_native_visibility(root)
 
-    # The instance must be inside the scene tree before querying global mesh
-    # bounds. Otherwise Godot returns an invalid global transform and the road
-    # reservation pass cannot see the building footprint.
     _city_root.add_child(root)
 
     var original_world_position := root.global_position
@@ -128,15 +131,12 @@ func _load_placement(i: int) -> void:
         corrected_position = _find_non_overlapping_position(root, original_world_position, corrected_position)
         root.global_position = corrected_position
         root.set_meta("road_clearance_shift", corrected_position - original_world_position)
-    # Final authoritative audit: the stored footprint must be outside every
-    # reserved road envelope. If numerical/rotation effects remain, resolve
-    # again before registering the footprint used by the road collision guard.
-    for _audit in range(6):
+
+    for _audit in range(8):
         var final_bounds := _node_world_aabb(root)
         if _road_bounds_clear(final_bounds):
             break
-        var final_pos := _resolve_road_clearance(root, root.global_position)
-        root.global_position = final_pos
+        root.global_position = _resolve_road_clearance(root, root.global_position)
     var audited_bounds := _node_world_aabb(root)
     if not _road_bounds_clear(audited_bounds):
         push_error("V11 ROAD RESERVATION: final building footprint still intersects reserved road envelope at %s" % root.global_position)
@@ -175,7 +175,7 @@ func _load_road_corridors() -> void:
             var length := Vector2(float(side["bx"]) - float(side["ax"]), float(side["bz"]) - float(side["az"])).length()
             if length >= 20.0:
                 _road_corridors.append(side)
-    print("V11 ROAD RESERVATION: corridors=%d clearance=%.2fm road=%.1fm sidewalks=%.1fm buffer=%.1fm" % [_road_corridors.size(), ROAD_CLEARANCE, ROAD_WIDTH, ROAD_SIDEWALK_WIDTH, ROAD_BUILDING_BUFFER])
+    print("V11 ROAD RESERVATION: corridors=%d clearance=%.2fm guard=%.2fm cell=%.2fm" % [_road_corridors.size(), ROAD_RESERVATION_CLEARANCE, ROAD_COLLISION_GUARD_RADIUS, ROAD_COLLISION_CELL])
 
 func _node_world_aabb(root: Node) -> AABB:
     var result := AABB()
@@ -212,7 +212,7 @@ func _xz_overlap(a: AABB, b: AABB, gap: float = 0.0) -> bool:
 
 func _resolve_road_clearance(root: Node3D, requested: Vector3) -> Vector3:
     root.global_position = requested
-    for _pass in range(8):
+    for _pass in range(12):
         var bounds := _node_world_aabb(root)
         var moved := false
         for corridor in _road_corridors:
@@ -220,10 +220,10 @@ func _resolve_road_clearance(root: Node3D, requested: Vector3) -> Vector3:
             var bx := float(corridor["bx"]); var bz := float(corridor["bz"])
             if absf(az - bz) < 0.01:
                 var line_z := az
-                var min_x := minf(ax, bx) - ROAD_CLEARANCE
-                var max_x := maxf(ax, bx) + ROAD_CLEARANCE
-                if bounds.end.x > min_x and bounds.position.x < max_x and bounds.position.z < line_z + ROAD_CLEARANCE and bounds.end.z > line_z - ROAD_CLEARANCE:
-                    var target_z := line_z - ROAD_CLEARANCE if bounds.get_center().z <= line_z else line_z + ROAD_CLEARANCE
+                var min_x := minf(ax, bx) - ROAD_RESERVATION_CLEARANCE
+                var max_x := maxf(ax, bx) + ROAD_RESERVATION_CLEARANCE
+                if bounds.end.x > min_x and bounds.position.x < max_x and bounds.position.z < line_z + ROAD_RESERVATION_CLEARANCE and bounds.end.z > line_z - ROAD_RESERVATION_CLEARANCE:
+                    var target_z := line_z - ROAD_RESERVATION_CLEARANCE if bounds.get_center().z <= line_z else line_z + ROAD_RESERVATION_CLEARANCE
                     var delta_z := target_z - (bounds.end.z if bounds.get_center().z <= line_z else bounds.position.z)
                     if absf(delta_z) > 0.01:
                         root.global_position = root.global_position + Vector3(0.0, delta_z, 0.0)
@@ -231,10 +231,10 @@ func _resolve_road_clearance(root: Node3D, requested: Vector3) -> Vector3:
                         break
             else:
                 var line_x := ax
-                var min_z := minf(az, bz) - ROAD_CLEARANCE
-                var max_z := maxf(az, bz) + ROAD_CLEARANCE
-                if bounds.end.z > min_z and bounds.position.z < max_z and bounds.position.x < line_x + ROAD_CLEARANCE and bounds.end.x > line_x - ROAD_CLEARANCE:
-                    var target_x := line_x - ROAD_CLEARANCE if bounds.get_center().x <= line_x else line_x + ROAD_CLEARANCE
+                var min_z := minf(az, bz) - ROAD_RESERVATION_CLEARANCE
+                var max_z := maxf(az, bz) + ROAD_RESERVATION_CLEARANCE
+                if bounds.end.z > min_z and bounds.position.z < max_z and bounds.position.x < line_x + ROAD_RESERVATION_CLEARANCE and bounds.end.x > line_x - ROAD_RESERVATION_CLEARANCE:
+                    var target_x := line_x - ROAD_RESERVATION_CLEARANCE if bounds.get_center().x <= line_x else line_x + ROAD_RESERVATION_CLEARANCE
                     var delta_x := target_x - (bounds.end.x if bounds.get_center().x <= line_x else bounds.position.x)
                     if absf(delta_x) > 0.01:
                         root.global_position = root.global_position + Vector3(delta_x, 0.0, 0.0)
@@ -250,15 +250,15 @@ func _road_bounds_clear(bounds: AABB) -> bool:
         var bx := float(corridor["bx"]); var bz := float(corridor["bz"])
         if absf(az - bz) < 0.01:
             var line_z := az
-            var min_x := minf(ax, bx)
-            var max_x := maxf(ax, bx)
-            if bounds.end.x > min_x and bounds.position.x < max_x and bounds.position.z < line_z + ROAD_CLEARANCE and bounds.end.z > line_z - ROAD_CLEARANCE:
+            var min_x := minf(ax, bx) - ROAD_RESERVATION_CLEARANCE
+            var max_x := maxf(ax, bx) + ROAD_RESERVATION_CLEARANCE
+            if bounds.end.x > min_x and bounds.position.x < max_x and bounds.position.z < line_z + ROAD_RESERVATION_CLEARANCE and bounds.end.z > line_z - ROAD_RESERVATION_CLEARANCE:
                 return false
         else:
             var line_x := ax
-            var min_z := minf(az, bz)
-            var max_z := maxf(az, bz)
-            if bounds.end.z > min_z and bounds.position.z < max_z and bounds.position.x < line_x + ROAD_CLEARANCE and bounds.end.x > line_x - ROAD_CLEARANCE:
+            var min_z := minf(az, bz) - ROAD_RESERVATION_CLEARANCE
+            var max_z := maxf(az, bz) + ROAD_RESERVATION_CLEARANCE
+            if bounds.end.z > min_z and bounds.position.z < max_z and bounds.position.x < line_x + ROAD_RESERVATION_CLEARANCE and bounds.end.x > line_x - ROAD_RESERVATION_CLEARANCE:
                 return false
     return true
 
@@ -268,7 +268,8 @@ func _find_non_overlapping_position(root: Node3D, original: Vector3, resolved: V
         Vector3(8,0,0), Vector3(-8,0,0), Vector3(0,0,8), Vector3(0,0,-8),
         Vector3(12,0,0), Vector3(-12,0,0), Vector3(0,0,12), Vector3(0,0,-12),
         Vector3(8,0,8), Vector3(8,0,-8), Vector3(-8,0,8), Vector3(-8,0,-8),
-        Vector3(12,0,12), Vector3(12,0,-12), Vector3(-12,0,12), Vector3(-12,0,-12)
+        Vector3(12,0,12), Vector3(12,0,-12), Vector3(-12,0,12), Vector3(-12,0,-12),
+        Vector3(16,0,0), Vector3(-16,0,0), Vector3(0,0,16), Vector3(0,0,-16)
     ]
     for offset in offsets:
         candidates.append(resolved + offset)
@@ -279,6 +280,8 @@ func _find_non_overlapping_position(root: Node3D, original: Vector3, resolved: V
         var corrected := _resolve_road_clearance(root, candidate)
         root.global_position = corrected
         var bounds := _node_world_aabb(root)
+        if not _road_bounds_clear(bounds):
+            continue
         var collides := false
         for other in _placed_bounds:
             if _xz_overlap(bounds, other, BUILDING_GAP):
