@@ -72,35 +72,14 @@ func _material(color: Color, roughness: float) -> StandardMaterial3D:
 
 func _procedural_asphalt() -> StandardMaterial3D:
     var asphalt_mat := StandardMaterial3D.new()
-    asphalt_mat.albedo_color = Color(0.15, 0.15, 0.15)
-    var noise := NoiseTexture2D.new()
-    noise.width = 64
-    noise.height = 64
-    var generator := FastNoiseLite.new()
-    generator.frequency = 0.5
-    generator.seed = 42
-    noise.noise = generator
-    noise.seamless = true
-    asphalt_mat.albedo_texture = noise
-    asphalt_mat.roughness = 0.95
-    asphalt_mat.uv1_scale = Vector3(8.0, 8.0, 8.0)
+    asphalt_mat.albedo_color = Color("#252729")
+    asphalt_mat.roughness = 0.97
     return asphalt_mat
 
 func _procedural_sampietrini() -> StandardMaterial3D:
     var mat := StandardMaterial3D.new()
-    mat.albedo_color = Color("#343432")
-    var noise := NoiseTexture2D.new()
-    noise.width = 64
-    noise.height = 64
-    var generator := FastNoiseLite.new()
-    generator.noise_type = FastNoiseLite.TYPE_CELLULAR
-    generator.frequency = 0.85
-    generator.seed = 17
-    noise.noise = generator
-    noise.seamless = true
-    mat.albedo_texture = noise
-    mat.roughness = 0.94
-    mat.uv1_scale = Vector3(12.0, 12.0, 12.0)
+    mat.albedo_color = Color("#3B3936")
+    mat.roughness = 0.95
     return mat
 
 func _wait_for_terrain() -> void:
