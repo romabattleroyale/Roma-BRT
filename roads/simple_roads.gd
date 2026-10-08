@@ -428,11 +428,12 @@ func _add_edge(a: Vector3, b: Vector3, width: float, material: Material, main_ro
         if not _road_segment_clear(p0, p1, width):
             push_error("ROMA ROADS V2: corridor validation FAILED at %s -> %s; building reservation is inconsistent" % [p0, p1])
 
-        var ground0: Vector3 = _surface_point(p0.x, p0.z, ROAD_HEIGHT * 0.5)
-        var ground1: Vector3 = _surface_point(p1.x, p1.z, ROAD_HEIGHT * 0.5)
-        _add_box_between(ground0, ground1, width, ROAD_HEIGHT, material)
-
         if main_road:
+            # Asphalt is generated once as a terrain-following strip per corridor,
+            # not as long floating boxes. This removes visible terrain clipping and
+            # cuts the road surface to a handful of draw nodes.
+            if i == 0:
+                _add_terrain_road_strip(flat_a, flat_b, width, material)
             Sidewalks.add_pair(self, _terrain_data, p0, p1, width, SIDEWALK_WIDTH)
             var prop_base: Vector3 = (p0 + p1) * 0.5 + side * (width * 0.5 + SIDEWALK_WIDTH * 0.55)
             var prop_side: Vector3 = side
@@ -468,6 +469,53 @@ func _add_edge(a: Vector3, b: Vector3, width: float, material: Material, main_ro
 
         if i % 2 == 0:
             await get_tree().process_frame
+
+func _add_terrain_road_strip(a: Vector3, b: Vector3, width: float, material: Material) -> void:
+    var direction := (b - a).normalized()
+    var distance := a.distance_to(b)
+    var side := Vector3(-direction.z, 0.0, direction.x)
+    var samples: int = maxi(2, ceili(distance / 10.0) + 1)
+    var vertices := PackedVector3Array()
+    var normals := PackedVector3Array()
+    var uvs := PackedVector2Array()
+    var indices := PackedInt32Array()
+
+    for i in range(samples):
+        var t := float(i) / float(samples - 1)
+        var p := a.lerp(b, t)
+        var left := p + side * (width * 0.5)
+        var right := p - side * (width * 0.5)
+        left.y = _terrain_y(left.x, left.z) + CLEARANCE + ROAD_HEIGHT
+        right.y = _terrain_y(right.x, right.z) + CLEARANCE + ROAD_HEIGHT
+        vertices.append(left)
+        vertices.append(right)
+        normals.append(Vector3.UP)
+        normals.append(Vector3.UP)
+        uvs.append(Vector2(t * distance / 8.0, 0.0))
+        uvs.append(Vector2(t * distance / 8.0, 1.0))
+
+    for i in range(samples - 1):
+        var base := i * 2
+        indices.append(base)
+        indices.append(base + 2)
+        indices.append(base + 1)
+        indices.append(base + 1)
+        indices.append(base + 2)
+        indices.append(base + 3)
+
+    var arrays := []
+    arrays.resize(Mesh.ARRAY_MAX)
+    arrays[Mesh.ARRAY_VERTEX] = vertices
+    arrays[Mesh.ARRAY_NORMAL] = normals
+    arrays[Mesh.ARRAY_TEX_UV] = uvs
+    arrays[Mesh.ARRAY_INDEX] = indices
+    var mesh := ArrayMesh.new()
+    mesh.add_surface_from_arrays(Mesh.PRIMITIVE_TRIANGLES, arrays)
+    mesh.surface_set_material(0, material)
+    var instance := MeshInstance3D.new()
+    instance.name = "RoadSurface"
+    instance.mesh = mesh
+    add_child(instance)
 
 func _add_box_between(p0: Vector3, p1: Vector3, width: float, height: float, material: Material) -> void:
     var midpoint: Vector3 = (p0 + p1) * 0.5
