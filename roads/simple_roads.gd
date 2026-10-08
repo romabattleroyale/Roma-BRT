@@ -167,11 +167,6 @@ func _build_network() -> void:
         if junctions.size() % 8 == 0:
             await get_tree().process_frame
 
-    await _add_safe_bridge(Vector3(880.0, 0.0, 960.0), Vector3(920.0, 0.0, 960.0))
-    await _add_safe_bridge(Vector3(960.0, 0.0, 980.0), Vector3(1000.0, 0.0, 980.0))
-    await _add_safe_bridge(Vector3(1040.0, 0.0, 1020.0), Vector3(1080.0, 0.0, 1020.0))
-    await _add_safe_bridge(Vector3(1120.0, 0.0, 1040.0), Vector3(1160.0, 0.0, 1040.0))
-
     print("ROMA ROADS V2: PASS network=Urban_Grid_corridors collision_safe authoritative_continuous=true buildings_reserved=%d corridors=%d sidewalks=enabled drainage=enabled street_furniture=enabled" % [_building_bounds.size(), corridors.size()])
 
 func _build_corridors_between_lots(lot_rects: Array) -> Array[Dictionary]:
