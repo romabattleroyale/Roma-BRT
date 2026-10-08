@@ -171,6 +171,9 @@ func _build_network() -> void:
     var corridor_index: int = 0
 
     for corridor in corridors:
+        # Urban_Grid is authoritative: the road centerline is never moved to
+        # dodge a building. Buildings are reserved away from these corridors
+        # before this node is allowed to build the road network.
         var a: Vector3 = Vector3(float(corridor["ax"]), 0.0, float(corridor["az"]))
         var b: Vector3 = Vector3(float(corridor["bx"]), 0.0, float(corridor["bz"]))
         junctions["%.2f,%.2f" % [a.x, a.z]] = a
@@ -193,6 +196,9 @@ func _build_network() -> void:
     print("ROMA ROADS V2: PASS network=Urban_Grid_corridors collision_safe authoritative_continuous=true buildings_reserved=%d corridors=%d sidewalks=enabled drainage=enabled street_furniture=enabled" % [_building_bounds.size(), corridors.size()])
 
 func _build_corridors_between_lots(lot_rects: Array) -> Array[Dictionary]:
+    # LOT_RECTS touch at block boundaries. Only a side shared by two lots is
+    # a true internal street corridor; outer lot edges are not generated as
+    # roads, preventing perimeter roads from cutting through unrelated city.
     var counts: Dictionary = {}
     var representative: Dictionary = {}
     for rect_variant in lot_rects:
@@ -354,6 +360,9 @@ func _candidate_building_indices(min_x: float, max_x: float, min_z: float, max_z
     return result
 
 func _road_segment_clear(a: Vector3, b: Vector3, road_width: float, extra_clearance: float = 0.35) -> bool:
+    # The collision mask is rasterized directly from the real building AABBs.
+    # Sampling every 2.5m is conservative for these axis-aligned road/building
+    # footprints and avoids an O(buildings) scan for every road segment.
     var distance: float = Vector2(b.x - a.x, b.z - a.z).length()
     var steps: int = maxi(1, ceili(distance / ROAD_COLLISION_CELL))
     for i in range(steps + 1):
@@ -393,7 +402,7 @@ func _segment_intersects_rect(a: Vector2, b: Vector2, min_x: float, max_x: float
         if tz1 > tz2:
             var temp_z: float = tz1
             tz1 = tz2
-            tz2 = tz2
+            tz2 = temp_z
         t_min = maxf(t_min, tz1)
         t_max = minf(t_max, tz2)
         if t_min > t_max:
@@ -406,10 +415,9 @@ func _area_clear(center: Vector3, width: float, depth: float, extra_clearance: f
     var max_x: float = center.x + width * 0.5 + extra_clearance
     var min_z: float = center.z - depth * 0.5 - extra_clearance
     var max_z: float = center.z + depth * 0.5 + extra_clearance
-    # Junctions are validated against the real building AABBs, not the
-    # rasterized 2.5m collision mask. The raster guard is intentionally
-    # conservative and can mark a neighboring cell even when the actual
-    # building footprint does not intersect the 8m junction.
+    # Junction validation uses the real world AABBs. The raster mask remains
+    # conservative for continuous road sampling, but is too coarse to decide
+    # whether an 8m junction actually overlaps a building footprint.
     for index in _candidate_building_indices(min_x, max_x, min_z, max_z):
         var bounds: AABB = _building_bounds[index]
         if bounds.position.x < max_x and bounds.end.x > min_x and bounds.position.z < max_z and bounds.end.z > min_z:
@@ -440,6 +448,9 @@ func _add_edge(a: Vector3, b: Vector3, width: float, material: Material, main_ro
         var t1: float = float(i + 1) / float(steps)
         var p0: Vector3 = flat_a.lerp(flat_b, t0)
         var p1: Vector3 = flat_a.lerp(flat_b, t1)
+        # Do not delete individual segments. The road corridor is
+        # authoritative and continuous; V11 building placement reserves its
+        # full road + sidewalk + safety envelope before we get here.
         if not _road_segment_clear(p0, p1, width):
             push_error("ROMA ROADS V2: corridor validation FAILED at %s -> %s; building reservation is inconsistent" % [p0, p1])
 
@@ -499,6 +510,8 @@ func _add_box_between(p0: Vector3, p1: Vector3, width: float, height: float, mat
     instance.look_at_from_position(midpoint, midpoint + direction.normalized(), Vector3.UP)
 
 func _add_intersection(center: Vector3, width: float) -> void:
+    # Intersections are part of the reserved road envelope. Never remove a
+    # junction after the graph has declared it.
     if not _area_clear(center, width, width):
         push_error("ROMA ROADS V2: junction validation FAILED at %s" % center)
     center.y = _terrain_y(center.x, center.z) + CLEARANCE + ROAD_HEIGHT * 0.5
@@ -522,3 +535,114 @@ func _add_intersection(center: Vector3, width: float) -> void:
 func _add_road_marking(center: Vector3, direction: Vector3) -> void:
     var dash_center: Vector3 = _surface_point(center.x, center.z, ROAD_HEIGHT + 0.012)
     _add_box_between(dash_center, dash_center + direction * 2.6, 0.12, 0.025, _marking)
+
+func _add_stop_line(center: Vector3, direction: Vector3) -> void:
+    var pos := _surface_point(center.x, center.z, ROAD_HEIGHT + 0.014)
+    _add_box_between(pos - direction * 1.6, pos + direction * 1.6, 0.12, 0.025, _marking)
+
+func _add_zebra(center: Vector3, direction: Vector3) -> void:
+    var side: Vector3 = Vector3(-direction.z, 0.0, direction.x)
+    for i in range(7):
+        var offset := -2.4 + float(i) * 0.8
+        var c := center + side * offset
+        var p0 := _surface_point(c.x - direction.x * 2.5, c.z - direction.z * 2.5, ROAD_HEIGHT + 0.012)
+        var p1 := _surface_point(c.x + direction.x * 2.5, c.z + direction.z * 2.5, ROAD_HEIGHT + 0.012)
+        _add_box_between(p0, p1, 0.42, 0.025, _marking)
+
+func _add_manhole(center: Vector3) -> void:
+    var pos: Vector3 = _surface_point(center.x, center.z, ROAD_HEIGHT + 0.018)
+    var mesh := CylinderMesh.new()
+    mesh.top_radius = 0.34
+    mesh.bottom_radius = 0.34
+    mesh.height = 0.035
+    mesh.radial_segments = 12
+    var instance: MeshInstance3D = MeshInstance3D.new()
+    instance.mesh = mesh
+    instance.material_override = _metal
+    instance.position = pos
+    add_child(instance)
+
+func _add_drain(center: Vector3, side: Vector3, width: float) -> void:
+    for side_sign in [-1.0, 1.0]:
+        var p: Vector3 = center + side * side_sign * (width * 0.5 - 0.18)
+        var pos: Vector3 = _surface_point(p.x, p.z, ROAD_HEIGHT + 0.020)
+        var base: MeshInstance3D = MeshInstance3D.new()
+        var base_mesh: BoxMesh = BoxMesh.new()
+        base_mesh.size = Vector3(0.48, 0.035, 0.30)
+        base.mesh = base_mesh
+        base.material_override = _metal
+        base.position = pos
+        add_child(base)
+        for slot in range(4):
+            var bar: MeshInstance3D = MeshInstance3D.new()
+            var bar_mesh: BoxMesh = BoxMesh.new()
+            bar_mesh.size = Vector3(0.055, 0.040, 0.24)
+            bar.mesh = bar_mesh
+            bar.material_override = _asphalt_dark
+            bar.position = pos + side * (-0.13 + float(slot) * 0.087)
+            add_child(bar)
+
+func _add_lamp_prop(center: Vector3, direction: Vector3) -> void:
+    var lamp := RomanLamp.new()
+    lamp.rotation.y = atan2(direction.x, direction.z)
+    lamp.position = _surface_point(center.x, center.z)
+    add_child(lamp)
+
+func _add_nasone_prop(center: Vector3, direction: Vector3) -> void:
+    var nasone := Nasone.new()
+    nasone.rotation.y = atan2(direction.x, direction.z)
+    nasone.position = _surface_point(center.x, center.z)
+    add_child(nasone)
+
+func _add_street_sign(center: Vector3, direction: Vector3, street_name: String) -> void:
+    var sign := StreetSign.new()
+    sign.street_name = street_name
+    sign.rotation.y = atan2(direction.x, direction.z)
+    sign.position = _surface_point(center.x, center.z)
+    add_child(sign)
+
+func _add_street_tree(center: Vector3, direction: Vector3, alternate: bool) -> void:
+    var tree := StreetTree.new()
+    tree.rotation.y = atan2(direction.x, direction.z)
+    tree.position = _surface_point(center.x, center.z)
+    add_child(tree)
+
+func _street_name(center: Vector3) -> String:
+    var names := ["VIA CAVOUR", "VIA DEL CORSO", "LUNGOTEVERE", "VIA NAZIONALE", "VIA APPIA", "VIA VENETO"]
+    var index: int = abs(int(round((center.x + center.z) / 50.0))) % names.size()
+    return names[index]
+
+func _add_bridge(a: Vector3, b: Vector3) -> void:
+    var direction: Vector3 = (b - a).normalized()
+    var side: Vector3 = Vector3(-direction.z, 0.0, direction.x)
+    var distance: float = a.distance_to(b)
+    var steps: int = maxi(1, ceili(distance / 10.0))
+
+    # Sampietrini bridge deck, with 2m travertine sidewalks.
+    _add_edge(a, b, MAIN_WIDTH, _sampietrini, false)
+    Sidewalks.add_pair(self, _terrain_data, a, b, MAIN_WIDTH, 2.0)
+
+    for i in range(steps + 1):
+        var t: float = float(i) / float(steps)
+        var p: Vector3 = a.lerp(b, t)
+        if i < steps + 1:
+            _add_bridge_lamp(p + side * 4.8, direction)
+        for side_sign in [-1.0, 1.0]:
+            var rail_center: Vector3 = p + side * side_sign * 5.0
+            var rail := MeshInstance3D.new()
+            var rail_mesh := BoxMesh.new()
+            rail_mesh.size = Vector3(0.12, 1.35, 0.12)
+            rail.mesh = rail_mesh
+            rail.material_override = _lamp
+            rail.position = _surface_point(rail_center.x, rail_center.z, 0.70)
+            add_child(rail)
+    for side_sign in [-1.0, 1.0]:
+        var rail0: Vector3 = _surface_point(a.x + side.x * side_sign * 5.0, a.z + side.z * side_sign * 5.0, 1.35)
+        var rail1: Vector3 = _surface_point(b.x + side.x * side_sign * 5.0, b.z + side.z * side_sign * 5.0, 1.35)
+        _add_box_between(rail0, rail1, 0.10, 0.10, _lamp)
+
+func _add_bridge_lamp(center: Vector3, direction: Vector3) -> void:
+    var lamp := RomanLamp.new()
+    lamp.rotation.y = atan2(direction.x, direction.z)
+    lamp.position = _surface_point(center.x, center.z)
+    add_child(lamp)
