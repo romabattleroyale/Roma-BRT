@@ -128,7 +128,19 @@ func _load_placement(i: int) -> void:
         corrected_position = _find_non_overlapping_position(root, original_world_position, corrected_position)
         root.global_position = corrected_position
         root.set_meta("road_clearance_shift", corrected_position - original_world_position)
-    _placed_bounds.append(_node_world_aabb(root))
+    # Final authoritative audit: the stored footprint must be outside every
+    # reserved road envelope. If numerical/rotation effects remain, resolve
+    # again before registering the footprint used by the road collision guard.
+    for _audit in range(6):
+        var final_bounds := _node_world_aabb(root)
+        if _road_bounds_clear(final_bounds):
+            break
+        var final_pos := _resolve_road_clearance(root, root.global_position)
+        root.global_position = final_pos
+    var audited_bounds := _node_world_aabb(root)
+    if not _road_bounds_clear(audited_bounds):
+        push_error("V11 ROAD RESERVATION: final building footprint still intersects reserved road envelope at %s" % root.global_position)
+    _placed_bounds.append(audited_bounds)
 
 func _load_road_corridors() -> void:
     _road_corridors.clear()
@@ -231,6 +243,24 @@ func _resolve_road_clearance(root: Node3D, requested: Vector3) -> Vector3:
         if not moved:
             break
     return root.global_position
+
+func _road_bounds_clear(bounds: AABB) -> bool:
+    for corridor in _road_corridors:
+        var ax := float(corridor["ax"]); var az := float(corridor["az"])
+        var bx := float(corridor["bx"]); var bz := float(corridor["bz"])
+        if absf(az - bz) < 0.01:
+            var line_z := az
+            var min_x := minf(ax, bx)
+            var max_x := maxf(ax, bx)
+            if bounds.end.x > min_x and bounds.position.x < max_x and bounds.position.z < line_z + ROAD_CLEARANCE and bounds.end.z > line_z - ROAD_CLEARANCE:
+                return false
+        else:
+            var line_x := ax
+            var min_z := minf(az, bz)
+            var max_z := maxf(az, bz)
+            if bounds.end.z > min_z and bounds.position.z < max_z and bounds.position.x < line_x + ROAD_CLEARANCE and bounds.end.x > line_x - ROAD_CLEARANCE:
+                return false
+    return true
 
 func _find_non_overlapping_position(root: Node3D, original: Vector3, resolved: Vector3) -> Vector3:
     var candidates: Array[Vector3] = [resolved]
