@@ -10,10 +10,10 @@ static var _joint_mat: StandardMaterial3D
 static func _ensure_materials() -> void:
     if _travertine_mat != null:
         return
-    _travertine_mat = _make_material(Color("#D4C8B0"), 0.90)
-    _curb_mat = _make_material(Color("#C7BDA9"), 0.92)
-    _gutter_mat = _make_material(Color("#514F4A"), 0.98)
-    _joint_mat = _make_material(Color("#8E846F"), 0.98)
+    _travertine_mat = _make_material(Color("#B9AD95"), 0.90)
+    _curb_mat = _make_material(Color("#A69B87"), 0.92)
+    _gutter_mat = _make_material(Color("#3F3D39"), 0.98)
+    _joint_mat = _make_material(Color("#7A715F"), 0.98)
 
 static func _make_material(color: Color, roughness: float) -> StandardMaterial3D:
     var material: StandardMaterial3D = StandardMaterial3D.new()
@@ -38,11 +38,9 @@ static func add_pair(parent: Node3D, terrain_data: Object, p0: Vector3, p1: Vect
         var gutter_center: Vector3 = center + side * side_sign * 4.22
         _add_box(parent, terrain_data, gutter_center, direction, 0.20, 0.06, length, 0.06, _gutter_mat)
 
-        # Visible travertine slab joints, kept sparse for Android.
-        for joint in range(1, int(length / 8.0)):
-            var t: float = float(joint * 8.0) / length
-            var joint_center: Vector3 = flat_a.lerp(flat_b, t) + side * side_sign * 5.0
-            _add_box(parent, terrain_data, joint_center, direction, 0.025, 0.156, 0.012, 0.16, _joint_mat)
+        # Slab joints are intentionally omitted from the runtime road kit.
+        # The continuous sidewalk/curb silhouette is enough at gameplay distance
+        # and removes hundreds of tiny MeshInstance3D nodes on Android.
 
 static func _surface(terrain_data: Object, x: float, z: float, extra: float) -> Vector3:
     var y: float = 0.0
