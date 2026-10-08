@@ -39,8 +39,8 @@ static func add_pair(parent: Node3D, terrain_data: Object, p0: Vector3, p1: Vect
         _add_box(parent, terrain_data, gutter_center, direction, 0.20, 0.06, length, 0.06, _gutter_mat)
 
         # Visible travertine slab joints, kept sparse for Android.
-        for joint in range(1, int(length / 4.0)):
-            var t: float = float(joint * 4.0) / length
+        for joint in range(1, int(length / 8.0)):
+            var t: float = float(joint * 8.0) / length
             var joint_center: Vector3 = flat_a.lerp(flat_b, t) + side * side_sign * 5.0
             _add_box(parent, terrain_data, joint_center, direction, 0.025, 0.156, 0.012, 0.16, _joint_mat)
 
