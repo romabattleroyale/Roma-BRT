@@ -9,6 +9,11 @@ const DISTRICT_PLANE_BEGIN := 500.0
 const DISTRICT_PLANE_END := 5000.0
 const DISTRICT_PLANE_SIZE := Vector2(300.0, 300.0)
 const DISTRICT_PLANE_Y := 0.5
+const ROAD_WIDTH := 8.0
+const ROAD_SIDEWALK_WIDTH := 1.5
+const ROAD_BUILDING_BUFFER := 1.0
+const ROAD_CLEARANCE := ROAD_WIDTH * 0.5 + ROAD_SIDEWALK_WIDTH + ROAD_BUILDING_BUFFER
+const BUILDING_GAP := 0.75
 const DISTRICT_CENTERS := [Vector3(-800,0,-650),Vector3(-400,0,-650),Vector3(400,0,-650),Vector3(800,0,-650),Vector3(-800,0,0),Vector3(-400,0,0),Vector3(400,0,0),Vector3(800,0,0),Vector3(-800,0,650),Vector3(-400,0,650),Vector3(400,0,650),Vector3(800,0,650)]
 const DISTRICT_COLORS := [Color("#C58B62"),Color("#B97845"),Color("#D1A15A"),Color("#B96F73"),Color("#C7AA83"),Color("#A9573B"),Color("#B88D6A"),Color("#D3A63A"),Color("#A99A7E"),Color("#C98D68"),Color("#A96D54"),Color("#C6A47B")]
 
@@ -17,6 +22,8 @@ var _city_root: Node3D
 var _templates: Array[PackedScene] = []
 var _placements: Array = []
 var _variation_script: RefCounted
+var _road_corridors: Array[Dictionary] = []
+var _placed_bounds: Array[AABB] = []
 
 func _ready() -> void:
     call_deferred("_wait_for_v37")
@@ -30,6 +37,7 @@ func _wait_for_v37() -> void:
                 _city_root = v37.get("city_root") as Node3D
                 await _yield_frames(2)
                 if _load_manifest():
+                    _load_road_corridors()
                     await _load_all_templates()
                     await _load_all_buildings()
                     _create_district_planes()
@@ -96,11 +104,18 @@ func _load_placement(i: int) -> void:
     var x := float(d.get("x", 0.0))
     var z := float(d.get("z", 0.0))
     var terrain_y := _get_terrain_height(x, z)
-    root.position = Vector3(x, terrain_y, z)
+    var requested_position := Vector3(x, terrain_y, z)
+    root.position = requested_position
     root.rotation.y = float(d.get("rotation", 0))
     var template_floors := int(root.get_meta("template_floors", 3))
     var floors := clampi(int(d.get("floors", template_floors)), 3, 5)
     root.scale.y = float(floors) / float(maxi(1, template_floors))
+    var original_world_position := root.position
+    var corrected_position := _resolve_road_clearance(root, original_world_position)
+    if corrected_position.distance_to(original_world_position) > 0.01:
+        corrected_position = _find_non_overlapping_position(root, original_world_position, corrected_position)
+        root.position = corrected_position
+        root.set_meta("road_clearance_shift", corrected_position - original_world_position)
     root.set_meta("runtime_placement", i)
     root.set_meta("ready_signature", "%d|f%d|c%d|r%d" % [ti, floors, int(d.get("facade_index", 0)), int(d.get("roof_index", 0))])
     root.set_meta("terrain_y", terrain_y)
@@ -108,6 +123,139 @@ func _load_placement(i: int) -> void:
         _variation_script.apply(root, int(d.get("seed", i)), floors)
     _set_native_visibility(root)
     _city_root.add_child(root)
+    _placed_bounds.append(_node_world_aabb(root))
+
+func _load_road_corridors() -> void:
+    _road_corridors.clear()
+    var grid := get_tree().current_scene.get_node_or_null("Urban_Grid")
+    if grid == null:
+        push_warning("V11 ROAD RESERVATION: Urban_Grid non trovato")
+        return
+    var rects_variant: Variant = grid.get_meta("lot_rects", [])
+    if not (rects_variant is Array):
+        return
+    var counts: Dictionary = {}
+    var representative: Dictionary = {}
+    for rect_variant in rects_variant as Array:
+        if not (rect_variant is Dictionary):
+            continue
+        var rect: Dictionary = rect_variant as Dictionary
+        var sides := [
+            [float(rect.get("min_x", 0.0)), float(rect.get("min_z", 0.0)), float(rect.get("max_x", 0.0)), float(rect.get("min_z", 0.0))],
+            [float(rect.get("max_x", 0.0)), float(rect.get("min_z", 0.0)), float(rect.get("max_x", 0.0)), float(rect.get("max_z", 0.0))],
+            [float(rect.get("max_x", 0.0)), float(rect.get("max_z", 0.0)), float(rect.get("min_x", 0.0)), float(rect.get("max_z", 0.0))],
+            [float(rect.get("min_x", 0.0)), float(rect.get("max_z", 0.0)), float(rect.get("min_x", 0.0)), float(rect.get("min_z", 0.0))]
+        ]
+        for side in sides:
+            var ax := float(side[0]); var az := float(side[1]); var bx := float(side[2]); var bz := float(side[3])
+            var first := "%.2f,%.2f" % [ax, az]; var second := "%.2f,%.2f" % [bx, bz]
+            var key := first + "|" + second if first < second else second + "|" + first
+            counts[key] = int(counts.get(key, 0)) + 1
+            representative[key] = {"ax":ax, "az":az, "bx":bx, "bz":bz}
+    for key in counts:
+        if int(counts[key]) >= 2:
+            var side: Dictionary = representative[key]
+            var length := Vector2(float(side["bx"]) - float(side["ax"]), float(side["bz"]) - float(side["az"])).length()
+            if length >= 20.0:
+                _road_corridors.append(side)
+    print("V11 ROAD RESERVATION: corridors=%d clearance=%.2fm road=%.1fm sidewalks=%.1fm buffer=%.1fm" % [_road_corridors.size(), ROAD_CLEARANCE, ROAD_WIDTH, ROAD_SIDEWALK_WIDTH, ROAD_BUILDING_BUFFER])
+
+func _node_world_aabb(root: Node) -> AABB:
+    var result := AABB()
+    var has_bounds := false
+    var stack: Array[Node] = [root]
+    while not stack.is_empty():
+        var node: Node = stack.pop_back()
+        if node is MeshInstance3D:
+            var mesh_instance := node as MeshInstance3D
+            var local_aabb := mesh_instance.get_aabb()
+            var corners := [
+                Vector3(local_aabb.position.x, local_aabb.position.y, local_aabb.position.z),
+                Vector3(local_aabb.end.x, local_aabb.position.y, local_aabb.position.z),
+                Vector3(local_aabb.position.x, local_aabb.end.y, local_aabb.position.z),
+                Vector3(local_aabb.end.x, local_aabb.end.y, local_aabb.position.z),
+                Vector3(local_aabb.position.x, local_aabb.position.y, local_aabb.end.z),
+                Vector3(local_aabb.end.x, local_aabb.position.y, local_aabb.end.z),
+                Vector3(local_aabb.position.x, local_aabb.end.y, local_aabb.end.z),
+                Vector3(local_aabb.end.x, local_aabb.end.y, local_aabb.end.z)
+            ]
+            for corner in corners:
+                var world_point: Vector3 = mesh_instance.global_transform * corner
+                if not has_bounds:
+                    result = AABB(world_point, Vector3.ZERO)
+                    has_bounds = true
+                else:
+                    result = result.expand(world_point)
+        for child in node.get_children():
+            stack.append(child)
+    return result
+
+func _xz_overlap(a: AABB, b: AABB, gap: float = 0.0) -> bool:
+    return a.position.x < b.end.x + gap and a.end.x > b.position.x - gap and a.position.z < b.end.z + gap and a.end.z > b.position.z - gap
+
+func _resolve_road_clearance(root: Node3D, requested: Vector3) -> Vector3:
+    root.position = requested
+    for _pass in range(8):
+        var bounds := _node_world_aabb(root)
+        var moved := false
+        for corridor in _road_corridors:
+            var ax := float(corridor["ax"]); var az := float(corridor["az"])
+            var bx := float(corridor["bx"]); var bz := float(corridor["bz"])
+            if absf(az - bz) < 0.01:
+                var line_z := az
+                var min_x := minf(ax, bx) - ROAD_CLEARANCE
+                var max_x := maxf(ax, bx) + ROAD_CLEARANCE
+                if bounds.end.x > min_x and bounds.position.x < max_x and bounds.position.z < line_z + ROAD_CLEARANCE and bounds.end.z > line_z - ROAD_CLEARANCE:
+                    var target_z := line_z - ROAD_CLEARANCE if bounds.get_center().z <= line_z else line_z + ROAD_CLEARANCE
+                    var delta_z := target_z - (bounds.end.z if bounds.get_center().z <= line_z else bounds.position.z)
+                    if absf(delta_z) > 0.01:
+                        root.position.z += delta_z
+                        moved = true
+                        break
+            else:
+                var line_x := ax
+                var min_z := minf(az, bz) - ROAD_CLEARANCE
+                var max_z := maxf(az, bz) + ROAD_CLEARANCE
+                if bounds.end.z > min_z and bounds.position.z < max_z and bounds.position.x < line_x + ROAD_CLEARANCE and bounds.end.x > line_x - ROAD_CLEARANCE:
+                    var target_x := line_x - ROAD_CLEARANCE if bounds.get_center().x <= line_x else line_x + ROAD_CLEARANCE
+                    var delta_x := target_x - (bounds.end.x if bounds.get_center().x <= line_x else bounds.position.x)
+                    if absf(delta_x) > 0.01:
+                        root.position.x += delta_x
+                        moved = true
+                        break
+        if not moved:
+            break
+    return root.position
+
+func _find_non_overlapping_position(root: Node3D, original: Vector3, resolved: Vector3) -> Vector3:
+    var candidates: Array[Vector3] = [resolved]
+    var offsets := [
+        Vector3(8,0,0), Vector3(-8,0,0), Vector3(0,0,8), Vector3(0,0,-8),
+        Vector3(12,0,0), Vector3(-12,0,0), Vector3(0,0,12), Vector3(0,0,-12),
+        Vector3(8,0,8), Vector3(8,0,-8), Vector3(-8,0,8), Vector3(-8,0,-8),
+        Vector3(12,0,12), Vector3(12,0,-12), Vector3(-12,0,12), Vector3(-12,0,-12)
+    ]
+    for offset in offsets:
+        candidates.append(resolved + offset)
+    var best := resolved
+    var best_distance := INF
+    for candidate in candidates:
+        root.position = candidate
+        var corrected := _resolve_road_clearance(root, candidate)
+        root.position = corrected
+        var bounds := _node_world_aabb(root)
+        var collides := false
+        for other in _placed_bounds:
+            if _xz_overlap(bounds, other, BUILDING_GAP):
+                collides = true
+                break
+        if not collides:
+            var distance := original.distance_to(corrected)
+            if distance < best_distance:
+                best_distance = distance
+                best = corrected
+    root.position = best
+    return best
 
 func _get_terrain_height(x: float, z: float) -> float:
     if not is_finite(x) or not is_finite(z):
