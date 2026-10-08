@@ -188,67 +188,21 @@ func _build_network() -> void:
     print("ROMA ROADS V2: PASS network=Urban_Grid_corridors collision_safe buildings=%d corridors=%d sidewalks=enabled drainage=enabled street_furniture=enabled" % [_building_bounds.size(), corridors.size()])
 
 func _build_corridors_between_lots(lot_rects: Array) -> Array[Dictionary]:
+    # LOT_RECTS touch at their block boundaries. The empty road corridor is
+    # therefore the shared/perimeter side itself, not a positive gap between
+    # two rectangles. Build roads from those sides, then let the real building
+    # AABBs veto any segment that violates the 10m setback.
     var result: Array[Dictionary] = []
-    var seen: Dictionary = {}
-    var max_gap: float = 22.0
-
-    for i in range(lot_rects.size()):
-        if not (lot_rects[i] is Dictionary):
+    var sides: Array[Dictionary] = _unique_lot_sides(lot_rects)
+    for side in sides:
+        var ax: float = float(side["ax"])
+        var az: float = float(side["az"])
+        var bx: float = float(side["bx"])
+        var bz: float = float(side["bz"])
+        var length: float = Vector2(bx - ax, bz - az).length()
+        if length < 20.0:
             continue
-        var a: Dictionary = lot_rects[i] as Dictionary
-        var amin_x: float = float(a.get("min_x", 0.0))
-        var amax_x: float = float(a.get("max_x", 0.0))
-        var amin_z: float = float(a.get("min_z", 0.0))
-        var amax_z: float = float(a.get("max_z", 0.0))
-
-        for j in range(i + 1, lot_rects.size()):
-            if not (lot_rects[j] is Dictionary):
-                continue
-            var b: Dictionary = lot_rects[j] as Dictionary
-            var bmin_x: float = float(b.get("min_x", 0.0))
-            var bmax_x: float = float(b.get("max_x", 0.0))
-            var bmin_z: float = float(b.get("min_z", 0.0))
-            var bmax_z: float = float(b.get("max_z", 0.0))
-
-            var overlap_x: float = minf(amax_x, bmax_x) - maxf(amin_x, bmin_x)
-            var overlap_z: float = minf(amax_z, bmax_z) - maxf(amin_z, bmin_z)
-
-            if overlap_x >= 20.0:
-                var gap_z: float = 0.0
-                var center_z: float = 0.0
-                if amax_z <= bmin_z:
-                    gap_z = bmin_z - amax_z
-                    center_z = (amax_z + bmin_z) * 0.5
-                elif bmax_z <= amin_z:
-                    gap_z = amin_z - bmax_z
-                    center_z = (bmax_z + amin_z) * 0.5
-                if gap_z > 7.0 and gap_z <= max_gap:
-                    var ax: float = maxf(amin_x, bmin_x)
-                    var bx: float = minf(amax_x, bmax_x)
-                    if bx - ax >= 20.0:
-                        var key: String = "H:%.1f:%.1f:%.1f" % [ax, bx, center_z]
-                        if not seen.has(key):
-                            seen[key] = true
-                            result.append({"ax":ax, "az":center_z, "bx":bx, "bz":center_z})
-
-            if overlap_z >= 20.0:
-                var gap_x: float = 0.0
-                var center_x: float = 0.0
-                if amax_x <= bmin_x:
-                    gap_x = bmin_x - amax_x
-                    center_x = (amax_x + bmin_x) * 0.5
-                elif bmax_x <= amin_x:
-                    gap_x = amin_x - bmax_x
-                    center_x = (bmax_x + amin_x) * 0.5
-                if gap_x > 7.0 and gap_x <= max_gap:
-                    var az: float = maxf(amin_z, bmin_z)
-                    var bz: float = minf(amax_z, bmax_z)
-                    if bz - az >= 20.0:
-                        var key: String = "V:%.1f:%.1f:%.1f" % [az, bz, center_x]
-                        if not seen.has(key):
-                            seen[key] = true
-                            result.append({"ax":center_x, "az":az, "bx":center_x, "bz":bz})
-
+        result.append({"ax": ax, "az": az, "bx": bx, "bz": bz})
     return result
 
 func _get_urban_lot_rects() -> Array:
