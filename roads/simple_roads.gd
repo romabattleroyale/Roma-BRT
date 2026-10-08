@@ -171,18 +171,11 @@ func _build_network() -> void:
     var corridor_index: int = 0
 
     for corridor in corridors:
+        # Urban_Grid is authoritative: the road centerline is never moved to
+        # dodge a building. Buildings are reserved away from these corridors
+        # before this node is allowed to build the road network.
         var a: Vector3 = Vector3(float(corridor["ax"]), 0.0, float(corridor["az"]))
         var b: Vector3 = Vector3(float(corridor["bx"]), 0.0, float(corridor["bz"]))
-        var safe_offset: float = _find_safe_side_offset(a, b, MAIN_WIDTH)
-        if is_nan(safe_offset):
-            print("ROMA ROADS V2: blocked corridor skipped ", a, " -> ", b)
-            continue
-        if absf(safe_offset) > 0.01:
-            var corridor_direction: Vector3 = (b - a).normalized()
-            var corridor_normal: Vector3 = Vector3(-corridor_direction.z, 0.0, corridor_direction.x)
-            a += corridor_normal * safe_offset
-            b += corridor_normal * safe_offset
-            print("ROMA ROADS V2: corridor offset=", safe_offset, " from ", a, " -> ", b)
         junctions["%.2f,%.2f" % [a.x, a.z]] = a
         junctions["%.2f,%.2f" % [b.x, b.z]] = b
         await _add_edge(a, b, MAIN_WIDTH, _asphalt, true)
@@ -200,7 +193,7 @@ func _build_network() -> void:
     await _add_safe_bridge(Vector3(1040.0, 0.0, 1020.0), Vector3(1080.0, 0.0, 1020.0))
     await _add_safe_bridge(Vector3(1120.0, 0.0, 1040.0), Vector3(1160.0, 0.0, 1040.0))
 
-    print("ROMA ROADS V2: PASS network=Urban_Grid_corridors collision_safe buildings=%d corridors=%d sidewalks=enabled drainage=enabled street_furniture=enabled" % [_building_bounds.size(), corridors.size()])
+    print("ROMA ROADS V2: PASS network=Urban_Grid_authoritative continuous=true buildings_reserved=%d corridors=%d sidewalks=enabled drainage=enabled street_furniture=enabled" % [_building_bounds.size(), corridors.size()])
 
 func _build_corridors_between_lots(lot_rects: Array) -> Array[Dictionary]:
     # LOT_RECTS touch at block boundaries. Only a side shared by two lots is
@@ -417,17 +410,6 @@ func _segment_intersects_rect(a: Vector2, b: Vector2, min_x: float, max_x: float
 
     return true
 
-func _find_safe_side_offset(a: Vector3, b: Vector3, road_width: float) -> float:
-    var direction: Vector3 = (b - a).normalized()
-    var normal: Vector3 = Vector3(-direction.z, 0.0, direction.x)
-    var candidates: Array[float] = [10.0, -10.0, 8.0, -8.0, 6.0, -6.0, 4.0, -4.0, 2.0, -2.0, 0.0]
-    for offset in candidates:
-        var aa: Vector3 = a + normal * offset
-        var bb: Vector3 = b + normal * offset
-        if _road_segment_clear(aa, bb, road_width):
-            return offset
-    return NAN
-
 func _area_clear(center: Vector3, width: float, depth: float, extra_clearance: float = 0.35) -> bool:
     var min_x: float = center.x - width * 0.5
     var max_x: float = center.x + width * 0.5
@@ -468,10 +450,11 @@ func _add_edge(a: Vector3, b: Vector3, width: float, material: Material, main_ro
         var t1: float = float(i + 1) / float(steps)
         var p0: Vector3 = flat_a.lerp(flat_b, t0)
         var p1: Vector3 = flat_a.lerp(flat_b, t1)
+        # Do not delete individual segments. The road corridor is
+        # authoritative and continuous; V11 building placement reserves its
+        # full road + sidewalk + safety envelope before we get here.
         if not _road_segment_clear(p0, p1, width):
-            print("ROMA ROADS V2: blocked road segment skipped at ", p0, " -> ", p1)
-            await get_tree().process_frame
-            continue
+            push_error("ROMA ROADS V2: corridor validation FAILED at %s -> %s; building reservation is inconsistent" % [p0, p1])
 
         var ground0: Vector3 = _surface_point(p0.x, p0.z, ROAD_HEIGHT * 0.5)
         var ground1: Vector3 = _surface_point(p1.x, p1.z, ROAD_HEIGHT * 0.5)
@@ -528,9 +511,10 @@ func _add_box_between(p0: Vector3, p1: Vector3, width: float, height: float, mat
     instance.look_at_from_position(midpoint, midpoint + direction.normalized(), Vector3.UP)
 
 func _add_intersection(center: Vector3, width: float) -> void:
+    # Intersections are part of the reserved road envelope. Never remove a
+    # junction after the graph has declared it.
     if not _area_clear(center, width, width):
-        print("ROMA ROADS V2: intersection skipped because it overlaps a building at ", center)
-        return
+        push_error("ROMA ROADS V2: junction validation FAILED at %s" % center)
     center.y = _terrain_y(center.x, center.z) + CLEARANCE + ROAD_HEIGHT * 0.5
     var mesh: BoxMesh = BoxMesh.new()
     mesh.size = Vector3(width, ROAD_HEIGHT, width)
