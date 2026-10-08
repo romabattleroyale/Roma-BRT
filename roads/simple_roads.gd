@@ -352,7 +352,7 @@ func _segment_intersects_rect(a: Vector2, b: Vector2, min_x: float, max_x: float
 func _find_safe_side_offset(a: Vector3, b: Vector3, road_width: float) -> float:
     var direction: Vector3 = (b - a).normalized()
     var normal: Vector3 = Vector3(-direction.z, 0.0, direction.x)
-    var candidates: Array[float] = [0.0, 1.0, -1.0, 2.0, -2.0, 3.0, -3.0, 4.0, -4.0, 5.0, -5.0, 6.0, -6.0, 7.0, -7.0, 8.0, -8.0, 9.0, -9.0, 10.0, -10.0]
+    var candidates: Array[float] = [10.0, -10.0, 8.0, -8.0, 6.0, -6.0, 4.0, -4.0, 2.0, -2.0, 0.0]
     for offset in candidates:
         var aa: Vector3 = a + normal * offset
         var bb: Vector3 = b + normal * offset
