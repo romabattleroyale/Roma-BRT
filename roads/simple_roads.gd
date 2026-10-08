@@ -165,9 +165,16 @@ func _build_network() -> void:
     for corridor in corridors:
         var a: Vector3 = Vector3(float(corridor["ax"]), 0.0, float(corridor["az"]))
         var b: Vector3 = Vector3(float(corridor["bx"]), 0.0, float(corridor["bz"]))
-        if not _road_segment_clear(a, b, MAIN_WIDTH):
+        var safe_offset: float = _find_safe_side_offset(a, b, MAIN_WIDTH)
+        if is_nan(safe_offset):
             print("ROMA ROADS V2: blocked corridor skipped ", a, " -> ", b)
             continue
+        if absf(safe_offset) > 0.01:
+            var corridor_direction: Vector3 = (b - a).normalized()
+            var corridor_normal: Vector3 = Vector3(-corridor_direction.z, 0.0, corridor_direction.x)
+            a += corridor_normal * safe_offset
+            b += corridor_normal * safe_offset
+            print("ROMA ROADS V2: corridor offset=", safe_offset, " from ", a, " -> ", b)
         junctions["%.2f,%.2f" % [a.x, a.z]] = a
         junctions["%.2f,%.2f" % [b.x, b.z]] = b
         await _add_edge(a, b, MAIN_WIDTH, _asphalt, true)
