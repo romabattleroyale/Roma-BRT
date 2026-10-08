@@ -19,8 +19,8 @@ const CURB_WIDTH := 0.22
 const CURB_HEIGHT := 0.14
 const SIDEWALK_HEIGHT := 0.12
 const ROAD_HEIGHT := 0.12
-const CLEARANCE := 0.07
-const SEGMENT_LENGTH := 40.0
+const CLEARANCE := 0.12
+const SEGMENT_LENGTH := 80.0
 const OVERLAP := 0.18
 const LOCAL_HALF_EXTENT := 120.0
 const LOCAL_SPACING := 80.0
@@ -465,21 +465,21 @@ func _add_edge(a: Vector3, b: Vector3, width: float, material: Material, main_ro
             if not _prop_position_clear(prop_base, 3.0):
                 prop_base = (p0 + p1) * 0.5 - side * (width * 0.5 + SIDEWALK_WIDTH * 0.55)
                 prop_side = -side
-            if i % 3 == 0 and _prop_position_clear(prop_base, 3.0):
+            if i % 2 == 0 and _prop_position_clear(prop_base, 3.0):
                 _add_lamp_prop(prop_base, direction)
                 if i % 6 == 0:
                     _add_street_tree(prop_base, direction, (i / 4) % 2 == 0)
-            if i % 8 == 0:
+            if i % 6 == 0:
                 var sign_pos: Vector3 = (p0 + p1) * 0.5 + prop_side * (width * 0.5 + SIDEWALK_WIDTH * 0.75)
                 if _prop_position_clear(sign_pos, 3.0):
                     _add_street_sign(sign_pos, direction, _street_name((p0 + p1) * 0.5))
-            if i % 16 == 0:
+            if i % 12 == 0:
                 var nasone_pos: Vector3 = (p0 + p1) * 0.5 + prop_side * (width * 0.5 + SIDEWALK_WIDTH * 0.35)
                 if _prop_position_clear(nasone_pos, 3.0):
                     _add_nasone_prop(nasone_pos, direction)
-            if i % 5 == 1:
+            if i % 3 == 1:
                 _add_road_marking((p0 + p1) * 0.5, direction)
-            if i % 8 == 1:
+            if i % 6 == 1:
                 _add_manhole((p0 + p1) * 0.5)
                 _add_drain((p0 + p1) * 0.5, side, width)
         else:
@@ -492,7 +492,7 @@ func _add_edge(a: Vector3, b: Vector3, width: float, material: Material, main_ro
             if i % 5 == 2:
                 _add_manhole((p0 + p1) * 0.5)
 
-        if i % 4 == 0:
+        if i % 2 == 0:
             await get_tree().process_frame
 
 func _add_box_between(p0: Vector3, p1: Vector3, width: float, height: float, material: Material) -> void:
