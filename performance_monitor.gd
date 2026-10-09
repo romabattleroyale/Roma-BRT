@@ -29,7 +29,7 @@ func _process(delta: float) -> void:
 	if not fps_history.is_empty():
 		avg_fps /= float(fps_history.size())
 
-	var frame_ms := float(Performance.get_monitor(Performance.TIME_PROCESS)) * 1000.0
+	var frame_ms := delta * 1000.0
 	var physics_ms := float(Performance.get_monitor(Performance.TIME_PHYSICS_PROCESS)) * 1000.0
 	var draw_calls := int(Performance.get_monitor(Performance.RENDER_TOTAL_DRAW_CALLS_IN_FRAME))
 	var triangles := int(Performance.get_monitor(Performance.RENDER_TOTAL_PRIMITIVES_IN_FRAME))
