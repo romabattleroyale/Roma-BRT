@@ -121,9 +121,12 @@ func toggle_camera_mode() -> void:
             push_warning("Viewer non trovato: impossibile attivare la visuale player.")
             player_mode = false
             return
-        viewer.global_position = Vector3(target.x, maxf(target.y + 4.0, 4.0), target.z)
+        var ground_y := _sample_ground_height(target.x, target.z)
+        # Character origin is placed above the sampled terrain instead of an arbitrary Y=4.
+        viewer.global_position = Vector3(target.x, ground_y + 1.7, target.z)
         viewer.rotation.y = 0.0
-        viewer.get_node("Head").rotation.x = deg_to_rad(-8.0)
+        # Zero pitch gives a level first-person view; negative pitch was pointing the camera upward.
+        viewer.get_node("Head").rotation.x = 0.0
         var player_camera := viewer.get_node_or_null("Head/Camera3D") as Camera3D
         if player_camera:
             player_camera.current = true
@@ -135,3 +138,14 @@ func toggle_camera_mode() -> void:
             if player_camera:
                 player_camera.current = false
         update_camera()
+
+func _sample_ground_height(x: float, z: float) -> float:
+    var bootstrap := get_parent().get_node_or_null("TerrainBootstrap")
+    if bootstrap != null:
+        var terrain := bootstrap.get_node_or_null("Terrain3D_HEIGHTMAP_2000x2000")
+        if terrain != null:
+            var data: Object = terrain.get("data") as Object
+            if data != null and data.has_method("get_height"):
+                return float(data.call("get_height", Vector3(x, 0.0, z)))
+    push_warning("Terrain3D non disponibile per il posizionamento player; uso quota zero.")
+    return 0.0
