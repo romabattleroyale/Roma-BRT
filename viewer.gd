@@ -12,6 +12,7 @@ var yaw: float = deg_to_rad(-35.0)
 var looking := false
 var mobile_move := Vector2.ZERO
 var mobile_boost := false
+var terrain_data: Object
 
 @onready var head: Node3D = $Head
 @onready var cam: Camera3D = $Head/Camera3D
@@ -21,6 +22,11 @@ func _ready() -> void:
     look_at(Vector3(0.0, 0.0, 0.0), Vector3.UP)
     yaw = rotation.y
     pitch = head.rotation.x
+    var bootstrap := get_node_or_null("../TerrainBootstrap")
+    if bootstrap != null:
+        var terrain := bootstrap.get_node_or_null("Terrain3D_HEIGHTMAP_2000x2000")
+        if terrain != null:
+            terrain_data = terrain.get("data") as Object
     var controls: Node = get_node_or_null("../MobileControls")
     if controls:
         controls.move_changed.connect(_on_mobile_move)
@@ -73,3 +79,15 @@ func _physics_process(delta: float) -> void:
         global_position.y += current_speed * delta
     if Input.is_key_pressed(KEY_CTRL):
         global_position.y -= current_speed * delta
+
+    _follow_terrain_surface()
+
+func _follow_terrain_surface() -> void:
+    if terrain_data == null or not terrain_data.has_method("get_height"):
+        return
+    # Terrain3D stores heights in terrain-local coordinates; the map is offset by 1000 m.
+    var local_x := global_position.x - 1000.0
+    var local_z := global_position.z - 1000.0
+    var ground_y := float(terrain_data.call("get_height", Vector3(local_x, 0.0, local_z)))
+    # Keep the camera at a human eye height while following changing terrain elevation.
+    global_position.y = ground_y + 1.7
