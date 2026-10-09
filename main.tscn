@@ -201,10 +201,13 @@ layer = 120
 script = ExtResource("19_perf")
 
 [node name="Panel" type="PanelContainer" parent="PerformanceMonitor"]
-offset_left = 18.0
+anchors_preset = 1
+anchor_left = 1.0
+anchor_right = 1.0
+offset_left = -360.0
 offset_top = 18.0
-offset_right = 330.0
-offset_bottom = 340.0
+offset_right = -18.0
+offset_bottom = 350.0
 mouse_filter = 2
 
 [node name="Label" type="Label" parent="PerformanceMonitor/Panel"]
