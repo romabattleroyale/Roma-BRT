@@ -7,11 +7,11 @@ func _run_checks() -> void:
     var character_path := "res://assets/characters/Superhero_Male_FullBody.gltf"
     var animation_path := "res://assets/animations/UAL1_Standard.glb"
     var required_clips: Array[StringName] = [
-        &"Idle_Loop",
-        &"Jog_Fwd_Loop",
-        &"Sprint_Loop",
-        &"Crouch_Idle_Loop",
-        &"Crouch_Fwd_Loop",
+        &"Idle",
+        &"Jog_Fwd",
+        &"Sprint",
+        &"Crouch_Idle",
+        &"Crouch_Fwd",
     ]
 
     var failed := false
