@@ -18,6 +18,7 @@ func _ready() -> void:
     var buttons := get_node_or_null(buttons_path)
     if buttons and buttons.has_signal("action_pressed"): buttons.action_pressed.connect(_on_action)
 func _process(delta: float) -> void:
+    var _profile_start_usec := Time.get_ticks_usec()
     if joystick and "output" in joystick:
         var v: Vector2 = joystick.get("output")
         if v.length() > 0.98: _sprint_time += delta
@@ -25,6 +26,10 @@ func _process(delta: float) -> void:
         _auto_sprint = _sprint_time >= sprint_hold_seconds
     if viewer:
         viewer.set_meta("locomotion_sprinting", _auto_sprint or Input.is_key_pressed(KEY_SHIFT))
+    var _profiler := get_node_or_null("/root/ScriptProfiler")
+    if _profiler != null:
+        _profiler.record_process("player_controller.gd", Time.get_ticks_usec() - _profile_start_usec)
+
 func _on_joystick_changed(value: Vector2) -> void:
     if viewer and viewer.has_method("_on_mobile_move"): viewer._on_mobile_move(Vector2(value.x, -value.y))
 func _on_action(action: StringName, pressed: bool) -> void:
