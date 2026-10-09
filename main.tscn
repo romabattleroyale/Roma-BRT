@@ -84,10 +84,16 @@ script = ExtResource("2_viewer")
 script = ExtResource("12_character_visual")
 
 [node name="Head" type="Node3D" parent="Viewer"]
+position = Vector3(0.0, 1.5, 0.0)
 
-[node name="Camera3D" type="Camera3D" parent="Viewer/Head"]
+[node name="CameraSpringArm" type="SpringArm3D" parent="Viewer/Head"]
+spring_length = 4.5
+margin = 0.2
+
+[node name="Camera3D" type="Camera3D" parent="Viewer/Head/CameraSpringArm"]
+position = Vector3(0.55, 0.1, 0.0)
 current = false
-fov = 70.0
+fov = 80.0
 near = 0.1
 far = 10000.0
 
