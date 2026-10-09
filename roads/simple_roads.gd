@@ -618,19 +618,46 @@ func _add_intersection(center: Vector3, width: float) -> void:
         _add_nasone_prop(nasone_center, Vector3.FORWARD)
 
 func _add_terrain_road_patch(center: Vector3, width: float, material: Material) -> void:
-    var half := width * 0.5
-    var vertices := PackedVector3Array([
-        Vector3(center.x-half, _terrain_y(center.x-half, center.z-half) + 0.30, center.z-half),
-        Vector3(center.x+half, _terrain_y(center.x+half, center.z-half) + 0.30, center.z-half),
-        Vector3(center.x-half, _terrain_y(center.x-half, center.z+half) + 0.30, center.z+half),
-        Vector3(center.x+half, _terrain_y(center.x+half, center.z+half) + 0.30, center.z+half)
-    ])
+    # Sample the whole junction surface instead of using only four corner heights.
+    # This lets the asphalt follow terrain relief inside the patch and reduces
+    # visible gaps/raised corners where the corridor meshes meet the intersection.
+    var half: float = width * 0.5
+    var steps: int = maxi(2, ceili(width / 1.0))
+    var vertices := PackedVector3Array()
+    var normals := PackedVector3Array()
+    var uvs := PackedVector2Array()
+    var indices := PackedInt32Array()
+
+    for z_index in range(steps + 1):
+        var tz: float = float(z_index) / float(steps)
+        var z: float = center.z - half + width * tz
+        for x_index in range(steps + 1):
+            var tx: float = float(x_index) / float(steps)
+            var x: float = center.x - half + width * tx
+            vertices.append(Vector3(x, _terrain_y(x, z) + 0.30, z))
+            normals.append(Vector3.UP)
+            uvs.append(Vector2(tx, tz))
+
+    var row_width: int = steps + 1
+    for z_index in range(steps):
+        for x_index in range(steps):
+            var a: int = z_index * row_width + x_index
+            var b: int = a + 1
+            var c: int = a + row_width
+            var d: int = c + 1
+            indices.append(a)
+            indices.append(c)
+            indices.append(b)
+            indices.append(b)
+            indices.append(c)
+            indices.append(d)
+
     var arrays := []
     arrays.resize(Mesh.ARRAY_MAX)
     arrays[Mesh.ARRAY_VERTEX] = vertices
-    arrays[Mesh.ARRAY_NORMAL] = PackedVector3Array([Vector3.UP,Vector3.UP,Vector3.UP,Vector3.UP])
-    arrays[Mesh.ARRAY_TEX_UV] = PackedVector2Array([Vector2.ZERO,Vector2(1,0),Vector2(0,1),Vector2.ONE])
-    arrays[Mesh.ARRAY_INDEX] = PackedInt32Array([0,2,1,2,3,1])
+    arrays[Mesh.ARRAY_NORMAL] = normals
+    arrays[Mesh.ARRAY_TEX_UV] = uvs
+    arrays[Mesh.ARRAY_INDEX] = indices
     var mesh := ArrayMesh.new()
     mesh.add_surface_from_arrays(Mesh.PRIMITIVE_TRIANGLES, arrays)
     mesh.surface_set_material(0, material)
