@@ -179,6 +179,9 @@ jobs:
           fi
           if [ "$code" -eq 124 ]; then echo 'GODOT_RUNTIME_TERMINATION=VALIDATED_TIMEOUT_AFTER_MARKERS'; else echo 'GODOT_RUNTIME_TERMINATION=NORMAL'; fi
           echo 'GODOT_RUNTIME_OUTPUT=CLEAN'
+          echo '--- TERRAIN/CITY LOAD PROFILE ---'
+          grep -E '\[TERRAIN HEIGHT PROFILE\]|\[CITY LOAD (DETAIL|SLOW)\]|buildings=[0-9]+/587' build/runtime/runtime_output.log || true
+          echo '--- END TERRAIN/CITY LOAD PROFILE ---'
 
       - name: Package native ready buildings
         run: |
