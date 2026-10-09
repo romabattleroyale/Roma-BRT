@@ -33,10 +33,13 @@ func _ready() -> void:
     character_instance.position = visual_offset
     character_instance.rotation_degrees = visual_rotation_degrees
     character_instance.scale = visual_scale
+    # The character GLTF may be a static skinned mesh without its own AnimationPlayer.
+    # Create one so the external UAL animation library can be attached to this character.
     _animation_player = _find_animation_player(character_instance)
     if _animation_player == null:
-        push_warning("CharacterVisualLoader: character has no AnimationPlayer; locomotion cannot play.")
-        return
+        _animation_player = AnimationPlayer.new()
+        _animation_player.name = "AnimationPlayer"
+        character_instance.add_child(_animation_player)
     _import_animation_clips()
     _play_clip(&"Idle_Loop")
 
