@@ -79,6 +79,9 @@ func _physics_process(delta: float) -> void:
     set_meta("locomotion_moving", dir != Vector3.ZERO)
     set_meta("locomotion_sprinting", sprinting and dir != Vector3.ZERO)
     set_meta("locomotion_direction", dir)
+    # Reserve state hooks for future crouch/jump controls without altering terrain physics.
+    set_meta("locomotion_crouching", Input.is_key_pressed(KEY_CTRL))
+    set_meta("locomotion_vertical_state", "grounded")
     if dir != Vector3.ZERO:
         global_position += dir * current_speed * delta
 
