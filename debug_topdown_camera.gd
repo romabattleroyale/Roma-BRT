@@ -40,6 +40,7 @@ func _ready() -> void:
     update_camera()
 
 func _process(delta: float) -> void:
+    var _profile_start_usec := Time.get_ticks_usec()
     if camera == null:
         return
     if virtual_move.length_squared() > 0.0001:
@@ -52,6 +53,10 @@ func _process(delta: float) -> void:
             magnitude = clampf((magnitude - 0.12) / 0.88, 0.0, 1.0)
             pan_from_controller(move.normalized() * magnitude, delta)
         break
+
+    var _profiler := get_node_or_null("/root/ScriptProfiler")
+    if _profiler != null:
+        _profiler.record_process("debug_topdown_camera.gd", Time.get_ticks_usec() - _profile_start_usec)
 
 func _on_virtual_move_changed(value: Vector2) -> void:
     virtual_move = Vector2.ZERO if player_mode else value
