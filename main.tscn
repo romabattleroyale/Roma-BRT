@@ -110,6 +110,7 @@ script = ExtResource("14_controller")
 script = ExtResource("18_platform")
 
 [node name="HUD" type="CanvasLayer" parent="."]
+script = ExtResource("3_hud")
 
 [node name="TouchHUD" type="Control" parent="HUD"]
 layout_mode = 3
@@ -144,7 +145,6 @@ anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
 script = ExtResource("17_buttons")
-script = ExtResource("3_hud")
 
 [node name="Panel" type="PanelContainer" parent="HUD"]
 offset_left = 18.0
