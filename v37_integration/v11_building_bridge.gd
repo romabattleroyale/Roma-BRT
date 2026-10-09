@@ -87,6 +87,11 @@ func _load_all_templates() -> void:
     if _templates.size() != 120:
         push_error("V11 NATIVE VISIBILITY: templates caricati=%d" % _templates.size())
 
+func _record_city_load_stage(placement_index: int, stage: String, started_usec: int, slow_stages: Array[String]) -> void:
+    var elapsed_ms := float(Time.get_ticks_usec() - started_usec) / 1000.0
+    if elapsed_ms >= 5.0:
+        slow_stages.append("%s=%.1fms" % [stage, elapsed_ms])
+
 func _load_all_buildings() -> void:
     if _city_root == null or _templates.size() != 120:
         return
@@ -110,16 +115,24 @@ func _load_all_buildings() -> void:
         push_error("V11 NATIVE VISIBILITY: buildings caricati=%d expected=587" % loaded)
 
 func _load_placement(i: int) -> void:
+    var total_start_usec := Time.get_ticks_usec()
+    var stage_start_usec := total_start_usec
+    var stage_name := "setup"
+    var slow_stages: Array[String] = []
     var d: Dictionary = _placements[i]
     var ti := clampi(int(d.get("template", 0)), 0, 119)
     if ti >= _templates.size():
         return
     var root := _templates[ti].instantiate() as Node3D
+    _record_city_load_stage(i, "instantiate", stage_start_usec, slow_stages)
+    stage_start_usec = Time.get_ticks_usec()
     if root == null:
         return
     var x := float(d.get("x", 0.0))
     var z := float(d.get("z", 0.0))
     var terrain_y := _get_terrain_height(x, z)
+    _record_city_load_stage(i, "terrain_height", stage_start_usec, slow_stages)
+    stage_start_usec = Time.get_ticks_usec()
     var requested_position := Vector3(x, terrain_y, z)
     root.position = requested_position
     root.rotation.y = float(d.get("rotation", 0))
@@ -131,12 +144,20 @@ func _load_placement(i: int) -> void:
     root.set_meta("terrain_y", terrain_y)
     if _variation_script != null:
         _variation_script.apply(root, int(d.get("seed", i)), floors)
+    _record_city_load_stage(i, "variation", stage_start_usec, slow_stages)
+    stage_start_usec = Time.get_ticks_usec()
     _set_native_visibility(root)
+    _record_city_load_stage(i, "visibility", stage_start_usec, slow_stages)
+    stage_start_usec = Time.get_ticks_usec()
 
     _city_root.add_child(root)
+    _record_city_load_stage(i, "add_child", stage_start_usec, slow_stages)
+    stage_start_usec = Time.get_ticks_usec()
 
     var original_world_position := root.global_position
     var corrected_position := _resolve_road_clearance(root, original_world_position)
+    _record_city_load_stage(i, "road_clearance", stage_start_usec, slow_stages)
+    stage_start_usec = Time.get_ticks_usec()
     if corrected_position.distance_to(original_world_position) > 0.01:
         corrected_position = _find_non_overlapping_position(root, original_world_position, corrected_position)
         root.global_position = corrected_position
@@ -151,6 +172,10 @@ func _load_placement(i: int) -> void:
     if not _road_bounds_clear(audited_bounds):
         push_error("V11 ROAD RESERVATION: final building footprint still intersects reserved road envelope at %s" % root.global_position)
     _placed_bounds.append(audited_bounds)
+    _record_city_load_stage(i, "bounds_audit", stage_start_usec, slow_stages)
+    var total_ms := float(Time.get_ticks_usec() - total_start_usec) / 1000.0
+    if total_ms >= 20.0:
+        print("[CITY LOAD DETAIL] placement=%d total=%.2fms stages=%s" % [i + 1, total_ms, ", ".join(slow_stages)])
 
 func _load_road_corridors() -> void:
     _road_corridors.clear()
