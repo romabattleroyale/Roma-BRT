@@ -72,9 +72,13 @@ func _physics_process(delta: float) -> void:
     var dir: Vector3 = Vector3.ZERO
     if dir_raw.is_finite() and dir_raw.length_squared() > 0.0001:
         dir = dir_raw.normalized()
-    var current_speed: float = speed
-    if mobile_boost or Input.is_key_pressed(KEY_SHIFT):
-        current_speed *= boost
+    var sprinting := mobile_boost or Input.is_key_pressed(KEY_SHIFT)
+    var current_speed: float = speed * (boost if sprinting else 1.0)
+    # Publish input-derived locomotion state for animation. This project moves by
+    # position (not velocity/move_and_slide), so velocity is not a reliable signal.
+    set_meta("locomotion_moving", dir != Vector3.ZERO)
+    set_meta("locomotion_sprinting", sprinting and dir != Vector3.ZERO)
+    set_meta("locomotion_direction", dir)
     if dir != Vector3.ZERO:
         global_position += dir * current_speed * delta
 
