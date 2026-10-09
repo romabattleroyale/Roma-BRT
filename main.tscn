@@ -1,4 +1,4 @@
-[gd_scene load_steps=13 format=3]
+[gd_scene load_steps=14 format=3]
 
 [ext_resource type="Script" path="res://terrain_runtime_android_safe.gd" id="1_rt"]
 [ext_resource type="Script" path="res://viewer.gd" id="2_viewer"]
@@ -11,6 +11,7 @@
 [ext_resource type="Script" path="res://tools/mobile_memory_watch.gd" id="9_memwatch"]
 [ext_resource type="Script" path="res://roads/simple_roads.gd" id="10_roads"]
 [ext_resource type="Script" path="res://city_library/poi/poi_manager.gd" id="11_poi"]
+[ext_resource type="Script" path="res://character_visual_loader.gd" id="12_character_visual"]
 
 [sub_resource type="Environment" id="Env"]
 background_mode = 1
@@ -78,6 +79,9 @@ script = ExtResource("4_mobile")
 [node name="Viewer" type="CharacterBody3D" parent="."]
 position = Vector3(1050, 120, 1550)
 script = ExtResource("2_viewer")
+
+[node name="CharacterVisual" type="Node3D" parent="Viewer"]
+script = ExtResource("12_character_visual")
 
 [node name="Head" type="Node3D" parent="Viewer"]
 
