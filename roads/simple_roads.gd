@@ -19,6 +19,7 @@ const CURB_WIDTH := 0.22
 const CURB_HEIGHT := 0.14
 const SIDEWALK_HEIGHT := 0.12
 const ROAD_HEIGHT := 0.12
+const ROAD_DETAIL_EXTRA := 0.205
 const CLEARANCE := 0.12
 const SEGMENT_LENGTH := 80.0
 const OVERLAP := 0.18
@@ -636,11 +637,11 @@ func _add_terrain_road_patch(center: Vector3, width: float, material: Material) 
     add_child(instance)
 
 func _add_road_marking(center: Vector3, direction: Vector3) -> void:
-    var dash_center: Vector3 = _surface_point(center.x, center.z, ROAD_HEIGHT + 0.012)
+    var dash_center: Vector3 = _surface_point(center.x, center.z, ROAD_DETAIL_EXTRA)
     _add_box_between(dash_center, dash_center + direction * 2.6, 0.12, 0.025, _marking)
 
 func _add_stop_line(center: Vector3, direction: Vector3) -> void:
-    var pos := _surface_point(center.x, center.z, ROAD_HEIGHT + 0.014)
+    var pos := _surface_point(center.x, center.z, ROAD_DETAIL_EXTRA)
     _add_box_between(pos - direction * 1.6, pos + direction * 1.6, 0.12, 0.025, _marking)
 
 func _add_zebra(center: Vector3, direction: Vector3) -> void:
@@ -648,12 +649,12 @@ func _add_zebra(center: Vector3, direction: Vector3) -> void:
     for i in range(7):
         var offset := -2.4 + float(i) * 0.8
         var c := center + side * offset
-        var p0 := _surface_point(c.x - direction.x * 2.5, c.z - direction.z * 2.5, ROAD_HEIGHT + 0.012)
-        var p1 := _surface_point(c.x + direction.x * 2.5, c.z + direction.z * 2.5, ROAD_HEIGHT + 0.012)
+        var p0 := _surface_point(c.x - direction.x * 2.5, c.z - direction.z * 2.5, ROAD_DETAIL_EXTRA)
+        var p1 := _surface_point(c.x + direction.x * 2.5, c.z + direction.z * 2.5, ROAD_DETAIL_EXTRA)
         _add_box_between(p0, p1, 0.42, 0.025, _marking)
 
 func _add_manhole(center: Vector3) -> void:
-    var pos: Vector3 = _surface_point(center.x, center.z, ROAD_HEIGHT + 0.018)
+    var pos: Vector3 = _surface_point(center.x, center.z, ROAD_DETAIL_EXTRA + 0.006)
     var mesh := CylinderMesh.new()
     mesh.top_radius = 0.34
     mesh.bottom_radius = 0.34
@@ -668,7 +669,7 @@ func _add_manhole(center: Vector3) -> void:
 func _add_drain(center: Vector3, side: Vector3, width: float) -> void:
     for side_sign in [-1.0, 1.0]:
         var p: Vector3 = center + side * side_sign * (width * 0.5 - 0.18)
-        var pos: Vector3 = _surface_point(p.x, p.z, ROAD_HEIGHT + 0.020)
+        var pos: Vector3 = _surface_point(p.x, p.z, ROAD_DETAIL_EXTRA + 0.008)
         var base: MeshInstance3D = MeshInstance3D.new()
         var base_mesh: BoxMesh = BoxMesh.new()
         base_mesh.size = Vector3(0.48, 0.035, 0.30)
