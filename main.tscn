@@ -1,4 +1,4 @@
-[gd_scene load_steps=14 format=3]
+[gd_scene load_steps=20 format=3]
 
 [ext_resource type="Script" path="res://terrain_runtime_android_safe.gd" id="1_rt"]
 [ext_resource type="Script" path="res://viewer.gd" id="2_viewer"]
@@ -19,13 +19,40 @@
 [ext_resource type="Script" path="res://touch_buttons.gd" id="17_buttons"]
 [ext_resource type="Script" path="res://platform_detector.gd" id="18_platform"]
 
+[sub_resource type="ProceduralSkyMaterial" id="SunsetSkyMaterial"]
+sky_top_color = Color(0.15, 0.10, 0.35, 1)
+sky_horizon_color = Color(1, 0.55, 0.25, 1)
+sky_curve = 0.15
+ground_bottom_color = Color(0.10, 0.08, 0.12, 1)
+ground_horizon_color = Color(0.45, 0.30, 0.25, 1)
+ground_curve = 0.02
+sun_angle_max = 30.0
+sun_curve = 0.15
+
+[sub_resource type="Sky" id="SunsetSky"]
+sky_material = SubResource("SunsetSkyMaterial")
+
 [sub_resource type="Environment" id="Env"]
-background_mode = 1
+background_mode = 2
 background_color = Color(0.43, 0.58, 0.68, 1)
+sky = SubResource("SunsetSky")
 ambient_light_source = 3
-ambient_light_color = Color(0.84, 0.88, 0.90, 1)
-ambient_light_energy = 0.85
+ambient_light_color = Color(1, 0.72, 0.52, 1)
+ambient_light_energy = 0.8
 tonemap_mode = 2
+tonemap_exposure = 1.2
+tonemap_white = 6.0
+fog_enabled = true
+fog_light_color = Color(0.9, 0.5, 0.3, 1)
+fog_light_energy = 0.5
+fog_density = 0.005
+fog_aerial_perspective = 0.4
+fog_sky_affect = 0.3
+glow_enabled = true
+glow_intensity = 0.8
+glow_strength = 1.0
+glow_bloom = 0.2
+glow_blend_mode = 2
 
 [node name="RomaHeightmapBeta" type="Node3D"]
 
@@ -33,9 +60,13 @@ tonemap_mode = 2
 environment = SubResource("Env")
 
 [node name="Sun" type="DirectionalLight3D" parent="."]
-rotation_degrees = Vector3(-50, -30, 0)
-light_energy = 1.05
+rotation_degrees = Vector3(-15, 45, 0)
+light_color = Color(1, 0.65, 0.35, 1)
+light_energy = 1.5
 shadow_enabled = true
+directional_shadow_max_distance = 500.0
+directional_shadow_fade_start = 0.8
+shadow_blur = 1.5
 
 [node name="TerrainBootstrap" type="Node3D" parent="."]
 script = ExtResource("1_rt")
