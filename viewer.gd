@@ -68,7 +68,11 @@ func _physics_process(delta: float) -> void:
 
     # Mobile joystick Y points down, while Godot's forward input is negative Z.
     var dir_local: Vector3 = Vector3(input_vec.x, 0.0, input_vec.y)
-    var dir: Vector3 = (transform.basis * dir_local).normalized()
+    var dir_raw: Vector3 = transform.basis * dir_local
+    dir_raw.y = 0.0
+    var dir: Vector3 = Vector3.ZERO
+    if dir_raw.is_finite() and dir_raw.length_squared() > 0.0001:
+        dir = dir_raw.normalized()
     var current_speed: float = speed
     if mobile_boost or Input.is_key_pressed(KEY_SHIFT):
         current_speed *= boost
@@ -80,22 +84,4 @@ func _physics_process(delta: float) -> void:
     if Input.is_key_pressed(KEY_CTRL):
         global_position.y -= current_speed * delta
 
-    _follow_terrain_surface()
 
-func _follow_terrain_surface() -> void:
-    # Terrain3D is initialized asynchronously by TerrainBootstrap. Reacquire its
-    # data object until it exists instead of permanently caching a null reference.
-    if terrain_data == null:
-        var bootstrap := get_node_or_null("../TerrainBootstrap")
-        if bootstrap != null:
-            var terrain := bootstrap.get_node_or_null("Terrain3D_HEIGHTMAP_2000x2000")
-            if terrain != null:
-                terrain_data = terrain.get("data") as Object
-    if terrain_data == null or not terrain_data.has_method("get_height"):
-        return
-    # Terrain3D stores heights in terrain-local coordinates; the map is offset by 1000 m.
-    var local_x := global_position.x - 1000.0
-    var local_z := global_position.z - 1000.0
-    var ground_y := float(terrain_data.call("get_height", Vector3(local_x, 0.0, local_z)))
-    # Keep the camera at a human eye height while following changing terrain elevation.
-    global_position.y = ground_y + 1.7
