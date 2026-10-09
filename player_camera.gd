@@ -72,6 +72,7 @@ func add_shot_recoil() -> void:
 func impact_shake() -> void:
     _shake_time = _shake_duration
 func _process(delta: float) -> void:
+    var _profile_start_usec := Time.get_ticks_usec()
     var shake := Vector2.ZERO
     if _shake_time > 0.0:
         _shake_time = maxf(0.0, _shake_time - delta)
@@ -79,3 +80,7 @@ func _process(delta: float) -> void:
         shake = Vector2(_noise.get_noise_1d(t * 1000.0), _noise.get_noise_1d(t * 1000.0 + 47.0)) * deg_to_rad(_shake_strength) * (_shake_time / _shake_duration)
     rotation.y = yaw + _recoil_yaw + shake.x
     rotation.x = clampf(pitch + _recoil_pitch + shake.y, deg_to_rad(min_pitch_degrees), deg_to_rad(max_pitch_degrees))
+
+    var _profiler := get_node_or_null("/root/ScriptProfiler")
+    if _profiler != null:
+        _profiler.record_process("player_camera.gd", Time.get_ticks_usec() - _profile_start_usec)
