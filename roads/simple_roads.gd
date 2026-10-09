@@ -171,10 +171,10 @@ func _build_network() -> void:
 
     var junction_index: int = 0
     for key in junctions:
-        # A corridor endpoint is not automatically an intersection. Only
-        # create the widened asphalt patch and zebra crossings where at least
-        # two corridors actually meet; this avoids crosswalks at dead ends.
-        if int(junction_degrees.get(key, 0)) >= 2:
+        # Degree 2 usually means two consecutive corridor segments forming
+        # one straight road, not an intersection. Only a branching node (T or
+        # four-way) gets a widened patch and zebra crossings.
+        if int(junction_degrees.get(key, 0)) >= 3:
             _add_intersection(junctions[key], MAIN_WIDTH)
         junction_index += 1
         # Yield based on progress, not the dictionary's constant total size.
