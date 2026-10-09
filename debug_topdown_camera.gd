@@ -20,8 +20,14 @@ var touches: Dictionary = {}
 var right_touch_indices: Dictionary = {}
 var last_pinch_distance := 0.0
 var virtual_move := Vector2.ZERO
+var player_mode := false
+var viewer: CharacterBody3D
 
 func _ready() -> void:
+    viewer = get_parent().get_node_or_null("Viewer") as CharacterBody3D
+    var mobile := get_parent().get_node_or_null("MobileControls")
+    if mobile != null and mobile.has_signal("camera_toggle_requested"):
+        mobile.camera_toggle_requested.connect(toggle_camera_mode)
     camera = Camera3D.new()
     camera.name = "DebugTopDownCamera3D"
     camera.current = true
@@ -29,7 +35,6 @@ func _ready() -> void:
     camera.near = 0.1
     camera.far = 6000.0
     add_child(camera)
-    var mobile := get_parent().get_node_or_null("MobileControls")
     if mobile != null and mobile.has_signal("move_changed"):
         mobile.move_changed.connect(_on_virtual_move_changed)
     update_camera()
@@ -108,3 +113,25 @@ func update_camera() -> void:
     camera.position = target + Vector3(0.0, vertical, horizontal)
     camera.size = clampf(distance * 0.72, 80.0, 3000.0)
     camera.look_at(target, Vector3.UP)
+
+func toggle_camera_mode() -> void:
+    player_mode = not player_mode
+    if player_mode:
+        if viewer == null:
+            push_warning("Viewer non trovato: impossibile attivare la visuale player.")
+            player_mode = false
+            return
+        viewer.global_position = Vector3(target.x, maxf(target.y + 4.0, 4.0), target.z)
+        viewer.rotation.y = 0.0
+        viewer.get_node("Head").rotation.x = deg_to_rad(-8.0)
+        var player_camera := viewer.get_node_or_null("Head/Camera3D") as Camera3D
+        if player_camera:
+            player_camera.current = true
+        camera.current = false
+    else:
+        camera.current = true
+        if viewer:
+            var player_camera := viewer.get_node_or_null("Head/Camera3D") as Camera3D
+            if player_camera:
+                player_camera.current = false
+        update_camera()
