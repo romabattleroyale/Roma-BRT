@@ -30,6 +30,9 @@ var _placements: Array = []
 var _variation_script: RefCounted
 # Cache Terrain3D once: recursive find_child() on every placement needlessly scans the scene tree 587 times.
 var _terrain_node: Node
+var _terrain_height_calls: int = 0
+var _terrain_height_total_ms: float = 0.0
+var _terrain_height_max_ms: float = 0.0
 var _road_corridors: Array[Dictionary] = []
 var _placed_bounds: Array[AABB] = []
 
@@ -118,6 +121,8 @@ func _load_all_buildings() -> void:
             var batch_ms := float(Time.get_ticks_usec() - batch_start_usec) / 1000.0
             print("[CITY LOAD] buildings=%d/%d last25=%.1fms" % [loaded, _placements.size(), batch_ms])
             batch_start_usec = Time.get_ticks_usec()
+    if _terrain_height_calls > 0:
+        print("[TERRAIN HEIGHT PROFILE] calls=%d total=%.2fms avg=%.3fms max=%.3fms" % [_terrain_height_calls, _terrain_height_total_ms, _terrain_height_total_ms / float(_terrain_height_calls), _terrain_height_max_ms])
     if loaded != 587:
         push_error("V11 NATIVE VISIBILITY: buildings caricati=%d expected=587" % loaded)
 
@@ -138,6 +143,10 @@ func _load_placement(i: int) -> void:
     var x := float(d.get("x", 0.0))
     var z := float(d.get("z", 0.0))
     var terrain_y := _get_terrain_height(x, z)
+    var terrain_height_ms := float(Time.get_ticks_usec() - stage_start_usec) / 1000.0
+    _terrain_height_calls += 1
+    _terrain_height_total_ms += terrain_height_ms
+    _terrain_height_max_ms = maxf(_terrain_height_max_ms, terrain_height_ms)
     _record_city_load_stage(i, "terrain_height", stage_start_usec, slow_stages)
     stage_start_usec = Time.get_ticks_usec()
     var requested_position := Vector3(x, terrain_y, z)
