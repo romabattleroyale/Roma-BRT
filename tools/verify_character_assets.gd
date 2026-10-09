@@ -56,6 +56,7 @@ func _run_checks() -> void:
     var target_player := AnimationPlayer.new()
     target_player.name = "AnimationPlayer"
     character.add_child(target_player)
+    target_player.root_node = NodePath("..")
     var library := AnimationLibrary.new()
     var add_library_error := target_player.add_animation_library(&"", library)
     if add_library_error != OK:
@@ -66,7 +67,7 @@ func _run_checks() -> void:
         return
 
     var remapped_count := 0
-    var target_skeleton_path := String(target_player.get_path_to(target_skeleton))
+    var target_skeleton_path := String(character.get_path_to(target_skeleton))
     for clip in REQUIRED_CLIPS:
         if not source_player.has_animation(clip):
             push_error("CHARACTER ANIMATION CHECK: source clip missing: " + String(clip))
