@@ -9,6 +9,13 @@ extends Node3D
 @export var visual_offset := Vector3(0.0, -1.7, 0.0)
 @export var blend_seconds := 0.18
 
+const CLIP_MAP := {
+    &"Idle_Loop": &"Idle",
+    &"Jog_Fwd_Loop": &"Jog_Fwd",
+    &"Sprint_Loop": &"Sprint",
+    &"Crouch_Idle_Loop": &"Crouch_Idle",
+    &"Crouch_Fwd_Loop": &"Crouch_Fwd",
+}
 const CLIPS: Array[StringName] = [&"Idle_Loop", &"Jog_Fwd_Loop", &"Sprint_Loop", &"Crouch_Idle_Loop", &"Crouch_Fwd_Loop"]
 var character_instance: Node3D
 var _animation_player: AnimationPlayer
@@ -98,10 +105,11 @@ func _import_animation_clips() -> void:
 
     var imported := 0
     for clip in CLIPS:
-        if not source_player.has_animation(clip):
-            push_warning("CharacterVisualLoader: clip missing from UAL: " + String(clip))
+        var source_clip: StringName = CLIP_MAP.get(clip, clip)
+        if not source_player.has_animation(source_clip):
+            push_warning("CharacterVisualLoader: source clip missing from UAL: " + String(source_clip))
             continue
-        var animation := source_player.get_animation(clip).duplicate(true) as Animation
+        var animation := source_player.get_animation(source_clip).duplicate(true) as Animation
         if animation == null:
             continue
         var remapped_tracks := _retarget_bone_tracks(animation, target_skeleton)
