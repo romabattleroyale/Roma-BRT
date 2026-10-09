@@ -4,7 +4,7 @@ extends Node
 ## Logs process memory after each newly placed V11 building and records a cleanup boundary after each 5-building block.
 ## Godot 4.7.2 has no ResourceLoader.unload_unused_resources() API; unused Resources are released by normal reference counting.
 
-const POLL_FRAMES := 1
+const POLL_FRAMES := 30 # Full scene-tree scan only twice per second at 60 FPS.
 const BLOCK_SIZE := 5
 
 var seen_buildings := {}
@@ -18,8 +18,10 @@ func _ready() -> void:
     print("[MEM] Android V11 memory watcher: START")
 
 func _process(_delta: float) -> void:
+    var profile_start_usec := Time.get_ticks_usec()
     frame_counter += 1
     if frame_counter % POLL_FRAMES != 0:
+        _record_process_time(profile_start_usec)
         return
     var buildings := _find_v11_buildings()
     var count := buildings.size()
@@ -36,6 +38,12 @@ func _process(_delta: float) -> void:
         for block_number in range(last_cleanup_block + 1, completed_blocks + 1):
             await _cleanup_after_block(block_number, count)
         last_cleanup_block = completed_blocks
+    _record_process_time(profile_start_usec)
+
+func _record_process_time(start_usec: int) -> void:
+    var profiler := get_node_or_null("/root/ScriptProfiler")
+    if profiler != null and profiler.has_method("record_process"):
+        profiler.record_process("tools/mobile_memory_watch.gd", Time.get_ticks_usec() - start_usec)
 
 func _find_v11_buildings() -> Array[Node3D]:
     var result: Array[Node3D] = []
