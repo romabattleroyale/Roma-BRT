@@ -110,7 +110,7 @@ func _import_animation_clips() -> void:
 
 func _retarget_bone_tracks(animation: Animation, target_skeleton: Skeleton3D) -> int:
     var count := 0
-    var target_path := String(character_instance.get_path_to(target_skeleton))
+    var target_path := String(_animation_player.get_path_to(target_skeleton))
     for i in range(animation.get_track_count()):
         if animation.track_get_type(i) != Animation.TYPE_POSITION_3D and animation.track_get_type(i) != Animation.TYPE_ROTATION_3D and animation.track_get_type(i) != Animation.TYPE_SCALE_3D:
             continue
