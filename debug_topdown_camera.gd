@@ -126,15 +126,17 @@ func toggle_camera_mode() -> void:
         viewer.global_position = Vector3(target.x, ground_y + 1.7, target.z)
         viewer.rotation.y = 0.0
         # Zero pitch gives a level first-person view; negative pitch was pointing the camera upward.
-        viewer.get_node("Head").rotation.x = 0.0
-        var player_camera := viewer.get_node_or_null("Head/CameraSpringArm/Camera3D") as Camera3D
+        var player_pivot := viewer.get_node_or_null("CameraPivot") as Node3D
+        if player_pivot:
+            player_pivot.rotation.x = 0.0
+        var player_camera := viewer.get_node_or_null("CameraPivot/SpringArm3D/Camera3D") as Camera3D
         if player_camera:
             player_camera.current = true
         camera.current = false
     else:
         camera.current = true
         if viewer:
-            var player_camera := viewer.get_node_or_null("Head/CameraSpringArm/Camera3D") as Camera3D
+            var player_camera := viewer.get_node_or_null("CameraPivot/SpringArm3D/Camera3D") as Camera3D
             if player_camera:
                 player_camera.current = false
         update_camera()
