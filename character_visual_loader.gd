@@ -1,15 +1,15 @@
 extends Node3D
-## Loads the player mesh and imports compatible locomotion clips from the UAL GLB.
-## Does not modify Viewer movement, camera, terrain following, or Android controls.
+## Loads the player mesh and copies locomotion clips from the UAL GLB.
+## Does not alter Viewer movement, camera, terrain following, or Android controls.
 
-@export_file("*.glb", "*.gltf", "*.tscn") var character_scene_path: String = "res://assets/characters/Superhero_Male_FullBody.gltf"
-@export_file("*.glb", "*.gltf") var animation_library_path: String = "res://assets/animations/UAL1_Standard.glb"
-@export var visual_scale: Vector3 = Vector3.ONE
-@export var visual_rotation_degrees: Vector3 = Vector3(0.0, 180.0, 0.0)
-@export var visual_offset: Vector3 = Vector3(0.0, -1.7, 0.0)
-@export var blend_seconds: float = 0.18
+@export_file("*.gltf", "*.glb", "*.tscn") var character_scene_path := "res://assets/characters/Superhero_Male_FullBody.gltf"
+@export_file("*.glb", "*.gltf") var animation_library_path := "res://assets/animations/UAL1_Standard.glb"
+@export var visual_scale := Vector3.ONE
+@export var visual_rotation_degrees := Vector3(0.0, 180.0, 0.0)
+@export var visual_offset := Vector3(0.0, -1.7, 0.0)
+@export var blend_seconds := 0.18
 
-const CLIPS := [&"Idle_Loop", &"Jog_Fwd_Loop", &"Sprint_Loop", &"Crouch_Idle_Loop", &"Crouch_Fwd_Loop"]
+const CLIPS: Array[StringName] = [&"Idle_Loop", &"Jog_Fwd_Loop", &"Sprint_Loop", &"Crouch_Idle_Loop", &"Crouch_Fwd_Loop"]
 var character_instance: Node3D
 var _animation_player: AnimationPlayer
 var _current_clip: StringName = &""
@@ -33,10 +33,9 @@ func _ready() -> void:
     character_instance.position = visual_offset
     character_instance.rotation_degrees = visual_rotation_degrees
     character_instance.scale = visual_scale
-
     _animation_player = _find_animation_player(character_instance)
     if _animation_player == null:
-        push_warning("CharacterVisualLoader: character has no AnimationPlayer; cannot play locomotion.")
+        push_warning("CharacterVisualLoader: character has no AnimationPlayer; locomotion cannot play.")
         return
     _import_animation_clips()
     _play_clip(&"Idle_Loop")
@@ -79,11 +78,16 @@ func _import_animation_clips() -> void:
     var library := _animation_player.get_animation_library(&"")
     if library == null:
         library = AnimationLibrary.new()
-        var add_error := _animation_player.add_animation_library(&"", library)
-        if add_error != OK:
+        if _animation_player.add_animation_library(&"", library) != OK:
             library_root.queue_free()
-            push_warning("CharacterVisualLoader: could not create animation library on character.")
+            push_warning("CharacterVisualLoader: could not create animation library.")
             return
+
+    var target_skeleton := _find_skeleton(character_instance)
+    if target_skeleton == null:
+        library_root.queue_free()
+        push_warning("CharacterVisualLoader: no Skeleton3D found in character; cannot retarget clips.")
+        return
 
     var imported := 0
     for clip in CLIPS:
@@ -93,21 +97,49 @@ func _import_animation_clips() -> void:
         var animation := source_player.get_animation(clip).duplicate(true) as Animation
         if animation == null:
             continue
+        var remapped_tracks := _retarget_bone_tracks(animation, target_skeleton)
+        if remapped_tracks == 0:
+            push_warning("CharacterVisualLoader: clip has no remappable bone tracks: " + String(clip))
+            continue
         if library.has_animation(clip):
             library.remove_animation(clip)
-        var error := library.add_animation(clip, animation)
-        if error == OK:
+        if library.add_animation(clip, animation) == OK:
             imported += 1
-        else:
-            push_warning("CharacterVisualLoader: failed to import clip " + String(clip))
     library_root.queue_free()
-    print("CharacterVisualLoader: imported ", imported, "/", CLIPS.size(), " locomotion clips. Verify retargeted track paths in Godot.")
+    print("CharacterVisualLoader: imported ", imported, "/", CLIPS.size(), " clips with remapped bone tracks. Confirm movement in Godot.")
+
+func _retarget_bone_tracks(animation: Animation, target_skeleton: Skeleton3D) -> int:
+    var count := 0
+    var target_path := String(character_instance.get_path_to(target_skeleton))
+    for i in range(animation.get_track_count()):
+        if animation.track_get_type(i) != Animation.TYPE_POSITION_3D and animation.track_get_type(i) != Animation.TYPE_ROTATION_3D and animation.track_get_type(i) != Animation.TYPE_SCALE_3D:
+            continue
+        var old_path := animation.track_get_path(i)
+        var bone_name := String(old_path.get_concatenated_subnames())
+        if bone_name.is_empty():
+            continue
+        # glTF skeletal animation tracks commonly encode the bone as a subname.
+        # Only remap when that bone exists on the target skeleton.
+        if target_skeleton.find_bone(bone_name) < 0:
+            continue
+        animation.track_set_path(i, NodePath(target_path + ":" + bone_name))
+        count += 1
+    return count
 
 func _find_animation_player(root: Node) -> AnimationPlayer:
     if root is AnimationPlayer:
         return root as AnimationPlayer
     for child in root.get_children():
         var found := _find_animation_player(child)
+        if found != null:
+            return found
+    return null
+
+func _find_skeleton(root: Node) -> Skeleton3D:
+    if root is Skeleton3D:
+        return root as Skeleton3D
+    for child in root.get_children():
+        var found := _find_skeleton(child)
         if found != null:
             return found
     return null
