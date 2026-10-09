@@ -97,6 +97,12 @@ func _load_all_buildings() -> void:
         return
     var loaded := 0
     var batch_start_usec := Time.get_ticks_usec()
+    # Android must remain responsive while the city is built, so it yields
+    # after every placement. CI uses llvmpipe/software rendering, where each
+    # rendered frame can cost hundreds of milliseconds; batch only in that
+    # headless smoke-test mode to avoid measuring renderer overhead as game work.
+    var ci_runtime := OS.get_environment("ROMA_BRT_CI_RUNTIME") == "1"
+    var yield_interval := 12 if ci_runtime else 1
     for i in range(_placements.size()):
         var placement_start_usec := Time.get_ticks_usec()
         _load_placement(i)
@@ -104,9 +110,8 @@ func _load_all_buildings() -> void:
         loaded += 1
         if placement_ms >= 20.0:
             print("[CITY LOAD SLOW] placement=%d/%d time=%.2fms" % [loaded, _placements.size(), placement_ms])
-        # Yield after each building so a single batch of four expensive
-        # instantiations/AABB checks cannot monopolize an Android frame.
-        await get_tree().process_frame
+        if loaded % yield_interval == 0 or loaded == _placements.size():
+            await get_tree().process_frame
         if loaded % 25 == 0:
             var batch_ms := float(Time.get_ticks_usec() - batch_start_usec) / 1000.0
             print("[CITY LOAD] buildings=%d/%d last25=%.1fms" % [loaded, _placements.size(), batch_ms])
