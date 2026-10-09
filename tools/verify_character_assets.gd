@@ -1,72 +1,129 @@
 extends SceneTree
 
+const REQUIRED_CLIPS: Array[StringName] = [
+    &"Idle",
+    &"Jog_Fwd",
+    &"Sprint",
+    &"Crouch_Idle",
+    &"Crouch_Fwd",
+]
+
 func _initialize() -> void:
     call_deferred("_run_checks")
 
 func _run_checks() -> void:
     var character_path := "res://assets/characters/Superhero_Male_FullBody.gltf"
     var animation_path := "res://assets/animations/UAL1_Standard.glb"
-    var required_clips: Array[StringName] = [
-        &"Idle",
-        &"Jog_Fwd",
-        &"Sprint",
-        &"Crouch_Idle",
-        &"Crouch_Fwd",
-    ]
-
     var failed := false
+
     for path in [character_path, animation_path]:
         if not FileAccess.file_exists(path):
-            push_error("CHARACTER ASSET CHECK: missing file: " + path)
+            push_error("CHARACTER ANIMATION CHECK: missing file: " + path)
             failed = true
     if failed:
         quit(1)
         return
 
     var character_resource := load(character_path)
-    if not (character_resource is PackedScene):
-        push_error("CHARACTER ASSET CHECK: GLTF did not import as PackedScene")
-        quit(1)
-        return
-    var character := (character_resource as PackedScene).instantiate()
-    var skeleton := _find_skeleton(character)
-    if skeleton == null:
-        push_error("CHARACTER ASSET CHECK: character has no Skeleton3D")
-        character.free()
-        quit(1)
-        return
-    print("CHARACTER ASSET CHECK: character imported; bones=", skeleton.get_bone_count())
-
     var animation_resource := load(animation_path)
+    if not (character_resource is PackedScene):
+        push_error("CHARACTER ANIMATION CHECK: character GLTF did not import as PackedScene")
+        quit(1)
+        return
     if not (animation_resource is PackedScene):
-        push_error("CHARACTER ASSET CHECK: UAL GLB did not import as PackedScene")
+        push_error("CHARACTER ANIMATION CHECK: UAL GLB did not import as PackedScene")
+        quit(1)
+        return
+
+    var character := (character_resource as PackedScene).instantiate() as Node3D
+    var target_skeleton := _find_skeleton(character)
+    if target_skeleton == null:
+        push_error("CHARACTER ANIMATION CHECK: character has no Skeleton3D")
         character.free()
         quit(1)
         return
-    var animation_root := (animation_resource as PackedScene).instantiate()
-    var player := _find_animation_player(animation_root)
-    if player == null:
-        push_error("CHARACTER ASSET CHECK: UAL GLB has no AnimationPlayer")
-        animation_root.free()
+    print("CHARACTER ANIMATION CHECK: target skeleton bones=", target_skeleton.get_bone_count())
+
+    var source_root := (animation_resource as PackedScene).instantiate()
+    var source_player := _find_animation_player(source_root)
+    if source_player == null:
+        push_error("CHARACTER ANIMATION CHECK: UAL has no AnimationPlayer")
+        source_root.free()
         character.free()
         quit(1)
         return
 
-    var available_clips := player.get_animation_list()
-    print("CHARACTER ASSET CHECK: available clips=", available_clips)
-    for clip in required_clips:
-        if not player.has_animation(clip):
-            push_error("CHARACTER ASSET CHECK: missing clip " + String(clip) + "; available=" + str(available_clips))
+    var target_player := AnimationPlayer.new()
+    target_player.name = "AnimationPlayer"
+    character.add_child(target_player)
+    var library := AnimationLibrary.new()
+    var add_library_error := target_player.add_animation_library(&"", library)
+    if add_library_error != OK:
+        push_error("CHARACTER ANIMATION CHECK: cannot attach AnimationLibrary, error=" + str(add_library_error))
+        source_root.free()
+        character.free()
+        quit(1)
+        return
+
+    var remapped_count := 0
+    var target_skeleton_path := String(target_player.get_path_to(target_skeleton))
+    for clip in REQUIRED_CLIPS:
+        if not source_player.has_animation(clip):
+            push_error("CHARACTER ANIMATION CHECK: source clip missing: " + String(clip))
+            failed = true
+            continue
+        var animation := source_player.get_animation(clip).duplicate(true) as Animation
+        var mapped_tracks := 0
+        var transform_tracks := 0
+        for track_index in range(animation.get_track_count()):
+            var track_type := animation.track_get_type(track_index)
+            if track_type != Animation.TYPE_POSITION_3D and track_type != Animation.TYPE_ROTATION_3D and track_type != Animation.TYPE_SCALE_3D:
+                continue
+            transform_tracks += 1
+            var old_path := animation.track_get_path(track_index)
+            var bone_name := String(old_path.get_concatenated_subnames())
+            if bone_name.is_empty() or target_skeleton.find_bone(bone_name) < 0:
+                continue
+            animation.track_set_path(track_index, NodePath(target_skeleton_path + ":" + bone_name))
+            mapped_tracks += 1
+
+        if mapped_tracks == 0:
+            push_error("CHARACTER ANIMATION CHECK: no bone tracks mapped for " + String(clip) +
+                "; transform tracks=" + str(transform_tracks))
+            failed = true
+            continue
+        var add_error := library.add_animation(StringName(clip), animation)
+        if add_error != OK:
+            push_error("CHARACTER ANIMATION CHECK: failed to add remapped clip " + String(clip) +
+                "; error=" + str(add_error))
+            failed = true
+            continue
+        remapped_count += 1
+        print("CHARACTER ANIMATION CHECK: ", clip, " mapped ", mapped_tracks,
+            "/", transform_tracks, " transform tracks to target skeleton")
+
+    source_root.free()
+    if failed or remapped_count != REQUIRED_CLIPS.size():
+        character.free()
+        quit(1)
+        return
+
+    # Exercise the same AnimationPlayer path used at runtime and ensure playback starts.
+    for clip in [&"Idle", &"Jog_Fwd", &"Sprint", &"Crouch_Idle", &"Crouch_Fwd"]:
+        target_player.play(clip)
+        await process_frame
+        if not target_player.is_playing() or target_player.current_animation != clip:
+            push_error("CHARACTER ANIMATION CHECK: playback did not start for " + String(clip))
             failed = true
         else:
-            print("CHARACTER ASSET CHECK: clip OK: ", clip)
+            print("CHARACTER ANIMATION CHECK: playback started: ", clip)
 
-    animation_root.free()
     character.free()
     if failed:
+        push_error("CHARACTER ANIMATION CHECK: FAIL")
         quit(1)
     else:
-        print("CHARACTER ASSET CHECK: PASS")
+        print("CHARACTER ANIMATION CHECK: PASS — all required clips mapped to target skeleton and playback started")
         quit(0)
 
 func _find_skeleton(root: Node) -> Skeleton3D:
