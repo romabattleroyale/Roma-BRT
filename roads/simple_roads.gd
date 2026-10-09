@@ -149,6 +149,7 @@ func _build_network() -> void:
 
     var corridors: Array[Dictionary] = _build_corridors_between_lots(lot_rects)
     var junctions: Dictionary = {}
+    var junction_degrees: Dictionary = {}
     var corridor_index: int = 0
 
     for corridor in corridors:
@@ -157,8 +158,12 @@ func _build_network() -> void:
         # before this node is allowed to build the road network.
         var a: Vector3 = Vector3(float(corridor["ax"]), 0.0, float(corridor["az"]))
         var b: Vector3 = Vector3(float(corridor["bx"]), 0.0, float(corridor["bz"]))
-        junctions["%.2f,%.2f" % [a.x, a.z]] = a
-        junctions["%.2f,%.2f" % [b.x, b.z]] = b
+        var key_a: String = "%.2f,%.2f" % [a.x, a.z]
+        var key_b: String = "%.2f,%.2f" % [b.x, b.z]
+        junctions[key_a] = a
+        junctions[key_b] = b
+        junction_degrees[key_a] = int(junction_degrees.get(key_a, 0)) + 1
+        junction_degrees[key_b] = int(junction_degrees.get(key_b, 0)) + 1
         await _add_edge(a, b, MAIN_WIDTH, _asphalt, true)
         corridor_index += 1
         if corridor_index % 3 == 0:
@@ -166,7 +171,11 @@ func _build_network() -> void:
 
     var junction_index: int = 0
     for key in junctions:
-        _add_intersection(junctions[key], MAIN_WIDTH)
+        # A corridor endpoint is not automatically an intersection. Only
+        # create the widened asphalt patch and zebra crossings where at least
+        # two corridors actually meet; this avoids crosswalks at dead ends.
+        if int(junction_degrees.get(key, 0)) >= 2:
+            _add_intersection(junctions[key], MAIN_WIDTH)
         junction_index += 1
         # Yield based on progress, not the dictionary's constant total size.
         # This keeps large junction batches responsive on Android without
