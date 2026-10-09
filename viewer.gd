@@ -13,6 +13,9 @@ var looking := false
 var mobile_move := Vector2.ZERO
 var mobile_boost := false
 var terrain_data: Object
+var terrain_node: Node3D
+@export var eye_height := 1.7
+@export var terrain_follow_rate := 12.0
 
 @onready var head: Node3D = $Head
 @onready var cam: Camera3D = $Head/Camera3D
@@ -22,11 +25,7 @@ func _ready() -> void:
     look_at(Vector3(0.0, 0.0, 0.0), Vector3.UP)
     yaw = rotation.y
     pitch = head.rotation.x
-    var bootstrap := get_node_or_null("../TerrainBootstrap")
-    if bootstrap != null:
-        var terrain := bootstrap.get_node_or_null("Terrain3D_HEIGHTMAP_2000x2000")
-        if terrain != null:
-            terrain_data = terrain.get("data") as Object
+    _find_terrain_data()
     var controls: Node = get_node_or_null("../MobileControls")
     if controls:
         controls.move_changed.connect(_on_mobile_move)
@@ -79,9 +78,28 @@ func _physics_process(delta: float) -> void:
     if dir != Vector3.ZERO:
         global_position += dir * current_speed * delta
 
-    if Input.is_key_pressed(KEY_SPACE):
-        global_position.y += current_speed * delta
-    if Input.is_key_pressed(KEY_CTRL):
-        global_position.y -= current_speed * delta
+    # Keep terrain-following independent from camera pitch and movement direction.
+    # Terrain3D height queries use the same world X/Z coordinates as SimpleRoads.
+    _follow_terrain(delta)
 
 
+
+func _find_terrain_data() -> void:
+    var terrain := get_tree().current_scene.find_child("Terrain3D_HEIGHTMAP_2000x2000", true, false)
+    if terrain != null:
+        terrain_node = terrain as Node3D
+        terrain_data = terrain.get("data") as Object
+
+func _follow_terrain(delta: float) -> void:
+    if terrain_data == null:
+        _find_terrain_data()
+    if terrain_data == null or not terrain_data.has_method("get_height"):
+        return
+    var h_variant: Variant = terrain_data.call("get_height", Vector3(global_position.x, 0.0, global_position.z))
+    if not (h_variant is float or h_variant is int):
+        return
+    var ground_y := float(h_variant)
+    if is_nan(ground_y) or is_inf(ground_y):
+        return
+    var target_y := ground_y + eye_height
+    global_position.y = lerpf(global_position.y, target_y, clampf(terrain_follow_rate * delta, 0.0, 1.0))
