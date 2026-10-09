@@ -52,9 +52,11 @@ func _run_checks() -> void:
         quit(1)
         return
 
+    var available_clips := player.get_animation_list()
+    print("CHARACTER ASSET CHECK: available clips=", available_clips)
     for clip in required_clips:
         if not player.has_animation(clip):
-            push_error("CHARACTER ASSET CHECK: missing clip " + String(clip))
+            push_error("CHARACTER ASSET CHECK: missing clip " + String(clip) + "; available=" + str(available_clips))
             failed = true
         else:
             print("CHARACTER ASSET CHECK: clip OK: ", clip)
