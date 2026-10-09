@@ -1,4 +1,4 @@
-[gd_scene load_steps=20 format=3]
+[gd_scene load_steps=21 format=3]
 
 [ext_resource type="Script" path="res://terrain_runtime_android_safe.gd" id="1_rt"]
 [ext_resource type="Script" path="res://viewer.gd" id="2_viewer"]
@@ -18,6 +18,7 @@
 [ext_resource type="Script" path="res://touch_look_area.gd" id="16_look"]
 [ext_resource type="Script" path="res://touch_buttons.gd" id="17_buttons"]
 [ext_resource type="Script" path="res://platform_detector.gd" id="18_platform"]
+[ext_resource type="Script" path="res://performance_monitor.gd" id="19_perf"]
 
 [sub_resource type="ProceduralSkyMaterial" id="SunsetSkyMaterial"]
 sky_top_color = Color(0.15, 0.10, 0.35, 1)
@@ -194,3 +195,19 @@ offset_right = 950.0
 offset_bottom = 250.0
 text = "Avvio import RAW…"
 theme_override_font_sizes/font_size = 14
+
+[node name="PerformanceMonitor" type="CanvasLayer" parent="."]
+layer = 120
+script = ExtResource("19_perf")
+
+[node name="Panel" type="PanelContainer" parent="PerformanceMonitor"]
+offset_left = 18.0
+offset_top = 18.0
+offset_right = 330.0
+offset_bottom = 340.0
+mouse_filter = 2
+
+[node name="Label" type="Label" parent="PerformanceMonitor/Panel"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 13
+text = "Performance Monitor: avvio..."
