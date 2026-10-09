@@ -18,18 +18,9 @@ var _aligned_buildings_map: Dictionary = {}
 func _ready() -> void:
     call_deferred("_run")
 
-func _process(_delta: float) -> void:
-    if _terrain_data == null:
-        return
-    var scene := get_tree().current_scene
-    if scene == null:
-        return
-    var bridge := scene.get_node_or_null("V11BuildingBridge")
-    if bridge == null or not bool(bridge.get("built")):
-        return
-    _align_city(bridge)
-    if not _aligned_roads:
-        _align_roads()
+# Alignment is intentionally one-shot. _run() waits for Terrain3D and the
+# building bridge, then performs the city/road alignment once; doing this in
+# _process caused repeated full-city scans on Android.
 
 func _run() -> void:
     for _i in range(RETRY_FRAMES):
