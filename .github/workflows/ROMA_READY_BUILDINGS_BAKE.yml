@@ -109,12 +109,18 @@ jobs:
           from pathlib import Path
           p = Path('city_library/buildings/houses/roma_architecture_library_v11/scripts/library_building_system.gd')
           s = p.read_text()
-          old = '''func _safe_texture(path: String) -> Texture2D:\n    var image := Image.load_from_file(path)\n    if image == null or image.is_empty(): return null\n    return ImageTexture.create_from_image(image)'''
-          new = '''func _safe_texture(path: String) -> Texture2D:\n    return ResourceLoader.load(path, "Texture2D", ResourceLoader.CACHE_MODE_REUSE) as Texture2D'''
-          if old in s:
-              p.write_text(s.replace(old, new, 1))
-          elif new not in s:
-              raise SystemExit('ERROR: unexpected _safe_texture implementation')
+          import re
+          pattern = r'(?ms)^func _safe_texture\(path: String\) -> Texture2D:\n(?:^[ \t]+.*\n?)+'
+          new = '''func _safe_texture(path: String) -> Texture2D:
+              return ResourceLoader.load(path, "Texture2D", ResourceLoader.CACHE_MODE_REUSE) as Texture2D
+          '''
+          match = re.search(pattern, s)
+          if not match:
+              raise SystemExit('ERROR: _safe_texture function not found')
+          body = match.group(0)
+          if 'ResourceLoader.load(path, "Texture2D", ResourceLoader.CACHE_MODE_REUSE)' not in body:
+              s = s[:match.start()] + new + s[match.end():]
+              p.write_text(s)
           print('BUILDING_TEXTURE_LOADER=SHARED_RESOURCE_CACHE')
           PY
 
