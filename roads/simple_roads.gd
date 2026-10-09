@@ -607,10 +607,12 @@ func _add_intersection(center: Vector3, width: float) -> void:
     # Crosswalks run across each road, with stripes spaced along the approach.
     # This keeps the zebra markings inside the 8m carriageway instead of outside it.
     for offset in [-5.0, 5.0]:
-        _add_zebra(center + Vector3(offset, 0.0, 0.0), Vector3.RIGHT)
-        _add_stop_line(center + Vector3(offset * 0.72, 0.0, 0.0), Vector3.RIGHT)
-        _add_zebra(center + Vector3(0.0, 0.0, offset), Vector3.FORWARD)
-        _add_stop_line(center + Vector3(0.0, 0.0, offset * 0.72), Vector3.FORWARD)
+        # Markings must cross the direction of travel, not run parallel to it.
+        # Horizontal approaches get north-south stripes; vertical approaches get east-west stripes.
+        _add_zebra(center + Vector3(offset, 0.0, 0.0), Vector3.FORWARD)
+        _add_stop_line(center + Vector3(offset * 0.72, 0.0, 0.0), Vector3.FORWARD)
+        _add_zebra(center + Vector3(0.0, 0.0, offset), Vector3.RIGHT)
+        _add_stop_line(center + Vector3(0.0, 0.0, offset * 0.72), Vector3.RIGHT)
     var nasone_center: Vector3 = center + Vector3(4.8, 0.0, 4.8)
     if _prop_position_clear(nasone_center, 3.0):
         _add_nasone_prop(nasone_center, Vector3.FORWARD)
