@@ -12,6 +12,12 @@
 [ext_resource type="Script" path="res://roads/simple_roads.gd" id="10_roads"]
 [ext_resource type="Script" path="res://city_library/poi/poi_manager.gd" id="11_poi"]
 [ext_resource type="Script" path="res://character_visual_loader.gd" id="12_character_visual"]
+[ext_resource type="Script" path="res://player_camera.gd" id="13_camera"]
+[ext_resource type="Script" path="res://player_controller.gd" id="14_controller"]
+[ext_resource type="Script" path="res://virtual_joystick.gd" id="15_joystick"]
+[ext_resource type="Script" path="res://touch_look_area.gd" id="16_look"]
+[ext_resource type="Script" path="res://touch_buttons.gd" id="17_buttons"]
+[ext_resource type="Script" path="res://platform_detector.gd" id="18_platform"]
 
 [sub_resource type="Environment" id="Env"]
 background_mode = 1
@@ -83,19 +89,59 @@ script = ExtResource("2_viewer")
 [node name="CharacterVisual" type="Node3D" parent="Viewer"]
 script = ExtResource("12_character_visual")
 
-[node name="Head" type="Node3D" parent="Viewer"]
-position = Vector3(0.0, 1.5, 0.0)
+[node name="CameraPivot" type="Node3D" parent="Viewer"]
+script = ExtResource("13_camera")
 
-[node name="CameraSpringArm" type="SpringArm3D" parent="Viewer/Head"]
+[node name="SpringArm3D" type="SpringArm3D" parent="Viewer/CameraPivot"]
 spring_length = 4.5
 margin = 0.2
 
-[node name="Camera3D" type="Camera3D" parent="Viewer/Head/CameraSpringArm"]
-position = Vector3(0.55, 0.1, 0.0)
+[node name="Camera3D" type="Camera3D" parent="Viewer/CameraPivot/SpringArm3D"]
+position = Vector3(0.0, 0.0, 0.0)
 current = false
 fov = 80.0
-near = 0.1
-far = 10000.0
+near = 0.05
+far = 4000.0
+
+[node name="PlayerController" type="Node" parent="."]
+script = ExtResource("14_controller")
+
+[node name="TouchHUD" type="Control" parent="HUD"]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+
+[node name="VirtualJoystick" type="Control" parent="HUD/TouchHUD"]
+layout_mode = 0
+offset_left = 35.0
+offset_top = 485.0
+offset_right = 235.0
+offset_bottom = 685.0
+script = ExtResource("15_joystick")
+
+[node name="TouchLookArea" type="Control" parent="HUD/TouchHUD"]
+layout_mode = 0
+offset_left = 512.0
+offset_top = 0.0
+offset_right = 1280.0
+offset_bottom = 720.0
+script = ExtResource("16_look")
+
+[node name="TouchButtons" type="Control" parent="HUD/TouchHUD"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+script = ExtResource("17_buttons")
+
+[node name="PlatformDetector" type="Node" parent="."]
+script = ExtResource("18_platform")
 
 [node name="HUD" type="CanvasLayer" parent="."]
 script = ExtResource("3_hud")
