@@ -609,10 +609,12 @@ func _add_intersection(center: Vector3, width: float) -> void:
     for offset in [-5.0, 5.0]:
         # Markings must cross the direction of travel, not run parallel to it.
         # Horizontal approaches get north-south stripes; vertical approaches get east-west stripes.
+        # Zebra bars cross the carriageway; stop lines must also be perpendicular
+        # to traffic, not parallel to the approach direction.
         _add_zebra(center + Vector3(offset, 0.0, 0.0), Vector3.FORWARD)
-        _add_stop_line(center + Vector3(offset * 0.72, 0.0, 0.0), Vector3.FORWARD)
+        _add_stop_line(center + Vector3(offset * 0.72, 0.0, 0.0), Vector3.RIGHT)
         _add_zebra(center + Vector3(0.0, 0.0, offset), Vector3.RIGHT)
-        _add_stop_line(center + Vector3(0.0, 0.0, offset * 0.72), Vector3.RIGHT)
+        _add_stop_line(center + Vector3(0.0, 0.0, offset * 0.72), Vector3.FORWARD)
     var nasone_center: Vector3 = center + Vector3(4.8, 0.0, 4.8)
     if _prop_position_clear(nasone_center, 3.0):
         _add_nasone_prop(nasone_center, Vector3.FORWARD)
