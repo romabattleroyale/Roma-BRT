@@ -50,9 +50,14 @@ func _bootstrap_v37() -> void:
     push_warning("V37: Terrain3D non pronto entro 60 secondi; integrazione non avviata")
 
 func _process(delta: float) -> void:
+    var _profile_start_usec := Time.get_ticks_usec()
     fire_time += delta
     animate_fire()
     animate_camera(delta)
+
+    var _profiler := get_node_or_null("/root/ScriptProfiler")
+    if _profiler != null:
+        _profiler.record_process("v37_integration/v37_world.gd", Time.get_ticks_usec() - _profile_start_usec)
 
 func load_map() -> void:
     var file := FileAccess.open("res://data/scene_3d.json", FileAccess.READ)
