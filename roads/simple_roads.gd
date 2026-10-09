@@ -163,9 +163,14 @@ func _build_network() -> void:
         if corridor_index % 3 == 0:
             await get_tree().process_frame
 
+    var junction_index: int = 0
     for key in junctions:
         _add_intersection(junctions[key], MAIN_WIDTH)
-        if junctions.size() % 8 == 0:
+        junction_index += 1
+        # Yield based on progress, not the dictionary's constant total size.
+        # This keeps large junction batches responsive on Android without
+        # accidentally yielding every frame or never yielding at all.
+        if junction_index % 8 == 0:
             await get_tree().process_frame
 
     print("ROMA ROADS V2: PASS network=Urban_Grid_corridors collision_safe authoritative_continuous=true buildings_reserved=%d corridors=%d sidewalks=enabled drainage=enabled street_furniture=enabled" % [_building_bounds.size(), corridors.size()])
