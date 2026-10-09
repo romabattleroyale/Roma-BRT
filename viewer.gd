@@ -17,8 +17,8 @@ var terrain_node: Node3D
 @export var eye_height := 1.7
 @export var terrain_follow_rate := 12.0
 
-@onready var head: Node3D = $Head
-@onready var cam: Camera3D = $Head/CameraSpringArm/Camera3D
+@onready var head: Node3D = $CameraPivot
+@onready var cam: Camera3D = $CameraPivot/SpringArm3D/Camera3D
 
 func _ready() -> void:
     Input.set_mouse_mode(Input.MOUSE_MODE_VISIBLE)
