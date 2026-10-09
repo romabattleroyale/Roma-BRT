@@ -146,6 +146,6 @@ func _sample_ground_height(x: float, z: float) -> float:
         if terrain != null:
             var data: Object = terrain.get("data") as Object
             if data != null and data.has_method("get_height"):
-                return float(data.call("get_height", Vector3(x, 0.0, z)))
+                return float(data.call("get_height", Vector3(x - 1000.0, 0.0, z - 1000.0)))
     push_warning("Terrain3D non disponibile per il posizionamento player; uso quota zero.")
     return 0.0
