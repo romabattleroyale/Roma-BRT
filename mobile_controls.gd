@@ -7,12 +7,15 @@ extends Control
 signal move_changed(value: Vector2)
 signal look_delta(value: Vector2)
 signal boost_changed(active: bool)
+signal camera_toggle_requested
 
 var joystick_center := Vector2.ZERO
 var joystick_value := Vector2.ZERO
 var joystick_touch := -1
 var boost_rect := Rect2()
 var boost_touch := -1
+var camera_toggle_rect := Rect2()
+var camera_toggle_touch := -1
 
 func _ready() -> void:
     set_process_input(true)
@@ -27,6 +30,7 @@ func _layout() -> void:
     var s: Vector2 = size
     joystick_center = Vector2(145.0, s.y - 145.0)
     boost_rect = Rect2(s.x - 150.0, s.y - 130.0, 105.0, 70.0)
+    camera_toggle_rect = Rect2(s.x - 300.0, 24.0, 270.0, 62.0)
 
 func _draw() -> void:
     _layout()
@@ -39,6 +43,8 @@ func _draw() -> void:
     var c: Color = Color(0.78, 0.15, 0.10, 0.55) if boost_touch != -1 else Color(0.05, 0.08, 0.12, 0.38)
     draw_style_box(_box(c, 14.0, Color(1,1,1,0.45), 2.0), boost_rect)
     draw_string(ThemeDB.fallback_font, boost_rect.position + Vector2(25, 43), "CORRI", HORIZONTAL_ALIGNMENT_LEFT, -1, 20, Color.WHITE)
+    draw_style_box(_box(Color(0.05, 0.08, 0.12, 0.60), 12.0, Color(1,1,1,0.55), 2.0), camera_toggle_rect)
+    draw_string(ThemeDB.fallback_font, camera_toggle_rect.position + Vector2(20, 39), "CAMBIA VISUALE", HORIZONTAL_ALIGNMENT_LEFT, -1, 20, Color.WHITE)
     draw_string(ThemeDB.fallback_font, Vector2(size.x - 285.0, size.y - 28.0), "DESTRA: ZOOM / PITCH", HORIZONTAL_ALIGNMENT_LEFT, -1, 14, Color(1,1,1,0.65))
 
 func _box(bg: Color, radius: float, border: Color, width: float) -> StyleBoxFlat:
@@ -53,6 +59,11 @@ func _input(event: InputEvent) -> void:
     if event is InputEventScreenTouch:
         var p: Vector2 = event.position
         if event.pressed:
+            if camera_toggle_rect.has_point(p):
+                camera_toggle_touch = event.index
+                camera_toggle_requested.emit()
+                get_viewport().set_input_as_handled()
+                return
             if boost_rect.has_point(p):
                 boost_touch = event.index
                 boost_changed.emit(true)
