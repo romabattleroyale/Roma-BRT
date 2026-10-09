@@ -598,11 +598,11 @@ func _add_box_between(p0: Vector3, p1: Vector3, width: float, height: float, mat
     instance.look_at_from_position(midpoint, midpoint + direction.normalized(), Vector3.UP)
 
 func _add_intersection(center: Vector3, width: float) -> void:
-    # Intersections are part of the reserved road envelope. Never remove a
-    # junction after the graph has declared it.
+    # Junction patch must overlap the corridor mesh slightly on all sides.
+    # This avoids hairline terrain gaps caused by floating-point edge mismatch.
     if not _area_clear(center, width, width):
         push_error("ROMA ROADS V2: junction validation FAILED at %s" % center)
-    _add_terrain_road_patch(center, width, _asphalt)
+    _add_terrain_road_patch(center, width + 0.8, _asphalt)
 
     # Crosswalks run across each road, with stripes spaced along the approach.
     # This keeps the zebra markings inside the 8m carriageway instead of outside it.
