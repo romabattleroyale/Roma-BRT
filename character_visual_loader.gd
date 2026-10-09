@@ -78,7 +78,11 @@ func _import_animation_clips() -> void:
         push_warning("CharacterVisualLoader: no AnimationPlayer in animation library.")
         return
 
-    var library := _animation_player.get_animation_library(&"")
+    var library: AnimationLibrary
+    if _animation_player.has_animation_library(&""):
+        library = _animation_player.get_animation_library(&"")
+    else:
+        library = null
     if library == null:
         library = AnimationLibrary.new()
         if _animation_player.add_animation_library(&"", library) != OK:
