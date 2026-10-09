@@ -119,6 +119,46 @@ func _run_checks() -> void:
             print("CHARACTER ANIMATION CHECK: playback started: ", clip)
 
     character.free()
+
+    # Exercise the actual runtime loader and its five metadata-driven locomotion states.
+    var runtime_root := Node3D.new()
+    root.add_child(runtime_root)
+    runtime_root.set_meta("locomotion_moving", false)
+    runtime_root.set_meta("locomotion_sprinting", false)
+    runtime_root.set_meta("locomotion_crouching", false)
+    var visual_loader := Node3D.new()
+    visual_loader.name = "CharacterVisual"
+    visual_loader.set_script(load("res://character_visual_loader.gd"))
+    runtime_root.add_child(visual_loader)
+    await process_frame
+    await physics_frame
+    await process_frame
+    var runtime_player := _find_animation_player(visual_loader)
+    if runtime_player == null:
+        push_error("CHARACTER ANIMATION CHECK: runtime loader did not create an AnimationPlayer")
+        failed = true
+    else:
+        var states := [
+            {"name": "idle", "moving": false, "sprinting": false, "crouching": false, "clip": &"Idle_Loop"},
+            {"name": "jog", "moving": true, "sprinting": false, "crouching": false, "clip": &"Jog_Fwd_Loop"},
+            {"name": "sprint", "moving": true, "sprinting": true, "crouching": false, "clip": &"Sprint_Loop"},
+            {"name": "crouch idle", "moving": false, "sprinting": false, "crouching": true, "clip": &"Crouch_Idle_Loop"},
+            {"name": "crouch move", "moving": true, "sprinting": false, "crouching": true, "clip": &"Crouch_Fwd_Loop"},
+        ]
+        for state in states:
+            runtime_root.set_meta("locomotion_moving", state.moving)
+            runtime_root.set_meta("locomotion_sprinting", state.sprinting)
+            runtime_root.set_meta("locomotion_crouching", state.crouching)
+            await physics_frame
+            await process_frame
+            if runtime_player.current_animation != state.clip:
+                push_error("CHARACTER ANIMATION CHECK: runtime state '" + state.name + "' selected " + String(runtime_player.current_animation) + ", expected " + String(state.clip))
+                failed = true
+            else:
+                print("CHARACTER ANIMATION CHECK: runtime state ", state.name, " -> ", state.clip)
+    runtime_root.queue_free()
+    await process_frame
+
     if failed:
         push_error("CHARACTER ANIMATION CHECK: FAIL")
         quit(1)
