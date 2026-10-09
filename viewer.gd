@@ -83,6 +83,14 @@ func _physics_process(delta: float) -> void:
     _follow_terrain_surface()
 
 func _follow_terrain_surface() -> void:
+    # Terrain3D is initialized asynchronously by TerrainBootstrap. Reacquire its
+    # data object until it exists instead of permanently caching a null reference.
+    if terrain_data == null:
+        var bootstrap := get_node_or_null("../TerrainBootstrap")
+        if bootstrap != null:
+            var terrain := bootstrap.get_node_or_null("Terrain3D_HEIGHTMAP_2000x2000")
+            if terrain != null:
+                terrain_data = terrain.get("data") as Object
     if terrain_data == null or not terrain_data.has_method("get_height"):
         return
     # Terrain3D stores heights in terrain-local coordinates; the map is offset by 1000 m.
