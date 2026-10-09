@@ -237,18 +237,16 @@ func _node_world_aabb(root: Node) -> AABB:
         if node is MeshInstance3D:
             var mesh_instance := node as MeshInstance3D
             var local_aabb := mesh_instance.get_aabb()
-            var corners := [
-                Vector3(local_aabb.position.x, local_aabb.position.y, local_aabb.position.z),
-                Vector3(local_aabb.end.x, local_aabb.position.y, local_aabb.position.z),
-                Vector3(local_aabb.position.x, local_aabb.end.y, local_aabb.position.z),
-                Vector3(local_aabb.end.x, local_aabb.end.y, local_aabb.position.z),
-                Vector3(local_aabb.position.x, local_aabb.position.y, local_aabb.end.z),
-                Vector3(local_aabb.end.x, local_aabb.position.y, local_aabb.end.z),
-                Vector3(local_aabb.position.x, local_aabb.end.y, local_aabb.end.z),
-                Vector3(local_aabb.end.x, local_aabb.end.y, local_aabb.end.z)
-            ]
-            for corner in corners:
-                var world_point: Vector3 = mesh_instance.global_transform * corner
+            # Iterate the eight AABB corners without allocating a temporary Array
+            # and eight Vector3 objects for every mesh on every clearance audit.
+            var mesh_transform := mesh_instance.global_transform
+            for corner_index in range(8):
+                var corner := Vector3(
+                    local_aabb.end.x if (corner_index & 1) != 0 else local_aabb.position.x,
+                    local_aabb.end.y if (corner_index & 2) != 0 else local_aabb.position.y,
+                    local_aabb.end.z if (corner_index & 4) != 0 else local_aabb.position.z
+                )
+                var world_point: Vector3 = mesh_transform * corner
                 if not has_bounds:
                     result = AABB(world_point, Vector3.ZERO)
                     has_bounds = true
