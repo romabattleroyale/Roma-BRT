@@ -38,21 +38,21 @@ background_mode = 2
 background_color = Color(0.43, 0.58, 0.68, 1)
 sky = SubResource("SunsetSky")
 ambient_light_source = 3
-ambient_light_color = Color(0.5, 0.4, 0.35, 1)
+ambient_light_color = Color(0.72, 0.68, 0.58, 1)
 ambient_light_sky_contribution = 0.8
-ambient_light_energy = 1.5
+ambient_light_energy = 1.8
 tonemap_mode = 2
-tonemap_exposure = 1.8
+tonemap_exposure = 1.35
 tonemap_white = 8.0
 fog_enabled = true
-fog_light_color = Color(0.72, 0.48, 0.38, 1)
-fog_light_energy = 0.3
-fog_density = 0.0005
+fog_light_color = Color(0.78, 0.62, 0.48, 1)
+fog_light_energy = 0.55
+fog_density = 0.00032
 fog_aerial_perspective = 0.15
 fog_sky_affect = 0.1
 glow_enabled = true
-glow_intensity = 0.5
-glow_strength = 1.0
+glow_intensity = 0.28
+glow_strength = 0.75
 glow_bloom = 0.1
 glow_blend_mode = 0
 
@@ -63,8 +63,8 @@ environment = SubResource("Env")
 
 [node name="Sun" type="DirectionalLight3D" parent="."]
 rotation_degrees = Vector3(-15, 45, 0)
-light_color = Color(1.0, 0.7, 0.45, 1)
-light_energy = 2.0
+light_color = Color(1.0, 0.82, 0.62, 1)
+light_energy = 1.55
 shadow_enabled = true
 directional_shadow_max_distance = 250.0
 directional_shadow_fade_start = 0.8
@@ -73,8 +73,8 @@ shadow_bias = 0.03
 
 [node name="TerrainFillLight" type="DirectionalLight3D" parent="."]
 rotation_degrees = Vector3(-38, -135, 0)
-light_color = Color(0.4, 0.5, 0.7, 1)
-light_energy = 0.5
+light_color = Color(0.62, 0.68, 0.78, 1)
+light_energy = 0.85
 shadow_enabled = false
 
 [node name="TerrainBootstrap" type="Node3D" parent="."]
