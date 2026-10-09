@@ -28,6 +28,8 @@ var _city_root: Node3D
 var _templates: Array[PackedScene] = []
 var _placements: Array = []
 var _variation_script: RefCounted
+# Cache Terrain3D once: recursive find_child() on every placement needlessly scans the scene tree 587 times.
+var _terrain_node: Node
 var _road_corridors: Array[Dictionary] = []
 var _placed_bounds: Array[AABB] = []
 
@@ -345,13 +347,17 @@ func _find_non_overlapping_position(root: Node3D, original: Vector3, resolved: V
 func _get_terrain_height(x: float, z: float) -> float:
     if not is_finite(x) or not is_finite(z):
         return 0.0
-    var terrain := get_tree().current_scene.find_child("Terrain3D_HEIGHTMAP_2000x2000", true, false)
-    if terrain != null and terrain.has_method("get_height"):
-        var h := float(terrain.get_height(Vector3(x, 0.0, z)))
+    # Resolve the Terrain3D node lazily once, then reuse it for all 587 placements.
+    # The height query remains synchronous; per-placement stage timings will show
+    # whether get_height() itself is a bottleneck on the target device.
+    if not is_instance_valid(_terrain_node):
+        _terrain_node = get_tree().current_scene.find_child("Terrain3D_HEIGHTMAP_2000x2000", true, false)
+    if _terrain_node != null and _terrain_node.has_method("get_height"):
+        var h := float(_terrain_node.get_height(Vector3(x, 0.0, z)))
         if is_finite(h):
             return h
-    if terrain != null:
-        var data = terrain.get("data")
+    if _terrain_node != null:
+        var data = _terrain_node.get("data")
         if data != null and data.has_method("get_height"):
             var h2 := float(data.get_height(Vector3(x, 0.0, z)))
             if is_finite(h2):
