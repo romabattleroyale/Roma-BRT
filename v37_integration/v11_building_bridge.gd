@@ -247,8 +247,11 @@ func _xz_overlap(a: AABB, b: AABB, gap: float = 0.0) -> bool:
 
 func _resolve_road_clearance(root: Node3D, requested: Vector3) -> Vector3:
     root.global_position = requested
+    # The building's mesh bounds do not change during road-clearance translation.
+    # Compute the expensive mesh-tree AABB once, then translate that AABB alongside
+    # the root instead of walking every MeshInstance3D on every pass.
+    var bounds := _node_world_aabb(root)
     for _pass in range(12):
-        var bounds := _node_world_aabb(root)
         var moved := false
         for corridor in _road_corridors:
             var ax := float(corridor["ax"]); var az := float(corridor["az"])
@@ -261,7 +264,9 @@ func _resolve_road_clearance(root: Node3D, requested: Vector3) -> Vector3:
                     var target_z := line_z - ROAD_RESERVATION_CLEARANCE if bounds.get_center().z <= line_z else line_z + ROAD_RESERVATION_CLEARANCE
                     var delta_z := target_z - (bounds.end.z if bounds.get_center().z <= line_z else bounds.position.z)
                     if absf(delta_z) > 0.01:
-                        root.global_position = root.global_position + Vector3(0.0, delta_z, 0.0)
+                        var shift_z := Vector3(0.0, delta_z, 0.0)
+                        root.global_position += shift_z
+                        bounds.position += shift_z
                         moved = true
                         break
             else:
@@ -272,7 +277,9 @@ func _resolve_road_clearance(root: Node3D, requested: Vector3) -> Vector3:
                     var target_x := line_x - ROAD_RESERVATION_CLEARANCE if bounds.get_center().x <= line_x else line_x + ROAD_RESERVATION_CLEARANCE
                     var delta_x := target_x - (bounds.end.x if bounds.get_center().x <= line_x else bounds.position.x)
                     if absf(delta_x) > 0.01:
-                        root.global_position = root.global_position + Vector3(delta_x, 0.0, 0.0)
+                        var shift_x := Vector3(delta_x, 0.0, 0.0)
+                        root.global_position += shift_x
+                        bounds.position += shift_x
                         moved = true
                         break
         if not moved:
