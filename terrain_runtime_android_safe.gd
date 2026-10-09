@@ -17,7 +17,7 @@ func _setup() -> void:
 	terrain.name = "Terrain3D_HEIGHTMAP_2000x2000"
 	terrain.set("region_size", 512)
 	terrain.vertex_spacing = MAP_SIZE_M / 1080.0
-	terrain.mesh_lods = 7
+	terrain.mesh_lods = 5 # Android performance: fewer Terrain3D LOD levels while retaining the full heightmap
 	terrain.show_checkered = false
 	terrain.show_colormap = false
 	terrain.show_grey = false
