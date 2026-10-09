@@ -43,6 +43,8 @@ func _run_checks() -> void:
         quit(1)
         return
     print("CHARACTER ANIMATION CHECK: target skeleton bones=", target_skeleton.get_bone_count())
+    root.add_child(character)
+    await process_frame
 
     var source_root := (animation_resource as PackedScene).instantiate()
     var source_player := _find_animation_player(source_root)
@@ -109,15 +111,27 @@ func _run_checks() -> void:
         quit(1)
         return
 
-    # Exercise the same AnimationPlayer path used at runtime and ensure playback starts.
+    # Verify actual Skeleton3D pose changes, not just that AnimationPlayer accepts a clip.
     for clip in [&"Idle", &"Jog_Fwd", &"Sprint", &"Crouch_Idle", &"Crouch_Fwd"]:
+        var before_poses: Array[Quaternion] = []
+        for bone_index in range(target_skeleton.get_bone_count()):
+            before_poses.append(target_skeleton.get_bone_pose_rotation(bone_index))
         target_player.play(clip)
+        target_player.advance(0.25)
         await process_frame
         if not target_player.is_playing() or target_player.current_animation != clip:
             push_error("CHARACTER ANIMATION CHECK: playback did not start for " + String(clip))
             failed = true
+            continue
+        var changed_bones := 0
+        for bone_index in range(target_skeleton.get_bone_count()):
+            if not target_skeleton.get_bone_pose_rotation(bone_index).is_equal_approx(before_poses[bone_index]):
+                changed_bones += 1
+        if changed_bones == 0:
+            push_error("CHARACTER ANIMATION CHECK: clip played but did not change any target bone poses: " + String(clip))
+            failed = true
         else:
-            print("CHARACTER ANIMATION CHECK: playback started: ", clip)
+            print("CHARACTER ANIMATION CHECK: pose verified ", clip, " changed_bones=", changed_bones)
 
     character.free()
 
