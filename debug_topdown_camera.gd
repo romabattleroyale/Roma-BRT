@@ -54,7 +54,7 @@ func _process(delta: float) -> void:
         break
 
 func _on_virtual_move_changed(value: Vector2) -> void:
-    virtual_move = value
+    virtual_move = Vector2.ZERO if player_mode else value
 
 func pan_from_controller(move: Vector2, delta: float) -> void:
     var speed := controller_move_speed * maxf(distance / 900.0, 0.45)
