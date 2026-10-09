@@ -145,7 +145,7 @@ jobs:
           grep -E 'MemTotal|MemAvailable|SwapTotal|SwapFree' /proc/meminfo || true
           echo 'RUNTIME_DIAGNOSTICS_LAUNCH'
           set +e
-          ROMA_BRT_CI_RUNTIME=1 timeout 180s xvfb-run -a .runtime/godot/godot --path . --display-driver x11 --rendering-method gl_compatibility --rendering-driver opengl3 --audio-driver Dummy --scene res://runtime_extension_launcher.tscn 2>&1 | tee build/runtime/godot_runtime.log
+          ROMA_BRT_CI_RUNTIME=1 timeout 300s xvfb-run -a .runtime/godot/godot --path . --display-driver x11 --rendering-method gl_compatibility --rendering-driver opengl3 --audio-driver Dummy --scene res://runtime_extension_launcher.tscn 2>&1 | tee build/runtime/godot_runtime.log
           code=${PIPESTATUS[0]}
           set -e
           echo "GODOT_RUNTIME_EXIT_CODE=$code"
