@@ -203,7 +203,23 @@ jobs:
           git fetch origin main
           git stash push --include-untracked --message "roma-bake-generated-changes"
           git rebase origin/main
-          git stash pop
+          # Existing baked templates may have changed on main while this job ran.
+          # Prefer the freshly validated output from this bake for those generated files,
+          # while retaining the rebased source/material changes from the stash.
+          if ! git stash pop; then
+            if [ -d .git/rebase-merge ] || [ -d .git/rebase-apply ]; then
+              echo 'ERROR: unexpected rebase conflict while restoring bake changes'
+              exit 1
+            fi
+            git checkout --theirs -- baked_city/ready_templates
+            git add -A baked_city/ready_templates
+            # Fail safely if the stash restore conflicted outside the generated templates.
+            if git diff --name-only --diff-filter=U | grep -v '^baked_city/ready_templates/' | grep -q .; then
+              echo 'ERROR: unresolved conflicts outside baked_city/ready_templates'
+              git diff --name-only --diff-filter=U
+              exit 1
+            fi
+          fi
 
           git add -A baked_city/ready_templates v37_integration/bake_ready_buildings_120.gd v37_integration/validate_ready_templates_memory.gd v37_integration/v11_building_bridge.gd v37_integration/distribute_ready_buildings_quarters.gd v37_integration/terrain_surface_alignment.gd city_library/buildings/houses/roma_architecture_library_v11/scripts/modular_house_factory.gd city_library/buildings/houses/roma_architecture_library_v11/scripts/library_building_system.gd v37_integration/mobile_visual_variation.gd tools/normalize_v11_texture_paths.gd tools/optimize_v11_textures_mobile.gd tools/enforce_v11_facade_style.gd main.tscn runtime_extension_launcher.gd runtime_extension_launcher.tscn terrain_runtime.gd terrain_runtime_android_safe.gd .github/workflows/ROMA_READY_BUILDINGS_BAKE.yml .github/workflows/ROMA_BRT_RUNTIME.yml
           if git diff --cached --quiet; then exit 0; fi
