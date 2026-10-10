@@ -1,12 +1,14 @@
 #!/data/data/com.termux/files/usr/bin/bash
 # Guarded GitHub -> Godot project sync for Termux.
-# Copies only files changed by new remote commits. Local divergences are backed up and skipped.
+# First run copies only missing files. Later runs copy changed remote files if the destination
+# still matches the previous Git version; local edits are backed up and skipped.
 set -u
 
 REPO="$HOME/Roma-BRT-git"
 PROJECT="$HOME/storage/shared/Documents/roma-brt-main"
 LOG="$HOME/roma-brt-auto-sync.log"
 BACKUP="$HOME/roma-brt-sync-backups"
+BASELINE="$HOME/.roma-brt-auto-sync-baseline"
 INTERVAL=60
 
 log() { printf '[%s] %s\n' "$(date '+%F %T')" "$*" >> "$LOG"; }
@@ -16,24 +18,43 @@ if [ ! -d "$REPO/.git" ] || [ ! -d "$PROJECT" ]; then
   exit 1
 fi
 
+# Seed the Godot folder conservatively: only add missing tracked files; never replace existing files.
+if [ ! -f "$BASELINE" ]; then
+  log "Initial sync: copying missing files only."
+  while IFS= read -r REL; do
+    [ -n "$REL" ] || continue
+    case "$REL" in .git/*|.godot/*|*.import|tools/android_auto_sync.sh) continue ;; esac
+    SRC="$REPO/$REL"
+    DST="$PROJECT/$REL"
+    [ -f "$SRC" ] || continue
+    if [ ! -e "$DST" ]; then
+      mkdir -p "$(dirname "$DST")"
+      if cp "$SRC" "$DST"; then log "ADDED: $REL"; else log "ERROR adding $REL"; fi
+    else
+      log "INITIAL SKIP existing file: $REL"
+    fi
+  done < <(git -C "$REPO" ls-files)
+  git -C "$REPO" rev-parse HEAD > "$BASELINE"
+  log "Initial baseline saved."
+fi
+
 while true; do
-  if ! git -C "$REPO" fetch origin main >> "$LOG" 2>&1; then
+  # Keep routine successful fetch output out of the log; record only failures.
+  if ! git -C "$REPO" fetch -q origin main 2>> "$LOG"; then
     log "Fetch failed; retrying in ${INTERVAL}s."
     sleep "$INTERVAL"
     continue
   fi
 
-  OLD="$(git -C "$REPO" rev-parse HEAD 2>/dev/null || true)"
+  OLD="$(cat "$BASELINE" 2>/dev/null || true)"
   NEW="$(git -C "$REPO" rev-parse origin/main 2>/dev/null || true)"
-
   if [ -z "$OLD" ] || [ -z "$NEW" ] || [ "$OLD" = "$NEW" ]; then
     sleep "$INTERVAL"
     continue
   fi
 
-  # Never reset or force the local repository. Stop if it cannot fast-forward.
   if ! git -C "$REPO" merge-base --is-ancestor "$OLD" "$NEW"; then
-    log "STOP: local branch diverged from origin/main; no files copied."
+    log "STOP: baseline diverged from origin/main; no files copied."
     exit 2
   fi
 
@@ -45,16 +66,13 @@ while true; do
 
   while IFS= read -r REL; do
     [ -n "$REL" ] || continue
-    case "$REL" in
-      .git/*|.godot/*|*.import|tools/android_auto_sync.sh) continue ;;
-    esac
+    case "$REL" in .git/*|.godot/*|*.import|tools/android_auto_sync.sh) continue ;; esac
     SRC="$REPO/$REL"
     DST="$PROJECT/$REL"
     OLD_FILE_EXISTS=0
     git -C "$REPO" cat-file -e "$OLD:$REL" 2>/dev/null && OLD_FILE_EXISTS=1
 
     if [ ! -f "$SRC" ]; then
-      # Deletions are intentionally not propagated automatically.
       log "SKIP deletion (manual review required): $REL"
       continue
     fi
@@ -85,6 +103,7 @@ while true; do
   done <<EOF
 $CHANGED
 EOF
+  printf '%s\n' "$NEW" > "$BASELINE"
   log "Sync pass complete: $OLD -> $NEW"
   sleep "$INTERVAL"
 done
