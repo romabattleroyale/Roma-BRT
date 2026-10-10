@@ -23,9 +23,25 @@ func _setup() -> void:
 	terrain.show_grey = false
 	add_child(terrain, true)
 
-	var roman_assets: Resource = load("res://terrain_materials/terrain_assets_roman_natural.tres")
+	# Reload assets without reusing a potentially stale cached resource.
+	# Terrain3D builds texture arrays at runtime, so log the actual source textures.
+	var roman_assets: Resource = ResourceLoader.load(
+		"res://terrain_materials/terrain_assets_roman_natural.tres",
+		"",
+		ResourceLoader.CACHE_MODE_IGNORE
+	)
 	if roman_assets:
 		terrain.assets = roman_assets
+		var texture_list: Array = roman_assets.get("texture_list")
+		print("TERRAIN MATERIAL DIAGNOSTIC: texture slots=", texture_list.size())
+		for i in range(texture_list.size()):
+			var asset = texture_list[i]
+			if asset:
+				var albedo: Texture2D = asset.get("albedo_texture")
+				var normal: Texture2D = asset.get("normal_texture")
+				print("TERRAIN MATERIAL DIAGNOSTIC: slot=", i, " name=", asset.get("name"), " albedo=", (str(albedo.get_size()) if albedo else "MISSING"), " normal=", (str(normal.get_size()) if normal else "MISSING"))
+	else:
+		push_error("TERRAIN MATERIAL ERROR: asset list could not be loaded")
 	terrain.material.auto_shader = false
 	terrain.material.set_shader_param("macro_variation1", Vector3(0.985, 1.00, 0.96))
 	terrain.material.set_shader_param("macro_variation2", Vector3(1.015, 1.00, 0.985))
