@@ -157,6 +157,14 @@ jobs:
           print('NATIVE_VISIBILITY_STRUCTURE=PASS templates=120 placements=587 hlod=0 lod1=0')
           PY
 
+      - name: Bake 587 pre-generated building scenes
+        run: |
+          set -euo pipefail
+          .runtime/godot/godot --headless --path . --script res://v37_integration/bake_ready_buildings_587.gd
+          test "$(find baked_city/ready_buildings -maxdepth 1 -type f -name 'building_*.tscn' | wc -l)" -eq 587
+          .runtime/godot/godot --headless --path . --script res://v37_integration/validate_ready_building_structure.gd
+          echo 'READY_BUILDINGS=587 premerged=1_box_collision=1 roman_materials=PASS'
+
       - name: Runtime Godot smoke test
         run: |
           set -euo pipefail
@@ -221,7 +229,7 @@ jobs:
             fi
           fi
 
-          git add -A baked_city/ready_templates v37_integration/bake_ready_buildings_120.gd v37_integration/validate_ready_templates_memory.gd v37_integration/v11_building_bridge.gd v37_integration/distribute_ready_buildings_quarters.gd v37_integration/terrain_surface_alignment.gd city_library/buildings/houses/roma_architecture_library_v11/scripts/modular_house_factory.gd city_library/buildings/houses/roma_architecture_library_v11/scripts/library_building_system.gd v37_integration/mobile_visual_variation.gd tools/normalize_v11_texture_paths.gd tools/optimize_v11_textures_mobile.gd tools/enforce_v11_facade_style.gd main.tscn runtime_extension_launcher.gd runtime_extension_launcher.tscn terrain_runtime.gd terrain_runtime_android_safe.gd .github/workflows/ROMA_READY_BUILDINGS_BAKE.yml .github/workflows/ROMA_BRT_RUNTIME.yml
+          git add -A baked_city/ready_templates baked_city/ready_buildings v37_integration/bake_ready_buildings_587.gd v37_integration/validate_ready_building_structure.gd v37_integration/bake_ready_buildings_120.gd v37_integration/validate_ready_templates_memory.gd v37_integration/v11_building_bridge.gd v37_integration/distribute_ready_buildings_quarters.gd v37_integration/terrain_surface_alignment.gd city_library/buildings/houses/roma_architecture_library_v11/scripts/modular_house_factory.gd city_library/buildings/houses/roma_architecture_library_v11/scripts/library_building_system.gd v37_integration/mobile_visual_variation.gd tools/normalize_v11_texture_paths.gd tools/optimize_v11_textures_mobile.gd tools/enforce_v11_facade_style.gd main.tscn runtime_extension_launcher.gd runtime_extension_launcher.tscn terrain_runtime.gd terrain_runtime_android_safe.gd .github/workflows/ROMA_READY_BUILDINGS_BAKE.yml .github/workflows/ROMA_BRT_RUNTIME.yml
           if git diff --cached --quiet; then exit 0; fi
           git commit -m 'fix: normalize Terrain3D runtime wrappers before bake [skip ci]'
           git push origin HEAD:main
