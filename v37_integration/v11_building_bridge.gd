@@ -92,7 +92,7 @@ func _load_all_templates() -> void:
     var loaded_scenes: Dictionary = {}
     while not pending.is_empty():
         for i in range(pending.size() - 1, -1, -1):
-            var path := pending[i]
+            var path: String = str(pending[i])
             var status := ResourceLoader.load_threaded_get_status(path)
             if status == ResourceLoader.THREAD_LOAD_LOADED:
                 var packed := ResourceLoader.load_threaded_get(path) as PackedScene
