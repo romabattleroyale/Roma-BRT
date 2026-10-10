@@ -23,9 +23,11 @@
 
 [sub_resource type="PanoramaSkyMaterial" id="SunsetSkyMaterial"]
 panorama = ExtResource("20_sky_hdri")
+energy_multiplier = 1.0
 filtering = 1
 
 [sub_resource type="Sky" id="SunsetSky"]
+radiance_size = 128
 sky_material = SubResource("SunsetSkyMaterial")
 
 [sub_resource type="Environment" id="Env"]
@@ -35,9 +37,9 @@ sky = SubResource("SunsetSky")
 ambient_light_source = 3
 ambient_light_color = Color(0.7, 0.55, 0.45, 1)
 ambient_light_sky_contribution = 1.0
-ambient_light_energy = 2.5
+ambient_light_energy = 1.0
 tonemap_mode = 2
-tonemap_exposure = 3.0
+tonemap_exposure = 1.0
 tonemap_white = 8.0
 fog_enabled = true
 fog_light_color = Color(1.0, 0.6, 0.4, 1)
