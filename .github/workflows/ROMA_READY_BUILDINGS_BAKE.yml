@@ -87,6 +87,9 @@ jobs:
       - name: Import project before bake
         run: |
           set -euo pipefail
+          # HDR/PNG and other source assets must be imported into Godot's cache
+          # before loading main.tscn in a headless runtime.
+          .runtime/godot/godot --headless --editor --path . --import --quit
           .runtime/godot/godot --headless --path . --quit-after 8
 
       - name: Prepare Roman mobile materials
