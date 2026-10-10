@@ -1,7 +1,7 @@
 #!/data/data/com.termux/files/usr/bin/bash
 # Guarded GitHub -> Godot project sync for Termux.
-# First run copies only missing files. Later runs copy changed remote files if the destination
-# still matches the previous Git version; local edits are backed up and skipped.
+# Initial pass backs up differing tracked files before aligning them to GitHub.
+# Later passes update only files that still match their previous Git version.
 set -u
 
 REPO="$HOME/Roma-BRT-git"
@@ -12,26 +12,49 @@ BASELINE="$HOME/.roma-brt-auto-sync-baseline"
 INTERVAL=60
 
 log() { printf '[%s] %s\n' "$(date '+%F %T')" "$*" >> "$LOG"; }
+skip_path() {
+  case "$1" in .git/*|.godot/*|*.import|tools/android_auto_sync.sh) return 0 ;; esac
+  return 1
+}
+backup_file() {
+  local src="$1" rel="$2" stamp safe
+  stamp="$(date '+%Y%m%d-%H%M%S')"
+  safe="$BACKUP/$stamp/$rel"
+  mkdir -p "$(dirname "$safe")"
+  if cp -p "$src" "$safe"; then
+    log "BACKUP: $rel -> $safe"
+  else
+    log "ERROR backing up $rel; refusing to overwrite"
+    return 1
+  fi
+}
 
 if [ ! -d "$REPO/.git" ] || [ ! -d "$PROJECT" ]; then
   log "ERROR: repo or Godot project folder not found; stopping."
   exit 1
 fi
 
-# Seed the Godot folder conservatively: only add missing tracked files; never replace existing files.
+# One-time alignment: backup every differing existing tracked file, then copy GitHub version.
 if [ ! -f "$BASELINE" ]; then
-  log "Initial sync: copying missing files only."
+  log "Initial sync: aligning tracked files with GitHub; local differences are backed up."
   while IFS= read -r REL; do
     [ -n "$REL" ] || continue
-    case "$REL" in .git/*|.godot/*|*.import|tools/android_auto_sync.sh) continue ;; esac
+    skip_path "$REL" && continue
     SRC="$REPO/$REL"
     DST="$PROJECT/$REL"
     [ -f "$SRC" ] || continue
-    if [ ! -e "$DST" ]; then
-      mkdir -p "$(dirname "$DST")"
-      if cp "$SRC" "$DST"; then log "ADDED: $REL"; else log "ERROR adding $REL"; fi
-    else
-      log "INITIAL SKIP existing file: $REL"
+    mkdir -p "$(dirname "$DST")"
+    if [ -f "$DST" ] && ! cmp -s "$SRC" "$DST"; then
+      backup_file "$DST" "$REL" || continue
+    fi
+    if [ ! -f "$DST" ] || ! cmp -s "$SRC" "$DST"; then
+      TMP="$DST.roma-sync-tmp"
+      if cp "$SRC" "$TMP" && mv "$TMP" "$DST"; then
+        log "INITIAL SYNC: $REL"
+      else
+        rm -f "$TMP"
+        log "ERROR copying $REL"
+      fi
     fi
   done < <(git -C "$REPO" ls-files)
   git -C "$REPO" rev-parse HEAD > "$BASELINE"
@@ -39,7 +62,6 @@ if [ ! -f "$BASELINE" ]; then
 fi
 
 while true; do
-  # Keep routine successful fetch output out of the log; record only failures.
   if ! git -C "$REPO" fetch -q origin main 2>> "$LOG"; then
     log "Fetch failed; retrying in ${INTERVAL}s."
     sleep "$INTERVAL"
@@ -66,7 +88,7 @@ while true; do
 
   while IFS= read -r REL; do
     [ -n "$REL" ] || continue
-    case "$REL" in .git/*|.godot/*|*.import|tools/android_auto_sync.sh) continue ;; esac
+    skip_path "$REL" && continue
     SRC="$REPO/$REL"
     DST="$PROJECT/$REL"
     OLD_FILE_EXISTS=0
@@ -84,12 +106,8 @@ while true; do
         cmp -s "$DST" "$HOME/.roma-brt-old-check" && MATCHES_OLD=1
       fi
       if [ "$MATCHES_OLD" -eq 0 ]; then
-        STAMP="$(date '+%Y%m%d-%H%M%S')"
-        SAFE="$BACKUP/$STAMP/$REL"
-        mkdir -p "$(dirname "$SAFE")"
-        cp -p "$DST" "$SAFE" 2>/dev/null || true
-        log "CONFLICT: preserved local file; backup=$SAFE; skipped=$REL"
-        continue
+        backup_file "$DST" "$REL" || continue
+        log "CONFLICT: local version backed up; replacing with GitHub version: $REL"
       fi
     fi
 
