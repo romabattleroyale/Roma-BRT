@@ -80,15 +80,40 @@ func _load_manifest() -> bool:
 
 func _load_all_templates() -> void:
     _templates.clear()
+    var paths: Array[String] = []
     for i in range(120):
-        var packed := ResourceLoader.load("%s/template_%03d.tscn" % [READY_DIR, i + 1], "PackedScene", ResourceLoader.CACHE_MODE_REUSE) as PackedScene
+        paths.append("%s/template_%03d.tscn" % [READY_DIR, i + 1])
+    # Start resource I/O in worker threads, then collect completed PackedScenes.
+    for path in paths:
+        var request_error := ResourceLoader.load_threaded_request(path, "PackedScene", true, ResourceLoader.CACHE_MODE_REUSE)
+        if request_error != OK:
+            push_error("V11 ASYNC LOAD: request failed path=%s error=%s" % [path, request_error])
+    var pending := paths.duplicate()
+    var loaded_scenes: Dictionary = {}
+    while not pending.is_empty():
+        for i in range(pending.size() - 1, -1, -1):
+            var path := pending[i]
+            var status := ResourceLoader.load_threaded_get_status(path)
+            if status == ResourceLoader.THREAD_LOAD_LOADED:
+                var packed := ResourceLoader.load_threaded_get(path) as PackedScene
+                if packed != null:
+                    loaded_scenes[path] = packed
+                else:
+                    push_error("V11 ASYNC LOAD: PackedScene null path=%s" % path)
+                pending.remove_at(i)
+            elif status == ResourceLoader.THREAD_LOAD_FAILED or status == ResourceLoader.THREAD_LOAD_INVALID_RESOURCE:
+                push_error("V11 ASYNC LOAD: resource failed path=%s status=%s" % [path, status])
+                pending.remove_at(i)
+        if not pending.is_empty():
+            await get_tree().process_frame
+    for path in paths:
+        var packed := loaded_scenes.get(path) as PackedScene
         if packed != null:
             _templates.append(packed)
-        if i % 3 == 2:
-            await get_tree().process_frame
     var variation_script: Script = load("res://v37_integration/mobile_visual_variation.gd") as Script
     if variation_script != null:
         _variation_script = variation_script.new()
+    print("[CITY ASYNC PRELOAD] templates=%d requested=%d" % [_templates.size(), paths.size()])
     if _templates.size() != 120:
         push_error("V11 NATIVE VISIBILITY: templates caricati=%d" % _templates.size())
 
@@ -107,7 +132,8 @@ func _load_all_buildings() -> void:
     # rendered frame can cost hundreds of milliseconds; batch only in that
     # headless smoke-test mode to avoid measuring renderer overhead as game work.
     var ci_runtime := OS.get_environment("ROMA_BRT_CI_RUNTIME") == "1"
-    var yield_interval := 12 if ci_runtime else 1
+    # Instantiate in bounded batches to avoid one long main-thread burst.
+    var yield_interval := 12 if ci_runtime else 10
     for i in range(_placements.size()):
         var placement_start_usec := Time.get_ticks_usec()
         _load_placement(i)
