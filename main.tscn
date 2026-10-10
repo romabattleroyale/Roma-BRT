@@ -65,7 +65,7 @@ environment = SubResource("Env")
 [node name="Sun" type="DirectionalLight3D" parent="."]
 rotation_degrees = Vector3(-35, 45, 0)
 light_color = Color(1.0, 0.82, 0.62, 1)
-light_energy = 0.85
+light_energy = 1.55
 shadow_enabled = true
 directional_shadow_max_distance = 300.0
 directional_shadow_fade_start = 0.8
@@ -75,7 +75,7 @@ shadow_bias = 0.05
 [node name="TerrainFillLight" type="DirectionalLight3D" parent="."]
 rotation_degrees = Vector3(30, -135, 0)
 light_color = Color(0.75, 0.75, 0.85, 1)
-light_energy = 1.5
+light_energy = 0.8
 shadow_enabled = false
 
 [node name="GroundBounceLight" type="DirectionalLight3D" parent="."]
