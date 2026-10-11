@@ -451,12 +451,14 @@ void fragment(){
     for i in range(points.size() - 1):
         var u0 := float(i) / float(points.size() - 1)
         var u1 := float(i + 1) / float(points.size() - 1)
+        # Winding must face +Y: the previous order faced downward, so cull_back
+        # removed the water surface when viewed from above and exposed the grey river bed.
         st.set_uv(Vector2(u0, 0.0)); st.set_normal(Vector3.UP); st.add_vertex(left_pts[i])
-        st.set_uv(Vector2(u0, 1.0)); st.set_normal(Vector3.UP); st.add_vertex(right_pts[i])
-        st.set_uv(Vector2(u1, 1.0)); st.set_normal(Vector3.UP); st.add_vertex(right_pts[i + 1])
-        st.set_uv(Vector2(u0, 0.0)); st.set_normal(Vector3.UP); st.add_vertex(left_pts[i])
-        st.set_uv(Vector2(u1, 1.0)); st.set_normal(Vector3.UP); st.add_vertex(right_pts[i + 1])
         st.set_uv(Vector2(u1, 0.0)); st.set_normal(Vector3.UP); st.add_vertex(left_pts[i + 1])
+        st.set_uv(Vector2(u1, 1.0)); st.set_normal(Vector3.UP); st.add_vertex(right_pts[i + 1])
+        st.set_uv(Vector2(u0, 0.0)); st.set_normal(Vector3.UP); st.add_vertex(left_pts[i])
+        st.set_uv(Vector2(u1, 1.0)); st.set_normal(Vector3.UP); st.add_vertex(right_pts[i + 1])
+        st.set_uv(Vector2(u0, 1.0)); st.set_normal(Vector3.UP); st.add_vertex(right_pts[i])
 
     var mesh := st.commit()
     if mesh == null:
