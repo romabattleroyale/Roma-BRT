@@ -137,6 +137,30 @@ jobs:
           test "$(find baked_city/ready_templates/materials -maxdepth 1 -type f -name '*.tres' | wc -l)" -eq 9
           test ! -d baked_city/hlod
           test ! -d baked_city/lod1
+          # Reject empty/truncated scenes at bake time; count-only checks miss zero-byte templates.
+          python3 - <<'PY'
+          from pathlib import Path
+          root = Path("baked_city/ready_templates")
+          paths = sorted(root.glob("template_*.tscn"))
+          expected = {f"template_{i:03d}.tscn" for i in range(1, 121)}
+          actual = {p.name for p in paths}
+          if actual != expected:
+              raise SystemExit(f"READY_TEMPLATE_FILES_INVALID missing={sorted(expected-actual)} extra={sorted(actual-expected)}")
+          invalid = []
+          for path in paths:
+              try:
+                  with path.open("rb") as f:
+                      header = f.readline(256)
+                  if not header.startswith(b"[gd_scene ") or path.stat().st_size < 128:
+                      invalid.append((path.name, path.stat().st_size, header.decode("utf-8", "replace").strip()))
+              except OSError as exc:
+                  invalid.append((path.name, -1, str(exc)))
+          if invalid:
+              for item in invalid:
+                  print(f"READY_TEMPLATE_INVALID file={item[0]} bytes={item[1]} header={item[2]!r}")
+              raise SystemExit("READY_TEMPLATE_INTEGRITY=FAIL")
+          print("READY_TEMPLATE_INTEGRITY=PASS count=120 nonempty_scene_headers=120")
+          PY
 
       - name: Distribute 587 placements across 12 districts
         run: |
