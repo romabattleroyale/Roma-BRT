@@ -6,7 +6,7 @@ extends Node
 const RESOLVED_PATH := "res://city_library/poi/poi_layout_resolved.json"
 const USER_RESOLVED_PATH := "user://poi_layout_resolved.json"
 const ASSETS_PATH := "res://terrain_materials/terrain_assets_polyhaven_zones.tres"
-const CACHE_DIR := "res://baked_city/terrain_paint"
+const CACHE_DIR := "user://baked_city/terrain_paint"
 const CACHE_SIGNATURE := CACHE_DIR + "/layout_signature.txt"
 const TERRAIN_DATA_DIR := "res://terrain_data"
 const DEFAULT_TEXTURE_ID := 2
@@ -47,14 +47,17 @@ func _paint_or_load_cache(terrain: Variant) -> void:
         push_warning("TERRAIN ZONES: impossibile caricare il set texture Poly Haven.")
         return
 
-    # Apply the matching five-slot asset list even when the baked control map is cached.
+    # Android's res:// is read-only in exported builds. Keep the baked control-map
+    # cache in user:// and restore it before deciding whether a repaint is needed.
     terrain.assets = assets
     var signature := JSON.stringify(pois)
     var old_signature := ""
     if FileAccess.file_exists(CACHE_SIGNATURE):
         old_signature = FileAccess.get_file_as_string(CACHE_SIGNATURE).strip_edges()
-    if old_signature == signature:
-        print("TERRAIN ZONES: cache presente e layout invariato; nessuna ripittura.")
+    if old_signature == signature and DirAccess.dir_exists_absolute(ProjectSettings.globalize_path(CACHE_DIR)):
+        terrain.data.load_directory(CACHE_DIR)
+        terrain.data.update_maps()
+        print("TERRAIN ZONES: cache user:// ripristinata; layout invariato, nessuna ripittura.")
         return
 
     _painting = true
@@ -76,6 +79,8 @@ func _paint_or_load_cache(terrain: Variant) -> void:
     terrain.data.update_maps()
     # Persist modified control maps into the normal startup cache and a dedicated
     # backup folder. Terrain3D saves region resources, not one monolithic .res file.
+    var cache_absolute := ProjectSettings.globalize_path(CACHE_DIR)
+    DirAccess.make_dir_recursive_absolute(cache_absolute)
     terrain.data.save_directory(TERRAIN_DATA_DIR)
     terrain.data.save_directory(CACHE_DIR)
     _write_text(CACHE_SIGNATURE, signature + "\n")
