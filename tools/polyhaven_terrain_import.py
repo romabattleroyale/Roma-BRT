@@ -38,14 +38,41 @@ def download(url: str, path: Path):
         path.write_bytes(response.read())
 
 def select_file(tree, map_key: str):
-    node = tree.get(map_key, {})
-    node = node.get("2k", {}) if isinstance(node, dict) else {}
-    # Prefer JPG as requested; use PNG only when the asset does not expose JPG.
-    for fmt in ("jpg", "png"):
-        entry = node.get(fmt, {}) if isinstance(node, dict) else {}
-        if isinstance(entry, dict) and entry.get("url"):
-            return entry["url"], fmt
-    raise RuntimeError(f"No 2k JPG/PNG file for map {map_key}")
+    aliases = {
+        "diffuse": ("diffuse", "albedo", "basecolor", "base_color", "_diff", "/diff/"),
+        "nor_gl": ("nor_gl", "normal", "_nor", "/nor/"),
+        "rough": ("rough", "roughness"),
+    }.get(map_key, (map_key,))
+
+    candidates = []
+    def walk(node, path=()):
+        if isinstance(node, dict):
+            url = node.get("url")
+            if isinstance(url, str) and url.startswith("http"):
+                combined = "/".join(path).lower() + " " + url.lower()
+                if any(alias in combined for alias in aliases):
+                    fmt = "png" if ".png" in url.lower() else "jpg" if ".jpg" in url.lower() or ".jpeg" in url.lower() else ""
+                    if fmt:
+                        resolution = next((r for r in ("2k", "4k", "1k", "8k", "16k") if r in combined), "")
+                        candidates.append((resolution, fmt, url, combined))
+            for key, value in node.items():
+                if isinstance(value, dict):
+                    walk(value, path + (str(key),))
+        elif isinstance(node, list):
+            for i, value in enumerate(node):
+                walk(value, path + (str(i),))
+
+    walk(tree)
+    if not candidates:
+        raise RuntimeError(f"No downloadable JPG/PNG candidate for map {map_key}; top-level keys={list(tree)[:20]}")
+    # Prefer 2K JPG; if unavailable, use a 2K PNG, then a nearby available size.
+    candidates.sort(key=lambda item: (
+        0 if item[0] == "2k" else 1 if item[0] == "4k" else 2 if item[0] == "1k" else 3,
+        0 if item[1] == "jpg" else 1,
+    ))
+    resolution, fmt, url, _ = candidates[0]
+    print(f"  selected {map_key}: {resolution or 'unknown resolution'} {fmt}", flush=True)
+    return url, fmt
 
 def main():
     OUT.mkdir(parents=True, exist_ok=True)
