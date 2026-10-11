@@ -133,7 +133,9 @@ func _import_raw(path: String) -> void:
         return
 
     var maps: Array
-    maps.resize(4)
+    # Terrain3D import_images expects exactly three images: height, control, color.
+    # Leave the optional color map empty rather than passing a fourth slot.
+    maps.resize(3)
     maps[0] = img
     maps[1] = _build_manual_control_map(values, width, height)
 
