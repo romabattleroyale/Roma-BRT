@@ -116,16 +116,33 @@ func generate() -> void:
 
 ## Ground height in metres at a world XZ. Cheaper and more reliable than a
 ## raycast for placing units, props or a spawn point.
+func _world_xz_to_heightfield(world_x: float, world_z: float) -> Vector2:
+	# The generated terrain is centred around the generator's local origin.
+	# Convert world coordinates before sampling, especially when the generator
+	# is positioned at the centre of Roma's 0..2000 m world.
+	var local := to_local(Vector3(world_x, global_position.y, world_z))
+	return Vector2(local.x, local.z)
+
+
 func sample_height(world_x: float, world_z: float) -> float:
-	return heightfield.height_at(world_x, world_z) if heightfield else 0.0
+	if heightfield == null:
+		return 0.0
+	var p := _world_xz_to_heightfield(world_x, world_z)
+	return heightfield.height_at(p.x, p.y) + global_position.y
 
 
 func sample_normal(world_x: float, world_z: float) -> Vector3:
-	return heightfield.normal_at(world_x, world_z) if heightfield else Vector3.UP
+	if heightfield == null:
+		return Vector3.UP
+	var p := _world_xz_to_heightfield(world_x, world_z)
+	return global_transform.basis * heightfield.normal_at(p.x, p.y)
 
 
 func sample_slope_degrees(world_x: float, world_z: float) -> float:
-	return heightfield.slope_at(world_x, world_z) if heightfield else 0.0
+	if heightfield == null:
+		return 0.0
+	var p := _world_xz_to_heightfield(world_x, world_z)
+	return heightfield.slope_at(p.x, p.y)
 
 
 ## Total instances placed on the last generate(), across all species.
@@ -147,7 +164,10 @@ func get_water_level() -> float:
 
 
 func is_underwater(world_pos: Vector3) -> bool:
-	return heightfield != null and world_pos.y < heightfield.water_level
+	if heightfield == null:
+		return false
+	var local := to_local(world_pos)
+	return local.y < heightfield.water_level
 
 
 ## A random point that satisfies the usual "can something stand here" rules.
@@ -179,8 +199,8 @@ func find_spawn_point(max_slope_deg: float = 20.0, margin_above_water: float = 2
 				if relaxed == Vector3.INF:
 					relaxed = here
 				continue
-		return here
-	return relaxed
+		return global_transform * here
+	return global_transform * relaxed if relaxed != Vector3.INF else Vector3.INF
 
 
 # ---------------------------------------------------------------------------
