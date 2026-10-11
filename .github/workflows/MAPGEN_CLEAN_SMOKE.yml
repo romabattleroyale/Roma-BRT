@@ -1,0 +1,39 @@
+name: Roma MapGen Clean Smoke Test
+
+on:
+  push:
+    branches: [mapgen-clean-rebuild]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  mapgen-clean-smoke:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install Godot 4.7.2
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p .runtime
+          curl -L --fail --retry 3 -o .runtime/godot.zip 'https://github.com/godotengine/godot/releases/download/4.7.2-stable/Godot_v4.7.2-stable_linux.x86_64.zip'
+          unzip -q .runtime/godot.zip -d .runtime
+          GODOT=$(find .runtime -type f -name 'Godot_v4.7.2-stable_linux.x86_64' | head -n 1)
+          chmod +x "$GODOT"
+          echo "GODOT=$GODOT" >> "$GITHUB_ENV"
+          "$GODOT" --version
+      - name: Import and parse clean project
+        shell: bash
+        run: |
+          set -euo pipefail
+          "$GODOT" --headless --editor --path . --quit 2>&1 | tee import.log
+          ! grep -E 'ERROR:|SCRIPT ERROR|Parse Error|Failed loading resource|Cannot open file' import.log
+      - name: Launch clean MapGen scene
+        shell: bash
+        run: |
+          set -euo pipefail
+          timeout 120s "$GODOT" --headless --path . --quit-after 20 2>&1 | tee runtime.log
+          ! grep -E 'ERROR:|SCRIPT ERROR|Parse Error|Failed loading resource|Cannot open file|Invalid call|Nonexistent function' runtime.log
