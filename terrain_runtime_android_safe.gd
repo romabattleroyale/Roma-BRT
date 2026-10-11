@@ -21,8 +21,6 @@ func _setup() -> void:
 	terrain.show_checkered = false
 	terrain.show_colormap = false
 	terrain.show_grey = false
-	add_child(terrain, true)
-
 	# Reload assets without reusing a potentially stale cached resource.
 	# Terrain3D builds texture arrays at runtime, so log the actual source textures.
 	var roman_assets: Resource = ResourceLoader.load(
@@ -52,6 +50,11 @@ func _setup() -> void:
 	terrain.material.set_shader_param("macro_variation1", Vector3(0.985, 1.00, 0.96))
 	terrain.material.set_shader_param("macro_variation2", Vector3(1.015, 1.00, 0.985))
 
+	# CRITICAL: attach only after the five terrain texture assets and shader
+	# configuration are assigned. Terrain3D may initialize native GPU texture
+	# arrays on entering the scene tree; doing that with empty/default assets can
+	# leave the terrain surface black on Vulkan.
+	add_child(terrain, true)
 	await get_tree().process_frame
 	if terrain.data == null:
 		push_error("Terrain3D Data non inizializzato.")
