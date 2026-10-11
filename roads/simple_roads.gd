@@ -73,9 +73,23 @@ func _material(color: Color, roughness: float) -> StandardMaterial3D:
 
 func _procedural_asphalt() -> StandardMaterial3D:
     var asphalt_mat := StandardMaterial3D.new()
-    asphalt_mat.albedo_color = Color("#252729")
-    asphalt_mat.roughness = 0.97
+    asphalt_mat.albedo_color = Color("#777777")
+    asphalt_mat.roughness = 0.94
     asphalt_mat.cull_mode = BaseMaterial3D.CULL_DISABLED
+    # Use the project's imported asphalt maps rather than a featureless flat
+    # dark material. UVs on the terrain-following road strips are distance-based.
+    var asphalt_albedo := load("res://assets/textures/terrain/asphalt_diffuse.jpg") as Texture2D
+    var asphalt_normal := load("res://assets/textures/terrain/asphalt_normal.jpg") as Texture2D
+    var asphalt_roughness := load("res://assets/textures/terrain/asphalt_rough.jpg") as Texture2D
+    if asphalt_albedo != null:
+        asphalt_mat.albedo_texture = asphalt_albedo
+        asphalt_mat.texture_filter = BaseMaterial3D.TEXTURE_FILTER_LINEAR_WITH_MIPMAPS_ANISOTROPIC
+    if asphalt_normal != null:
+        asphalt_mat.normal_enabled = true
+        asphalt_mat.normal_texture = asphalt_normal
+        asphalt_mat.normal_scale = 0.32
+    if asphalt_roughness != null:
+        asphalt_mat.roughness_texture = asphalt_roughness
     return asphalt_mat
 
 func _procedural_sampietrini() -> StandardMaterial3D:

@@ -39,12 +39,20 @@ jobs:
           assert dem["width"] == dem["height"] == 41
           assert len(dem["elevation_metres_north_to_south"]) == 41
           print("Validated 41x41 real elevation samples (50 m grid)")
+          river = Path("terrain_materials/river_path.json")
+          rp = json.loads(river.read_text())
+          points = rp.get("points", [])
+          assert rp.get("source", "").startswith("OpenStreetMap contributors")
+          assert len(points) >= 20, f"Too few Tevere points: {len(points)}"
+          assert all(0 <= p["x"] <= 1080 and 0 <= p["z"] <= 1080 for p in points)
+          assert all(35 <= p["half_width"] <= 60 for p in points)
+          print(f"Validated real OSM Tevere centerline: {len(points)} points; half-width={rp['half_width_m']} m")
           PY
       - name: Commit imported source data
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add data/rome_geodata/roads.geojson data/rome_geodata/elevation.json
+          git add data/rome_geodata/roads.geojson data/rome_geodata/elevation.json terrain_materials/river_path.json
           if git diff --cached --quiet; then
             echo "No geodata changes to commit."
           else
