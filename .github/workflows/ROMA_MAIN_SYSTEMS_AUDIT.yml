@@ -1,0 +1,80 @@
+name: Roma Main Systems Audit
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  audit-main-project:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout main project
+        uses: actions/checkout@v4
+
+      - name: Validate core scene, terrain, river and road assets
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -f project.godot
+          test -f main.tscn
+          test -f terrain_runtime_android_safe.gd
+          test -f terrain_materials/river_path.json
+          test -f terrain_materials/river_mask.png
+          test -f roads/simple_roads.gd
+          test -f props/street_tree.gd
+          test -f addons/terrain_3d/plugin.cfg
+          python3 - <<'PY'
+          import json
+          from pathlib import Path
+
+          scene = Path("main.tscn").read_text(encoding="utf-8")
+          project = Path("project.godot").read_text(encoding="utf-8")
+          river = json.loads(Path("terrain_materials/river_path.json").read_text(encoding="utf-8"))
+
+          required_scene_nodes = [
+              '[node name="TerrainBootstrap"',
+              '[node name="SimpleRoads"',
+              '[node name="V11BuildingBridge"',
+              '[node name="POIManager"',
+          ]
+          missing = [node for node in required_scene_nodes if node not in scene]
+          if missing:
+              raise SystemExit("Main scene missing required systems: " + ", ".join(missing))
+
+          if 'run/main_scene="res://main.tscn"' not in project:
+              raise SystemExit("project.godot does not launch main.tscn")
+          if 'renderer/rendering_method.mobile="gl_compatibility"' not in project:
+              raise SystemExit("Mobile Compatibility renderer setting missing")
+
+          points = river.get("points", [])
+          if len(points) < 100:
+              raise SystemExit(f"Tiber path suspiciously short: only {len(points)} points")
+          for i, point in enumerate(points):
+              for key in ("x", "z", "half_width"):
+                  if key not in point:
+                      raise SystemExit(f"River point {i} missing {key}")
+              if not (0 <= float(point["x"]) <= 1080 and 0 <= float(point["z"]) <= 1080):
+                  raise SystemExit(f"River point {i} outside 1081x1081 heightmap coordinates")
+              if not (8 <= float(point["half_width"]) <= 100):
+                  raise SystemExit(f"River point {i} has implausible half_width={point['half_width']}")
+
+          print(f"MAIN AUDIT OK: {len(points)} river path points")
+          print("Main scene: Terrain3D bootstrap, roads, building bridge and POI manager present")
+          print("Mobile Compatibility renderer setting present")
+          PY
+
+      - name: Report available Godot runtime
+        shell: bash
+        run: |
+          if command -v godot >/dev/null 2>&1; then
+            godot --version
+            godot --headless --path . --editor --quit
+          elif command -v godot4 >/dev/null 2>&1; then
+            godot4 --version
+            godot4 --headless --path . --editor --quit
+          else
+            echo "::warning::Godot binary is not installed on this runner; structural checks passed, parser/runtime validation was not executed."
+          fi
