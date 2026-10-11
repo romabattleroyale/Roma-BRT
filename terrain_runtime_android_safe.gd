@@ -20,8 +20,7 @@ func _setup() -> void:
 	terrain.mesh_lods = 5 # Android performance: fewer Terrain3D LOD levels while retaining the full heightmap
 	terrain.show_checkered = false
 	terrain.show_colormap = false
-	# Diagnostic isolation: force Terrain3D's neutral grey mode to test mesh/rendering independently of texture shader.
-	terrain.show_grey = true
+	terrain.show_grey = false
 	add_child(terrain, true)
 
 	# Reload assets without reusing a potentially stale cached resource.
