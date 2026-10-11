@@ -59,6 +59,7 @@ glow_hdr_threshold = 1.5
 [node name="RomaHeightmapBeta" type="Node3D"]
 
 [node name="MapGenerator" type="Node3D" parent="."]
+position = Vector3(1000, 0, 1000)
 script = ExtResource("21_mapgen")
 settings = ExtResource("22_mapgen_settings")
 
