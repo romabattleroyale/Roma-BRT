@@ -496,14 +496,11 @@ func _add_terrain_foundation_and_garden(root: Node3D, placement_index: int) -> v
         return
 
     # Shared-material 30 cm concrete/travertine plinth, wider than the footprint.
-    var local_center := root.to_local(bounds.get_center())
-    var foundation_mesh := BoxMesh.new()
-    foundation_mesh.size = Vector3(bounds.size.x + 0.42, 0.30, bounds.size.z + 0.42)
+    var foundation_size := Vector2(bounds.size.x + 0.42, bounds.size.z + 0.42)
     var foundation := MeshInstance3D.new()
-    foundation.name = "Roman_Concrete_Foundation"
-    foundation.mesh = foundation_mesh
+    foundation.name = "Roman_Concrete_Foundation_Terrain_Fitted"
+    foundation.mesh = _build_conforming_foundation_mesh(root, foundation_size)
     foundation.material_override = _foundation_material
-    foundation.position = Vector3(local_center.x, -0.12, local_center.z)
     root.add_child(foundation)
 
     # One in four buildings gets a pair of planted entrance beds; no physics bodies.
@@ -540,3 +537,40 @@ func _add_terrain_foundation_and_garden(root: Node3D, placement_index: int) -> v
             bloom.material_override = _flower_materials[posmod(placement_index + flower_index, _flower_materials.size())]
             bloom.position = Vector3(side_sign * half_width + (float(flower_index) - 1.0) * 0.22, 0.57, front_z + (0.06 if flower_index == 1 else -0.04))
             root.add_child(bloom)
+
+func _build_conforming_foundation_mesh(root: Node3D, size: Vector2) -> ArrayMesh:
+    # Flat upper plinth supports the facade; the underside samples all four
+    # Terrain3D corners so concrete thickens into slopes instead of floating.
+    var hx := size.x * 0.5
+    var hz := size.y * 0.5
+    var top_y := 0.035
+    var corners := [
+        Vector2(-hx, -hz), Vector2(hx, -hz),
+        Vector2(hx, hz), Vector2(-hx, hz)
+    ]
+    var top: Array[Vector3] = []
+    var bottom: Array[Vector3] = []
+    for corner in corners:
+        top.append(Vector3(corner.x, top_y, corner.y))
+        var world_corner := root.to_global(Vector3(corner.x, 0.0, corner.y))
+        var ground_local_y := _get_terrain_height(world_corner.x, world_corner.z) - root.global_position.y - 0.12
+        bottom.append(Vector3(corner.x, minf(top_y - 0.08, ground_local_y), corner.y))
+
+    var st := SurfaceTool.new()
+    st.begin(Mesh.PRIMITIVE_TRIANGLES)
+    _foundation_quad(st, top[0], top[1], top[2], top[3])
+    for side in range(4):
+        var next := (side + 1) % 4
+        _foundation_quad(st, top[side], bottom[side], bottom[next], top[next])
+    _foundation_quad(st, bottom[3], bottom[2], bottom[1], bottom[0])
+    st.generate_normals()
+    return st.commit()
+
+func _foundation_quad(st: SurfaceTool, a: Vector3, b: Vector3, c: Vector3, d: Vector3) -> void:
+    st.add_vertex(a)
+    st.add_vertex(b)
+    st.add_vertex(c)
+    st.add_vertex(a)
+    st.add_vertex(c)
+    st.add_vertex(d)
+
