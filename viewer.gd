@@ -75,16 +75,17 @@ func _physics_process(delta: float) -> void:
         dir = dir_raw.normalized()
     var sprinting := mobile_boost or Input.is_key_pressed(KEY_SHIFT)
     var current_speed: float = speed * (boost if sprinting else 1.0)
-    # Publish input-derived locomotion state for animation. This project moves by
-    # position (not velocity/move_and_slide), so velocity is not a reliable signal.
+    # Publish input-derived locomotion state for animation.
     set_meta("locomotion_moving", dir != Vector3.ZERO)
     set_meta("locomotion_sprinting", sprinting and dir != Vector3.ZERO)
     set_meta("locomotion_direction", dir)
     # Reserve state hooks for future crouch/jump controls without altering terrain physics.
     set_meta("locomotion_crouching", Input.is_key_pressed(KEY_CTRL))
     set_meta("locomotion_vertical_state", "grounded")
-    if dir != Vector3.ZERO:
-        global_position += dir * current_speed * delta
+    velocity = dir * current_speed
+    # Use CharacterBody3D collision handling for horizontal movement. Terrain
+    # height-following below remains responsible for adapting to generated slopes.
+    move_and_collide(velocity * delta)
 
     # Keep terrain-following independent from camera pitch and movement direction.
     # Terrain3D height queries use the same world X/Z coordinates as SimpleRoads.
