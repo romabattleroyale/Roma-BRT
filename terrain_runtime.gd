@@ -127,6 +127,11 @@ func _import_raw(path: String) -> void:
     for i in range(samples):
         values[i] = clampf((values[i] - float(min_u)) / source_range, 0.0, 1.0)
 
+    # Remove single-sample spikes from the RAW before creating the Terrain3D image.
+    # A light 3x3 Gaussian pass keeps broad Roman hills intact while reducing
+    # the jagged micro-relief that creates noisy lighting and rough-looking ground.
+    values = _smooth_heightmap(values, width, height, 0.45)
+
     var img: Image = Image.create_from_data(width, height, false, Image.FORMAT_RF, values.to_byte_array())
     if img == null:
         _set_status("ERRORE: impossibile creare Image RF")
@@ -160,6 +165,28 @@ func _import_raw(path: String) -> void:
 
     _build_river_water(values, width, height)
     _set_status("HEIGHTMAP OK — %dx%d — RAW 16-bit BE — min/max %d/%d — scala %.0f m" % [width, height, min_u, max_u, HEIGHT_SCALE_M])
+
+
+func _smooth_heightmap(source: PackedFloat32Array, width: int, height: int, strength: float) -> PackedFloat32Array:
+    var result := source.duplicate()
+    for z in range(height):
+        for x in range(width):
+            var weighted_sum := 0.0
+            var weight_total := 0.0
+            for oz in range(-1, 2):
+                var sz := z + oz
+                if sz < 0 or sz >= height:
+                    continue
+                for ox in range(-1, 2):
+                    var sx := x + ox
+                    if sx < 0 or sx >= width:
+                        continue
+                    var weight := float((2 if ox == 0 else 1) * (2 if oz == 0 else 1))
+                    weighted_sum += source[sz * width + sx] * weight
+                    weight_total += weight
+            var idx := z * width + x
+            result[idx] = lerpf(source[idx], weighted_sum / maxf(weight_total, 1.0), clampf(strength, 0.0, 1.0))
+    return result
 
 
 func _build_manual_control_map(values: PackedFloat32Array, width: int, height: int) -> Image:
