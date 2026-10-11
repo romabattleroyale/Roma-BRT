@@ -33,6 +33,8 @@ var _terrain_node: Node
 var _terrain_height_calls: int = 0
 var _terrain_height_total_ms: float = 0.0
 var _terrain_height_max_ms: float = 0.0
+var _foundation_height_values := PackedFloat32Array()
+var _foundation_height_side: int = 0
 var _road_corridors: Array[Dictionary] = []
 var _placed_bounds: Array[AABB] = []
 
@@ -553,7 +555,7 @@ func _build_conforming_foundation_mesh(root: Node3D, size: Vector2) -> ArrayMesh
     for corner in corners:
         top.append(Vector3(corner.x, top_y, corner.y))
         var world_corner := root.to_global(Vector3(corner.x, 0.0, corner.y))
-        var ground_local_y := _get_terrain_height(world_corner.x, world_corner.z) - root.global_position.y - 0.12
+        var ground_local_y := _sample_foundation_height(world_corner.x, world_corner.z) - root.global_position.y - 0.12
         bottom.append(Vector3(corner.x, minf(top_y - 0.08, ground_local_y), corner.y))
 
     var st := SurfaceTool.new()
@@ -573,4 +575,47 @@ func _foundation_quad(st: SurfaceTool, a: Vector3, b: Vector3, c: Vector3, d: Ve
     st.add_vertex(a)
     st.add_vertex(c)
     st.add_vertex(d)
+
+
+func _sample_foundation_height(x: float, z: float) -> float:
+    if _foundation_height_values.is_empty():
+        var file := FileAccess.open("res://assets/heightmap.raw", FileAccess.READ)
+        if file == null:
+            return _get_terrain_height(x, z)
+        var bytes := file.get_buffer(file.get_length())
+        file.close()
+        var sample_count := int(bytes.size() / 2)
+        _foundation_height_side = int(sqrt(float(sample_count)))
+        if _foundation_height_side < 2 or _foundation_height_side * _foundation_height_side != sample_count:
+            _foundation_height_side = 0
+            return _get_terrain_height(x, z)
+        var min_value := 65535
+        var max_value := 0
+        _foundation_height_values.resize(sample_count)
+        for i in range(sample_count):
+            var value := (int(bytes[i * 2]) << 8) | int(bytes[i * 2 + 1])
+            _foundation_height_values[i] = float(value)
+            min_value = mini(min_value, value)
+            max_value = maxi(max_value, value)
+        var value_range := maxf(1.0, float(max_value - min_value))
+        for i in range(sample_count):
+            _foundation_height_values[i] = (_foundation_height_values[i] - float(min_value)) / value_range * 48.0
+        print("ROMAN FOUNDATION HEIGHT CACHE: loaded RAW samples=", sample_count, " side=", _foundation_height_side)
+
+    if _foundation_height_side < 2:
+        return _get_terrain_height(x, z)
+    var side := _foundation_height_side
+    var fx := clampf(x / 2000.0 * float(side - 1), 0.0, float(side - 1))
+    var fz := clampf(z / 2000.0 * float(side - 1), 0.0, float(side - 1))
+    var x0 := int(floor(fx))
+    var z0 := int(floor(fz))
+    var x1 := mini(x0 + 1, side - 1)
+    var z1 := mini(z0 + 1, side - 1)
+    var tx := fx - float(x0)
+    var tz := fz - float(z0)
+    var h00 := _foundation_height_values[z0 * side + x0]
+    var h10 := _foundation_height_values[z0 * side + x1]
+    var h01 := _foundation_height_values[z1 * side + x0]
+    var h11 := _foundation_height_values[z1 * side + x1]
+    return lerpf(lerpf(h00, h10, tx), lerpf(h01, h11, tx), tz)
 
