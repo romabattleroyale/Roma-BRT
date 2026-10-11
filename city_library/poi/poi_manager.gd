@@ -152,23 +152,119 @@ func _safe_from_pois(candidate: Vector2, min_distance: float, placed: Array[Vect
 
 func _spawn_poi(poi: Dictionary, resolved: Dictionary) -> void:
     var scene_path := str(poi.get("scene", ""))
+    var world_x := float(resolved["world_x"])
+    var world_z := float(resolved["world_z"])
+    var ground_y := _ground_height(world_x, world_z)
     if instantiate_existing_modules and not scene_path.is_empty() and ResourceLoader.exists(scene_path):
         var packed := load(scene_path) as PackedScene
         if packed:
             var instance := packed.instantiate()
             instance.name = str(poi.get("id", "POI"))
             add_child(instance)
-            instance.position = Vector3(resolved["world_x"], SLOT_Y, resolved["world_z"])
+            instance.position = Vector3(world_x, ground_y, world_z)
             return
 
-    if show_reservation_markers:
-        var marker := MeshInstance3D.new()
-        marker.name = str(poi.get("id", "POI")) + "_Reservation"
-        var box := BoxMesh.new()
-        box.size = Vector3(float(resolved["width"]), MARKER_HEIGHT, float(resolved["depth"]))
-        marker.mesh = box
-        marker.position = Vector3(resolved["world_x"], SLOT_Y, resolved["world_z"])
-        add_child(marker)
+    # The module scenes are not present in this repository snapshot. Build a
+    # visible, named landmark placeholder rather than silently omitting the POI.
+    var root := Node3D.new()
+    root.name = str(poi.get("id", "POI"))
+    root.position = Vector3(world_x, ground_y, world_z)
+    add_child(root)
+    var id := str(poi.get("id", "poi"))
+    var width := float(resolved["width"])
+    var depth := float(resolved["depth"])
+    var category := str(poi.get("category", "landmark"))
+    var tint := Color(0.66, 0.56, 0.42)
+    if category in ["station", "trasporti"]:
+        tint = Color(0.48, 0.55, 0.62)
+    elif category in ["park_landmark", "parco_piazza"]:
+        tint = Color(0.3, 0.48, 0.27)
+    elif category in ["modern", "moderno"]:
+        tint = Color(0.68, 0.72, 0.75)
+    elif category in ["square", "piazze_fontane"]:
+        tint = Color(0.72, 0.62, 0.45)
+    var pad_mat := _poi_material(Color(0.31, 0.29, 0.26))
+    var stone_mat := _poi_material(tint)
+    var accent_mat := _poi_material(Color(0.78, 0.69, 0.48))
+    _poi_box(root, "POI_Footprint", Vector3(width, 0.5, depth), Vector3(0, 0.25, 0), pad_mat)
+    var h := 12.0
+    if id.contains("colosseo"):
+        h = 18.0
+        for i in range(16):
+            var a := TAU * float(i) / 16.0
+            _poi_cylinder(root, "Colosseum_Pier_%02d" % i, 2.2, 10.0, Vector3(cos(a) * 19.0, 5.25, sin(a) * 19.0), stone_mat)
+        _poi_cylinder(root, "Colosseum_UpperRing", 23.0, 2.0, Vector3(0, 11.0, 0), accent_mat)
+        _poi_cylinder(root, "Colosseum_Arena", 13.0, 1.0, Vector3(0, 1.0, 0), pad_mat)
+    elif id.contains("vaticano"):
+        h = 24.0
+        _poi_box(root, "Basilica_Nave", Vector3(32, 10, 20), Vector3(0, 5, 0), stone_mat)
+        _poi_cylinder(root, "St_Peters_Dome", 8.0, 12.0, Vector3(0, 16, 0), accent_mat)
+        _poi_cylinder(root, "Dome_Lantern", 2.0, 5.0, Vector3(0, 24.5, 0), stone_mat)
+    elif id.contains("termini") or id.contains("tiburtina"):
+        h = 14.0
+        _poi_box(root, "Station_MainHall", Vector3(width * 0.72, h, depth * 0.48), Vector3(0, h * 0.5, 0), stone_mat)
+        _poi_box(root, "Station_Roof", Vector3(width * 0.78, 1.5, depth * 0.54), Vector3(0, h + 0.75, 0), accent_mat)
+    elif id.contains("eur"):
+        h = 25.0
+        _poi_box(root, "EUR_Marble_Block", Vector3(26, h, 26), Vector3(0, h * 0.5, 0), stone_mat)
+        for i in range(5):
+            _poi_box(root, "EUR_Arch_%d" % i, Vector3(3.0, 12.0, 0.8), Vector3(-8.0 + i * 4.0, 8.0, -13.3), pad_mat)
+    elif id.contains("villa") or id.contains("circo"):
+        h = 5.0
+        for i in range(9):
+            _poi_box(root, "Park_Tree_%d" % i, Vector3(1.5, 5.0, 1.5), Vector3(-20 + (i % 3) * 20, 2.5, -20 + int(i / 3) * 20), stone_mat)
+            _poi_cylinder(root, "Park_Canopy_%d" % i, 4.5, 3.5, Vector3(-20 + (i % 3) * 20, 6.5, -20 + int(i / 3) * 20), accent_mat)
+    elif id.contains("trevi") or id.contains("pantheon") or id.contains("venezia"):
+        h = 10.0
+        _poi_cylinder(root, "Historic_Podium", 15.0, 2.0, Vector3(0, 1.0, 0), accent_mat)
+        _poi_cylinder(root, "Historic_Landmark", 9.0, h, Vector3(0, h * 0.5 + 1.0, 0), stone_mat)
+        _poi_cylinder(root, "Historic_Cap", 11.0, 1.5, Vector3(0, h + 2.0, 0), accent_mat)
+    else:
+        _poi_box(root, "Historic_Block", Vector3(width * 0.55, h, depth * 0.45), Vector3(0, h * 0.5, 0), stone_mat)
+        _poi_box(root, "Historic_Roof", Vector3(width * 0.62, 1.5, depth * 0.52), Vector3(0, h + 0.75, 0), accent_mat)
+    var label := Label3D.new()
+    label.name = "POI_Name"
+    label.text = str(poi.get("name", id))
+    label.position = Vector3(0, h + 5.0, 0)
+    label.font_size = 36
+    label.pixel_size = 0.01
+    label.billboard = BaseMaterial3D.BILLBOARD_ENABLED
+    root.add_child(label)
+
+func _ground_height(world_x: float, world_z: float) -> float:
+    var generator := get_tree().current_scene.find_child("MapGenerator", true, false)
+    if generator != null and generator.has_method("sample_height"):
+        return float(generator.call("sample_height", world_x, world_z))
+    return SLOT_Y
+
+func _poi_material(color: Color) -> StandardMaterial3D:
+    var material := StandardMaterial3D.new()
+    material.albedo_color = color
+    material.roughness = 0.88
+    return material
+
+func _poi_box(root: Node3D, node_name: String, size: Vector3, at: Vector3, material: Material) -> void:
+    var mesh := BoxMesh.new()
+    mesh.size = size
+    var instance := MeshInstance3D.new()
+    instance.name = node_name
+    instance.mesh = mesh
+    instance.material_override = material
+    instance.position = at
+    root.add_child(instance)
+
+func _poi_cylinder(root: Node3D, node_name: String, radius: float, height: float, at: Vector3, material: Material) -> void:
+    var mesh := CylinderMesh.new()
+    mesh.top_radius = radius
+    mesh.bottom_radius = radius
+    mesh.height = height
+    mesh.radial_segments = 24
+    var instance := MeshInstance3D.new()
+    instance.name = node_name
+    instance.mesh = mesh
+    instance.material_override = material
+    instance.position = at
+    root.add_child(instance)
 
 
 func _save_resolved_layout(pois: Array) -> void:
