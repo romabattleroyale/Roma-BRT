@@ -1,11 +1,5 @@
-; Engine configuration file.
-; It's best edited using the editor UI and not directly,
-; since the parameters here are not all obvious.
-;
-; Runtime stability fix: Terrain3D remains available through its GDExtension
-; (res://addons/terrain_3d/terrain.gdextension), while the editor-only plugin
-; is disabled. The runtime launcher explicitly loads the GDExtension before
-; the real main scene is parsed, eliminating startup-order ambiguity.
+; Roma BRT clean main runtime: MapGen, player camera, storm boundary and POIs.
+; Terrain3D is not used by this main scene.
 
 config_version=5
 
@@ -14,11 +8,6 @@ config_version=5
 config/name="Roma Heightmap Beta 2000x2000"
 run/main_scene="res://main.tscn"
 config/features=PackedStringArray("4.7")
-
-[autoload]
-
-MobileMemoryWatch="*res://tools/mobile_memory_watch.gd"
-ScriptProfiler="*res://script_profiler.gd"
 
 [display]
 
