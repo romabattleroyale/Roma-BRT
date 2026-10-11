@@ -62,7 +62,7 @@ jobs:
                   raise SystemExit(f"River point {i} has implausible half_width={point['half_width']}")
 
           print(f"MAIN AUDIT OK: {len(points)} river path points")
-          if '[node name="CollisionShape3D" parent="Viewer"]' not in scene or 'ViewerCapsule' not in scene:
+          if '[node name="CollisionShape3D" type="CollisionShape3D" parent="Viewer"]' not in scene or 'ViewerCapsule' not in scene:
               raise SystemExit("Viewer collision capsule missing")
           print("Main scene: MapGen terrain, player collision, roads, building bridge and POI manager present")
           print("Mobile Compatibility renderer setting present")
