@@ -32,7 +32,7 @@ func _run_when_ready() -> void:
                     return
     push_warning("TERRAIN ZONES: Terrain3D non pronto dopo 120 frame; pittura saltata.")
 
-func _paint_or_load_cache(terrain: Node) -> void:
+func _paint_or_load_cache(terrain: Variant) -> void:
     var pois := _load_resolved_pois()
     if pois.is_empty():
         push_warning("TERRAIN ZONES: layout POI non risolto; pittura saltata.")
@@ -116,7 +116,7 @@ func _weights_at(pos: Vector2, pois: Array) -> Dictionary:
         weights[DEFAULT_TEXTURE_ID] = 1.0
     return weights
 
-func _apply_weights(data: Object, pos: Vector3, weights: Dictionary) -> void:
+func _apply_weights(data, pos: Vector3, weights: Dictionary) -> void:
     var ids: Array = weights.keys()
     ids.sort_custom(func(a, b): return float(weights[a]) > float(weights[b]))
     var base_id := int(ids[0])
