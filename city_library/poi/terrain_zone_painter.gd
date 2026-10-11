@@ -81,7 +81,7 @@ func _paint_or_load_cache(terrain: Variant) -> void:
     # backup folder. Terrain3D saves region resources, not one monolithic .res file.
     var cache_absolute := ProjectSettings.globalize_path(CACHE_DIR)
     DirAccess.make_dir_recursive_absolute(cache_absolute)
-    terrain.data.save_directory(TERRAIN_DATA_DIR)
+    # Keep the original res:// heightmap cache immutable; painted regions live in user://.
     terrain.data.save_directory(CACHE_DIR)
     _write_text(CACHE_SIGNATURE, signature + "\n")
     _write_text(CACHE_DIR + "/READY.txt", "Terrain3D zone paint saved from resolved POIs.\n")
