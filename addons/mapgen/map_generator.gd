@@ -135,7 +135,7 @@ func sample_normal(world_x: float, world_z: float) -> Vector3:
 	if heightfield == null:
 		return Vector3.UP
 	var p := _world_xz_to_heightfield(world_x, world_z)
-	return global_transform.basis * heightfield.normal_at(p.x, p.y)
+	return (global_transform.basis * heightfield.normal_at(p.x, p.y)).normalized()
 
 
 func sample_slope_degrees(world_x: float, world_z: float) -> float:
