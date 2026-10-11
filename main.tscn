@@ -1,4 +1,4 @@
-[gd_scene load_steps=23 format=3]
+[gd_scene load_steps=24 format=3]
 
 [ext_resource type="Script" path="res://terrain_runtime_android_safe.gd" id="1_rt"]
 [ext_resource type="Script" path="res://viewer.gd" id="2_viewer"]
@@ -20,6 +20,7 @@
 [ext_resource type="Script" path="res://platform_detector.gd" id="18_platform"]
 [ext_resource type="Script" path="res://performance_monitor.gd" id="19_perf"]
 [ext_resource type="Texture2D" path="res://assets/Sky/belfast_sunset_puresky_2k.hdr" id="20_sky_hdri"]
+[ext_resource type="Script" path="res://addons/mapgen/map_generator.gd" id="21_mapgen"]
 
 [sub_resource type="PanoramaSkyMaterial" id="SunsetSkyMaterial"]
 panorama = ExtResource("20_sky_hdri")
@@ -55,6 +56,9 @@ glow_blend_mode = 0
 glow_hdr_threshold = 1.5
 
 [node name="RomaHeightmapBeta" type="Node3D"]
+
+[node name="MapGenerator" type="Node3D" parent="."]
+script = ExtResource("21_mapgen")
 
 [node name="WorldEnvironment" type="WorldEnvironment" parent="."]
 environment = SubResource("Env")
