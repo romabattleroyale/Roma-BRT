@@ -1,4 +1,5 @@
 // Copyright © 2023-2026 Cory Petkovsek, Roope Palmroos, and Contributors.
+// AUTO_RELOAD_TEST_20261011: harmless comment-only sync test; no shader behavior changed.
 
 shader_type spatial;
 
