@@ -1,0 +1,40 @@
+name: Download Poly Haven terrain textures
+
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - "tools/polyhaven_terrain_import.py"
+      - ".github/workflows/download-polyhaven-terrain.yml"
+
+permissions:
+  contents: write
+
+jobs:
+  download-and-pack:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          ref: main
+          persist-credentials: true
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install image packer
+        run: python -m pip install --upgrade Pillow
+      - name: Download CC0 maps from the Poly Haven API and pack for Terrain3D
+        run: python tools/polyhaven_terrain_import.py
+      - name: Commit generated texture assets
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add assets/textures/terrain terrain_materials/terrain_assets_polyhaven_zones.tres
+          if git diff --cached --quiet; then
+            echo "No generated texture changes to commit."
+          else
+            git commit -m "Add packed Poly Haven terrain texture sets"
+            git push origin HEAD:main
+          fi
