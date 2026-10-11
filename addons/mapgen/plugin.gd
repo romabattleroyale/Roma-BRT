@@ -14,6 +14,7 @@ func _enter_tree() -> void:
 	add_control_to_dock(EditorPlugin.DOCK_SLOT_RIGHT_BL, _dock)
 
 	EditorInterface.get_selection().selection_changed.connect(_on_selection_changed)
+	call_deferred("_bind_generator_in_edited_scene")
 
 
 func _exit_tree() -> void:
@@ -25,6 +26,22 @@ func _exit_tree() -> void:
 		_dock.queue_free()
 		_dock = null
 	remove_custom_type("MapGenerator")
+
+
+func _bind_generator_in_edited_scene() -> void:
+	if _dock == null:
+		return
+	var root := EditorInterface.get_edited_scene_root()
+	if root == null:
+		return
+	var pending: Array[Node] = [root]
+	while not pending.is_empty():
+		var node: Node = pending.pop_back()
+		if node is MapGenerator:
+			_dock.set_generator(node)
+			return
+		for child in node.get_children():
+			pending.append(child)
 
 
 func _on_selection_changed() -> void:
