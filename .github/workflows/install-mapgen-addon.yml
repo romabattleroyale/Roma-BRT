@@ -1,1 +1,44 @@
 
+name: Install MapGen addon
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  install:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout main project
+        uses: actions/checkout@v4
+        with:
+          ref: main
+
+      - name: Download MapGen
+        uses: actions/checkout@v4
+        with:
+          repository: MarcelloMorettoni/mapgen
+          path: /tmp/mapgen
+
+      - name: Install addon
+        run: |
+          test -f /tmp/mapgen/addons/mapgen/plugin.cfg
+          mkdir -p addons
+          rm -rf addons/mapgen
+          cp -a /tmp/mapgen/addons/mapgen addons/mapgen
+          find addons/mapgen -type d -name .godot -prune -exec rm -rf {} +
+
+      - name: Commit to main
+        run: |
+          if git diff --quiet -- addons/mapgen; then
+            echo "MapGen already installed"
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add addons/mapgen
+          git commit -m "Install MapGen addon into main project"
+          git push origin HEAD:main
+          
