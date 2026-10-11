@@ -34,6 +34,24 @@ jobs:
           test -f baked_city/ready_templates/template_001.tscn
           test -f baked_city/ready_templates/template_120.tscn
           python3 - <<'PY'
+          from pathlib import Path
+          root = Path("baked_city/ready_templates")
+          expected = {f"template_{i:03d}.tscn" for i in range(1, 121)}
+          actual = {p.name for p in root.glob("template_*.tscn")}
+          if actual != expected:
+              raise SystemExit(f"READY_TEMPLATE_FILES_INVALID missing={sorted(expected-actual)} extra={sorted(actual-expected)}")
+          invalid = []
+          for path in sorted(root.glob("template_*.tscn")):
+              with path.open("rb") as stream:
+                  header = stream.readline(256)
+              if not header.startswith(b"[gd_scene ") or path.stat().st_size < 128:
+                  invalid.append(f"{path}: {path.stat().st_size} bytes, header={header!r}")
+          if invalid:
+              print("\\n".join(invalid))
+              raise SystemExit("READY_TEMPLATE_INTEGRITY=FAIL")
+          print("READY_TEMPLATE_INTEGRITY=PASS count=120")
+          PY
+          python3 - <<'PY'
           import json
           from pathlib import Path
           data=json.loads(Path('baked_city/ready_templates/manifest.json').read_text())
