@@ -89,7 +89,7 @@ def fetch_osm():
 
 def fetch_elevation():
     # Open-Meteo's elevation API serves a real global DEM. Sample a 41x41 grid
-    # (100 m spacing) to avoid a huge number of requests and preserve terrain relief.
+    # (50 m spacing) to avoid a huge number of requests and preserve terrain relief.
     south, west, north, east = bounds()
     rows = []
     count = int((2 * HALF_SIZE_M) / DEM_STEP_M) + 1
