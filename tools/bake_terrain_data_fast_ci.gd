@@ -80,13 +80,30 @@ func _bake() -> void:
 	for i in range(samples):
 		values[i] = clampf((values[i] - float(min_u)) / source_range, 0.0, 1.0)
 
+	# Same light 3x3 Gaussian pass used by terrain_runtime.gd.
+	var smoothed := values.duplicate()
+	for z in range(side):
+		for x in range(side):
+			var weighted_sum := 0.0
+			var weight_total := 0.0
+			for oz in range(-1, 2):
+				var sz := clampi(z + oz, 0, side - 1)
+				for ox in range(-1, 2):
+					var sx := clampi(x + ox, 0, side - 1)
+					var weight := float((2 if ox == 0 else 1) * (2 if oz == 0 else 1))
+					weighted_sum += values[sz * side + sx] * weight
+					weight_total += weight
+			var idx := z * side + x
+			smoothed[idx] = lerpf(values[idx], weighted_sum / maxf(weight_total, 1.0), 0.45)
+	values = smoothed
+
 	var height_img := Image.create_from_data(side, side, false, Image.FORMAT_RF, values.to_byte_array())
 	var control_bytes := FileAccess.get_file_as_bytes(CONTROL_PATH)
 	if control_bytes.size() != samples * 4:
 		push_error("FAST TERRAIN BAKE: control map dimensione errata")
 		quit(16)
 		return
-	var control_img := Image.create_from_data(side, side, false, Image.FORMAT_RF, control_bytes)
+	var control_img := Image.create_from_data(side, side, false, Image.FORMAT_RGBA8, control_bytes)
 	if height_img == null or control_img == null:
 		push_error("FAST TERRAIN BAKE: impossibile creare mappe Terrain3D")
 		quit(17)
