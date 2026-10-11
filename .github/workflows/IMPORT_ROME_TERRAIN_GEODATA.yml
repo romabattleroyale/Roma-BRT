@@ -36,9 +36,9 @@ jobs:
           print(f"Validated {len(d['features'])} OSM ways; file size={p.stat().st_size} bytes")
           e = Path("data/rome_geodata/elevation.json")
           dem = json.loads(e.read_text())
-          assert dem["width"] == dem["height"] == 21
-          assert len(dem["elevation_metres_north_to_south"]) == 21
-          print("Validated 21x21 real elevation samples")
+          assert dem["width"] == dem["height"] == 41
+          assert len(dem["elevation_metres_north_to_south"]) == 41
+          print("Validated 41x41 real elevation samples (50 m grid)")
           PY
       - name: Commit imported source data
         run: |
