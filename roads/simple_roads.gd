@@ -897,17 +897,26 @@ func _add_osm_polyline(points: Array[Vector3], width: float, material: Material,
     var indices := PackedInt32Array()
     var travelled := 0.0
     for i in range(points.size()):
-        var tangent: Vector3
+        var tangent: Vector3 = Vector3.ZERO
         if i == 0:
-            tangent = (points[1] - points[0]).normalized()
+            tangent = points[1] - points[0]
         elif i == points.size() - 1:
-            tangent = (points[i] - points[i - 1]).normalized()
+            tangent = points[i] - points[i - 1]
         else:
-            var incoming := (points[i] - points[i - 1]).normalized()
-            var outgoing := (points[i + 1] - points[i]).normalized()
-            tangent = (incoming + outgoing).normalized()
-            if tangent.length_squared() < 0.01:
-                tangent = outgoing
+            var incoming: Vector3 = points[i] - points[i - 1]
+            var outgoing: Vector3 = points[i + 1] - points[i]
+            if incoming.length_squared() > 0.0001:
+                incoming = incoming.normalized()
+            if outgoing.length_squared() > 0.0001:
+                outgoing = outgoing.normalized()
+            tangent = incoming + outgoing
+            if tangent.length_squared() < 0.0001:
+                tangent = outgoing if outgoing.length_squared() > 0.0001 else incoming
+        if tangent.length_squared() < 0.0001:
+            # Skip duplicate/degenerate OSM vertices instead of normalizing zero.
+            tangent = Vector3.FORWARD
+        else:
+            tangent = tangent.normalized()
         var side := Vector3(-tangent.z, 0.0, tangent.x)
         var left := points[i] + side * width * 0.5
         var right := points[i] - side * width * 0.5
@@ -951,15 +960,25 @@ func _add_osm_edge_ribbons(points: Array[Vector3], road_width: float, edge_width
         var indices := PackedInt32Array()
         var travelled := 0.0
         for i in range(points.size()):
-            var tangent: Vector3
+            var tangent: Vector3 = Vector3.ZERO
             if i == 0:
-                tangent = (points[1] - points[0]).normalized()
+                tangent = points[1] - points[0]
             elif i == points.size() - 1:
-                tangent = (points[i] - points[i - 1]).normalized()
+                tangent = points[i] - points[i - 1]
             else:
-                tangent = ((points[i] - points[i - 1]).normalized() + (points[i + 1] - points[i]).normalized()).normalized()
-                if tangent.length_squared() < 0.01:
-                    tangent = (points[i + 1] - points[i]).normalized()
+                var incoming: Vector3 = points[i] - points[i - 1]
+                var outgoing: Vector3 = points[i + 1] - points[i]
+                if incoming.length_squared() > 0.0001:
+                    incoming = incoming.normalized()
+                if outgoing.length_squared() > 0.0001:
+                    outgoing = outgoing.normalized()
+                tangent = incoming + outgoing
+                if tangent.length_squared() < 0.0001:
+                    tangent = outgoing if outgoing.length_squared() > 0.0001 else incoming
+            if tangent.length_squared() < 0.0001:
+                tangent = Vector3.FORWARD
+            else:
+                tangent = tangent.normalized()
             var side: Vector3 = Vector3(-tangent.z, 0.0, tangent.x) * side_sign
             var offset: float = road_width * 0.5 + (edge_width * 0.5 if not curb_edge else 0.12)
             var center: Vector3 = points[i] + side * offset
