@@ -947,9 +947,9 @@ func _add_osm_edge_ribbons(points: Array[Vector3], road_width: float, edge_width
                 tangent = ((points[i] - points[i - 1]).normalized() + (points[i + 1] - points[i]).normalized()).normalized()
                 if tangent.length_squared() < 0.01:
                     tangent = (points[i + 1] - points[i]).normalized()
-            var side := Vector3(-tangent.z, 0.0, tangent.x) * side_sign
-            var offset := road_width * 0.5 + (edge_width * 0.5 if not curb_edge else 0.12)
-            var center := points[i] + side * offset
+            var side: Vector3 = Vector3(-tangent.z, 0.0, tangent.x) * side_sign
+            var offset: float = road_width * 0.5 + (edge_width * 0.5 if not curb_edge else 0.12)
+            var center: Vector3 = points[i] + side * offset
             var left := center + side * edge_width * 0.5
             var right := center - side * edge_width * 0.5
             left.y = _terrain_y(left.x, left.z) + lift
