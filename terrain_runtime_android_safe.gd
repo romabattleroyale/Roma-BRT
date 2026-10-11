@@ -67,19 +67,14 @@ func _setup() -> void:
 		_set_status("ERRORE: heightmap.raw non trovato")
 		return
 
+	# FORCE NATURAL MASK REBUILD:
+	# The shipped cache contains an old control map with large orange square patches.
+	# Loading that cache would ignore the updated biome thresholds. Re-import the
+	# original heightmap and regenerate its control map so the old mask is discarded.
+	# This deliberately prioritizes correct terrain appearance over stale-cache speed.
 	if FileAccess.file_exists(TERRAIN_CACHE_MARKER):
-		_set_status("Caricamento Terrain3D cache…")
-		print("ANDROID SAFE TERRAIN: caricamento dati persistenti ", TERRAIN_DATA_DIR)
-		terrain.data.load_directory(TERRAIN_DATA_DIR)
-		terrain.data.calc_height_range(false)
-		var cached_values := _read_normalized_raw(RAW_PATH)
-		if cached_values.size() > 0:
-			_build_river_water(cached_values, 1081, 1081)
-		_set_status("TERRAIN CACHE OK — dati Terrain3D persistenti caricati")
-		print("ANDROID SAFE TERRAIN: cache Terrain3D caricata senza import/control-map bake")
-		return
-
-	_set_status("Caricamento heightmap RAW…")
+		print("ANDROID SAFE TERRAIN: ignoring stale cached control map; rebuilding natural mask from RAW")
+	_set_status("Ricostruzione terreno naturale e maschera…")
 	print("ANDROID SAFE TERRAIN: import automatico ", RAW_PATH)
 	await get_tree().process_frame
 	_import_raw(RAW_PATH)
