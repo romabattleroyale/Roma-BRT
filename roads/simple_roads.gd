@@ -142,6 +142,12 @@ func _build_network() -> void:
     if _built:
         return
     _built = true
+    # Prefer real OSM centerlines when the imported dataset is present.
+    # The previous synthetic block grid remains only as a fallback.
+    if FileAccess.file_exists("res://data/rome_geodata/roads.geojson"):
+        await _build_osm_network()
+        return
+
     var lot_rects: Array = _get_urban_lot_rects()
     if lot_rects.is_empty():
         push_error("ROMA ROADS V2: Urban_Grid LOT_RECTS unavailable")
@@ -790,3 +796,175 @@ func _add_bridge_lamp(center: Vector3, direction: Vector3) -> void:
     lamp.rotation.y = atan2(direction.x, direction.z)
     lamp.position = _surface_point(center.x, center.z)
     add_child(lamp)
+
+
+func _build_osm_network() -> void:
+    var file := FileAccess.open("res://data/rome_geodata/roads.geojson", FileAccess.READ)
+    if file == null:
+        push_error("ROMA OSM ROADS: cannot open roads.geojson")
+        return
+    var parsed: Variant = JSON.parse_string(file.get_as_text())
+    file.close()
+    if not (parsed is Dictionary) or not ((parsed as Dictionary).get("features", []) is Array):
+        push_error("ROMA OSM ROADS: invalid GeoJSON FeatureCollection")
+        return
+    var features: Array = (parsed as Dictionary).get("features", [])
+    var built := 0
+    var skipped := 0
+    for feature_variant in features:
+        if not (feature_variant is Dictionary):
+            skipped += 1
+            continue
+        var feature: Dictionary = feature_variant
+        var geometry: Dictionary = feature.get("geometry", {})
+        if str(geometry.get("type", "")) != "LineString":
+            skipped += 1
+            continue
+        var coords: Variant = geometry.get("coordinates", [])
+        if not (coords is Array) or (coords as Array).size() < 2:
+            skipped += 1
+            continue
+        var properties: Dictionary = feature.get("properties", {})
+        var highway := str(properties.get("highway", "residential"))
+        var width := _osm_road_width(highway, str(properties.get("width", "")), str(properties.get("lanes", "")))
+        var points: Array[Vector3] = []
+        for coord_variant in coords:
+            if not (coord_variant is Array) or (coord_variant as Array).size() < 2:
+                continue
+            var coord: Array = coord_variant
+            var x := clampf(float(coord[0]), 0.0, 2000.0)
+            var z := clampf(float(coord[1]), 0.0, 2000.0)
+            if points.is_empty() or Vector2(points.back().x - x, points.back().z - z).length() > 0.75:
+                points.append(Vector3(x, 0.0, z))
+        if points.size() < 2:
+            skipped += 1
+            continue
+        var surface: Material = _asphalt
+        if highway in ["pedestrian", "footway", "path", "steps"]:
+            surface = _sampietrini
+        _add_osm_polyline(points, width, surface, highway)
+        built += 1
+        if built % 8 == 0:
+            await get_tree().process_frame
+    print("ROMA OSM ROADS: centerlines=%d skipped=%d source=OpenStreetMap" % [built, skipped])
+
+func _osm_road_width(highway: String, explicit_width: String, lanes_text: String) -> float:
+    var explicit := explicit_width.replace("m", "").strip_edges()
+    if explicit.is_valid_float():
+        return clampf(float(explicit), 2.0, 24.0)
+    var lanes := 0
+    if lanes_text.is_valid_int():
+        lanes = int(lanes_text)
+    if lanes > 0:
+        return clampf(float(lanes) * 3.1, 3.0, 18.0)
+    match highway:
+        "motorway", "trunk": return 12.0
+        "primary", "secondary": return 9.0
+        "tertiary", "unclassified", "residential": return 6.5
+        "living_street", "service": return 4.5
+        "pedestrian": return 5.0
+        "footway", "cycleway", "path": return 2.2
+        "steps": return 1.8
+    return 5.5
+
+func _add_osm_polyline(points: Array[Vector3], width: float, material: Material, highway: String) -> void:
+    # One mesh per OSM way avoids thousands of individual road-segment nodes.
+    var vertices := PackedVector3Array()
+    var normals := PackedVector3Array()
+    var uvs := PackedVector2Array()
+    var indices := PackedInt32Array()
+    var travelled := 0.0
+    for i in range(points.size()):
+        var tangent: Vector3
+        if i == 0:
+            tangent = (points[1] - points[0]).normalized()
+        elif i == points.size() - 1:
+            tangent = (points[i] - points[i - 1]).normalized()
+        else:
+            var incoming := (points[i] - points[i - 1]).normalized()
+            var outgoing := (points[i + 1] - points[i]).normalized()
+            tangent = (incoming + outgoing).normalized()
+            if tangent.length_squared() < 0.01:
+                tangent = outgoing
+        var side := Vector3(-tangent.z, 0.0, tangent.x)
+        var left := points[i] + side * width * 0.5
+        var right := points[i] - side * width * 0.5
+        left.y = _terrain_y(left.x, left.z) + 0.32
+        right.y = _terrain_y(right.x, right.z) + 0.32
+        if i > 0:
+            travelled += points[i - 1].distance_to(points[i])
+        vertices.append(left)
+        vertices.append(right)
+        normals.append(Vector3.UP)
+        normals.append(Vector3.UP)
+        uvs.append(Vector2(travelled / 8.0, 0.0))
+        uvs.append(Vector2(travelled / 8.0, 1.0))
+    for i in range(points.size() - 1):
+        var base := i * 2
+        indices.append(base); indices.append(base + 2); indices.append(base + 1)
+        indices.append(base + 1); indices.append(base + 2); indices.append(base + 3)
+    var arrays := []
+    arrays.resize(Mesh.ARRAY_MAX)
+    arrays[Mesh.ARRAY_VERTEX] = vertices
+    arrays[Mesh.ARRAY_NORMAL] = normals
+    arrays[Mesh.ARRAY_TEX_UV] = uvs
+    arrays[Mesh.ARRAY_INDEX] = indices
+    var mesh := ArrayMesh.new()
+    mesh.add_surface_from_arrays(Mesh.PRIMITIVE_TRIANGLES, arrays)
+    mesh.surface_set_material(0, material)
+    var instance := MeshInstance3D.new()
+    instance.name = "OSM_Road_%s" % highway
+    instance.mesh = mesh
+    instance.material_override = material
+    add_child(instance)
+    if highway in ["motorway", "trunk", "primary", "secondary", "tertiary", "unclassified", "residential", "living_street", "service"]:
+        _add_osm_edge_ribbons(points, width, 1.35, _sidewalk, 0.25, "OSM_Sidewalk")
+        _add_osm_edge_ribbons(points, width, 0.20, _curb, 0.29, "OSM_Curb", true)
+
+func _add_osm_edge_ribbons(points: Array[Vector3], road_width: float, edge_width: float, material: Material, lift: float, node_prefix: String, curb_edge: bool = false) -> void:
+    for side_sign in [-1.0, 1.0]:
+        var vertices := PackedVector3Array()
+        var normals := PackedVector3Array()
+        var uvs := PackedVector2Array()
+        var indices := PackedInt32Array()
+        var travelled := 0.0
+        for i in range(points.size()):
+            var tangent: Vector3
+            if i == 0:
+                tangent = (points[1] - points[0]).normalized()
+            elif i == points.size() - 1:
+                tangent = (points[i] - points[i - 1]).normalized()
+            else:
+                tangent = ((points[i] - points[i - 1]).normalized() + (points[i + 1] - points[i]).normalized()).normalized()
+                if tangent.length_squared() < 0.01:
+                    tangent = (points[i + 1] - points[i]).normalized()
+            var side := Vector3(-tangent.z, 0.0, tangent.x) * side_sign
+            var offset := road_width * 0.5 + (edge_width * 0.5 if not curb_edge else 0.12)
+            var center := points[i] + side * offset
+            var left := center + side * edge_width * 0.5
+            var right := center - side * edge_width * 0.5
+            left.y = _terrain_y(left.x, left.z) + lift
+            right.y = _terrain_y(right.x, right.z) + lift
+            if i > 0:
+                travelled += points[i - 1].distance_to(points[i])
+            vertices.append(left); vertices.append(right)
+            normals.append(Vector3.UP); normals.append(Vector3.UP)
+            uvs.append(Vector2(travelled / 4.0, 0.0)); uvs.append(Vector2(travelled / 4.0, 1.0))
+        for i in range(points.size() - 1):
+            var base := i * 2
+            indices.append(base); indices.append(base + 2); indices.append(base + 1)
+            indices.append(base + 1); indices.append(base + 2); indices.append(base + 3)
+        var arrays := []
+        arrays.resize(Mesh.ARRAY_MAX)
+        arrays[Mesh.ARRAY_VERTEX] = vertices
+        arrays[Mesh.ARRAY_NORMAL] = normals
+        arrays[Mesh.ARRAY_TEX_UV] = uvs
+        arrays[Mesh.ARRAY_INDEX] = indices
+        var mesh := ArrayMesh.new()
+        mesh.add_surface_from_arrays(Mesh.PRIMITIVE_TRIANGLES, arrays)
+        mesh.surface_set_material(0, material)
+        var instance := MeshInstance3D.new()
+        instance.name = node_prefix
+        instance.mesh = mesh
+        instance.material_override = material
+        add_child(instance)
