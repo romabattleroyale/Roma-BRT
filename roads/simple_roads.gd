@@ -828,6 +828,9 @@ func _build_osm_network() -> void:
         var highway := str(properties.get("highway", "residential"))
         var surface_tag := str(properties.get("surface", "")).to_lower()
         var width := _osm_road_width(highway, str(properties.get("width", "")), str(properties.get("lanes", "")))
+        # Split each OSM way at the map boundary. Simply discarding outside
+        # vertices can connect two distant in-bounds fragments with a fake chord.
+        var point_segments: Array = []
         var points: Array[Vector3] = []
         for coord_variant in coords:
             if not (coord_variant is Array) or (coord_variant as Array).size() < 2:
@@ -835,13 +838,16 @@ func _build_osm_network() -> void:
             var coord: Array = coord_variant
             var x := float(coord[0])
             var z := float(coord[1])
-            # Do not clamp out-of-bounds OSM points onto the map edge: that creates
-            # false straight roads along the world border. Keep only real in-bounds points.
             if x < 0.0 or x > 2000.0 or z < 0.0 or z > 2000.0:
+                if points.size() >= 2:
+                    point_segments.append(points)
+                points = []
                 continue
             if points.is_empty() or Vector2(points.back().x - x, points.back().z - z).length() > 0.75:
                 points.append(Vector3(x, 0.0, z))
-        if points.size() < 2:
+        if points.size() >= 2:
+            point_segments.append(points)
+        if point_segments.is_empty():
             skipped += 1
             continue
         var surface: Material = _asphalt
@@ -851,10 +857,13 @@ func _build_osm_network() -> void:
             surface = _sidewalk
         elif surface_tag in ["dirt", "ground", "earth", "mud", "grass"]:
             surface = _gutter
-        _add_osm_polyline(points, width, surface, highway)
-        built += 1
-        if built % 8 == 0:
-            await get_tree().process_frame
+        for segment in point_segments:
+            if segment.size() < 2:
+                continue
+            _add_osm_polyline(segment, width, surface, highway)
+            built += 1
+            if built % 8 == 0:
+                await get_tree().process_frame
     print("ROMA OSM ROADS: centerlines=%d skipped=%d source=OpenStreetMap" % [built, skipped])
 
 func _osm_road_width(highway: String, explicit_width: String, lanes_text: String) -> float:
