@@ -75,37 +75,38 @@ def fetch_osm():
     way[highway~"^(motorway|motorway_link|trunk|trunk_link|primary|primary_link|secondary|secondary_link|tertiary|tertiary_link|unclassified|residential|living_street|service|road|track|pedestrian|footway|path|cycleway|steps)$"]({south},{west},{north},{east});
     out geom;"""
     data = _overpass_json(query, "OSM roads")
-            features = []
-        for way in data.get("elements", []):
-            tags = way.get("tags", {})
-            points = way.get("geometry", [])
-            if len(points) < 2:
-                continue
-            coords = []
-            for p in points:
-                x = (p["lon"] - CENTER_LON) * 111_320.0 * math.cos(math.radians(CENTER_LAT)) + 1000.0
-                z = 1000.0 - (p["lat"] - CENTER_LAT) * 111_320.0
-                coords.append([round(x, 2), round(z, 2)])
-            features.append({
-                "type": "Feature",
-                "properties": {
-                    "osm_id": way.get("id"),
-                    "highway": tags.get("highway", "residential"),
-                    "name": tags.get("name", ""),
-                    "surface": tags.get("surface", ""),
-                    "lanes": tags.get("lanes", ""),
-                    "width": tags.get("width", ""),
-                    "lit": tags.get("lit", ""),
-                    "oneway": tags.get("oneway", ""),
-                    "bridge": tags.get("bridge", ""),
-                    "tunnel": tags.get("tunnel", ""),
-                    "junction": tags.get("junction", ""),
-                    "sidewalk": tags.get("sidewalk", ""),
-                    "maxspeed": tags.get("maxspeed", ""),
-                },
-                "geometry": {"type": "LineString", "coordinates": coords},
-            })
-        return {"type":"FeatureCollection","source":"OpenStreetMap contributors","features":features}
+    features = []
+    for way in data.get("elements", []):
+        tags = way.get("tags", {})
+        points = way.get("geometry", [])
+        if len(points) < 2:
+            continue
+        coords = []
+        for p in points:
+            x = (p["lon"] - CENTER_LON) * 111_320.0 * math.cos(math.radians(CENTER_LAT)) + 1000.0
+            z = 1000.0 - (p["lat"] - CENTER_LAT) * 111_320.0
+            coords.append([round(x, 2), round(z, 2)])
+        features.append({
+            "type": "Feature",
+            "properties": {
+                "osm_id": way.get("id"),
+                "highway": tags.get("highway", "residential"),
+                "name": tags.get("name", ""),
+                "surface": tags.get("surface", ""),
+                "lanes": tags.get("lanes", ""),
+                "width": tags.get("width", ""),
+                "lit": tags.get("lit", ""),
+                "oneway": tags.get("oneway", ""),
+                "bridge": tags.get("bridge", ""),
+                "tunnel": tags.get("tunnel", ""),
+                "junction": tags.get("junction", ""),
+                "sidewalk": tags.get("sidewalk", ""),
+                "maxspeed": tags.get("maxspeed", ""),
+            },
+            "geometry": {"type": "LineString", "coordinates": coords},
+        })
+    return {"type": "FeatureCollection", "source": "OpenStreetMap contributors", "features": features}
+
 
 def fetch_river_path():
     """Build the runtime river ribbon from real OpenStreetMap waterway geometry."""
