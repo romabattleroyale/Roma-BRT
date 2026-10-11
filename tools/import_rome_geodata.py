@@ -21,7 +21,7 @@ OUT = ROOT / "data" / "rome_geodata"
 # north/south to z=0..2000. This replaces invented rectangular city layouts.
 CENTER_LAT, CENTER_LON = 41.8902, 12.4922
 HALF_SIZE_M = 1000.0
-# Elevation sampling at 100 m intervals, then interpolate in Godot/import pipeline.
+# Elevation sampling at 50 m intervals, then interpolate in Godot/import pipeline.
 DEM_STEP_M = 50.0
 OVERPASS = [
     "https://overpass-api.de/api/interpreter",
