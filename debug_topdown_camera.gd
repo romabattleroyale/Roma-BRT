@@ -147,12 +147,10 @@ func toggle_camera_mode() -> void:
         update_camera()
 
 func _sample_ground_height(x: float, z: float) -> float:
-    var bootstrap := get_parent().get_node_or_null("TerrainBootstrap")
-    if bootstrap != null:
-        var terrain := bootstrap.get_node_or_null("Terrain3D_HEIGHTMAP_2000x2000")
-        if terrain != null:
-            var data: Object = terrain.get("data") as Object
-            if data != null and data.has_method("get_height"):
-                return float(data.call("get_height", Vector3(x - 1000.0, 0.0, z - 1000.0)))
-    push_warning("Terrain3D non disponibile per il posizionamento player; uso quota zero.")
+    var map_node := get_tree().current_scene.find_child("MapGenerator", true, false)
+    if map_node != null and map_node.has_method("sample_height"):
+        var sampled: Variant = map_node.call("sample_height", x, z)
+        if (sampled is float or sampled is int) and is_finite(float(sampled)):
+            return float(sampled)
+    push_warning("MapGen non pronto per il posizionamento player; uso quota zero.")
     return 0.0
