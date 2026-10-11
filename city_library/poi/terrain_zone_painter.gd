@@ -7,10 +7,10 @@ const RESOLVED_PATH := "res://city_library/poi/poi_layout_resolved.json"
 const USER_RESOLVED_PATH := "user://poi_layout_resolved.json"
 const ASSETS_PATH := "res://terrain_materials/terrain_assets_polyhaven_zones.tres"
 const CACHE_DIR := "user://baked_city/terrain_paint"
-const CACHE_SIGNATURE := CACHE_DIR + "/layout_signature.txt"
+const CACHE_SIGNATURE := CACHE_DIR + "/layout_signature_v2_grass_base.txt"
 const TERRAIN_DATA_DIR := "res://terrain_data"
 const DEFAULT_TEXTURE_ID := 2
-const BLEND_RESOLUTION := 4
+const BLEND_RESOLUTION := 2
 const MAP_SIZE_M := 2000
 
 var _painting := false
@@ -51,7 +51,7 @@ func _paint_or_load_cache(terrain: Variant) -> void:
     # cache in user:// and restore it before deciding whether a repaint is needed.
     # Terrain assets are assigned by TerrainBootstrap before native GPU resources initialize.
     # Do not replace Terrain3D assets here: live replacement can invalidate texture RIDs on Vulkan.
-    var signature := JSON.stringify(pois)
+    var signature := "zones-v2-grass-base-step2m:" + JSON.stringify(pois)
     var old_signature := ""
     if FileAccess.file_exists(CACHE_SIGNATURE):
         old_signature = FileAccess.get_file_as_string(CACHE_SIGNATURE).strip_edges()
