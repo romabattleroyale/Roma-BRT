@@ -89,7 +89,9 @@ func _paint_or_load_cache(terrain: Variant) -> void:
     print("TERRAIN ZONES: PASS painted samples=", visited, " saved to ", CACHE_DIR)
 
 func _load_resolved_pois() -> Array:
-    var path := RESOLVED_PATH if FileAccess.file_exists(RESOLVED_PATH) else USER_RESOLVED_PATH
+    # Prefer the runtime-generated user:// layout (freshly resolved on Android);
+    # the tracked res:// JSON is a verified seed/fallback for first launch.
+    var path := USER_RESOLVED_PATH if FileAccess.file_exists(USER_RESOLVED_PATH) else RESOLVED_PATH
     if not FileAccess.file_exists(path):
         return []
     var parsed: Variant = JSON.parse_string(FileAccess.get_file_as_string(path))
