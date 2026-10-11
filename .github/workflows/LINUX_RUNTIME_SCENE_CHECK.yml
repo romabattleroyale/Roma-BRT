@@ -84,11 +84,14 @@ jobs:
         run: |
           set -euo pipefail
           export DISPLAY=:99
-          if [ -f terrain_data/READY.txt ]; then
-            echo 'TERRAIN CACHE ALREADY PRESENT'
+          if [ -f terrain_data/READY.txt ] && grep -q 'natural_terrain_v2' terrain_data/READY.txt; then
+            echo 'TERRAIN CACHE ALREADY PRESENT: natural_terrain_v2'
             exit 0
           fi
 
+          # Invalidate legacy terrain data once: old cache contains the previous
+          # height/control formats and must not mask the corrected terrain bake.
+          rm -f terrain_data/READY.txt terrain_data/terrain3d*.res
           python3 tools/generate_terrain_control.py > build/linux_runtime/terrain_control.log 2>&1
           test -s build/terrain_control.bin
           cat build/linux_runtime/terrain_control.log
