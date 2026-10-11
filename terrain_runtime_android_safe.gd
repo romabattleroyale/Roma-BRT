@@ -179,4 +179,4 @@ func _build_manual_control_map(values: PackedFloat32Array, width: int, height: i
 			var packed: int = ((overlay_id & 0x1F) << 22) | ((blend & 0xFF) << 14)
 			bytes.encode_u32((z * width + x) * 4, packed)
 
-	return Image.create_from_data(width, height, false, Image.FORMAT_RF, bytes)
+	return Image.create_from_data(width, height, false, Image.FORMAT_RGBA8, bytes)
