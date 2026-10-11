@@ -44,7 +44,11 @@ func _setup() -> void:
 		push_error("TERRAIN MATERIAL ERROR: asset list could not be loaded")
 	# Keep Terrain3D on its built-in shader; a custom override can render the terrain black.
 	terrain.material.shader_override_enabled = false
+	# Android compatibility: this project has 25 saved regions; keep the
+	# Terrain3D region uniform array small for mobile GPU/driver limits.
+	terrain.material.set("max_regions", 64)
 	terrain.material.auto_shader = true
+	print("ANDROID TERRAIN MATERIAL: shader_override=false max_regions=64 auto_shader=true")
 	terrain.material.set_shader_param("macro_variation1", Vector3(0.985, 1.00, 0.96))
 	terrain.material.set_shader_param("macro_variation2", Vector3(1.015, 1.00, 0.985))
 
