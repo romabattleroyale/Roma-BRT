@@ -1,0 +1,60 @@
+[gd_resource type="Terrain3DAssets" load_steps=16 format=3]
+
+[ext_resource type="Texture2D" path="res://assets/textures/terrain/asphalt_albedo_height.png" id="0a"]
+[ext_resource type="Texture2D" path="res://assets/textures/terrain/asphalt_normal_roughness.png" id="0n"]
+[ext_resource type="Texture2D" path="res://assets/textures/terrain/cobblestone_albedo_height.png" id="1a"]
+[ext_resource type="Texture2D" path="res://assets/textures/terrain/cobblestone_normal_roughness.png" id="1n"]
+[ext_resource type="Texture2D" path="res://assets/textures/terrain/grass_albedo_height.png" id="2a"]
+[ext_resource type="Texture2D" path="res://assets/textures/terrain/grass_normal_roughness.png" id="2n"]
+[ext_resource type="Texture2D" path="res://assets/textures/terrain/mud_albedo_height.png" id="3a"]
+[ext_resource type="Texture2D" path="res://assets/textures/terrain/mud_normal_roughness.png" id="3n"]
+[ext_resource type="Texture2D" path="res://assets/textures/terrain/concrete_albedo_height.png" id="4a"]
+[ext_resource type="Texture2D" path="res://assets/textures/terrain/concrete_normal_roughness.png" id="4n"]
+
+[sub_resource type="Terrain3DTextureAsset" id="Asphalt"]
+name = "Asphalt Worn"
+id = 0
+albedo_texture = ExtResource("0a")
+normal_texture = ExtResource("0n")
+normal_depth = 0.55
+roughness = 0.72
+uv_scale = 0.055
+
+[sub_resource type="Terrain3DTextureAsset" id="Cobblestone"]
+name = "Roman Cobblestone"
+id = 1
+albedo_texture = ExtResource("1a")
+normal_texture = ExtResource("1n")
+normal_depth = 0.55
+roughness = 0.82
+uv_scale = 0.075
+
+[sub_resource type="Terrain3DTextureAsset" id="GrassRock"]
+name = "Aerial Grass and Rock"
+id = 2
+albedo_texture = ExtResource("2a")
+normal_texture = ExtResource("2n")
+normal_depth = 0.55
+roughness = 0.88
+uv_scale = 0.05
+
+[sub_resource type="Terrain3DTextureAsset" id="MudLeaves"]
+name = "Brown Mud and Leaves"
+id = 3
+albedo_texture = ExtResource("3a")
+normal_texture = ExtResource("3n")
+normal_depth = 0.55
+roughness = 0.9
+uv_scale = 0.06
+
+[sub_resource type="Terrain3DTextureAsset" id="Concrete"]
+name = "Worn Concrete"
+id = 4
+albedo_texture = ExtResource("4a")
+normal_texture = ExtResource("4n")
+normal_depth = 0.55
+roughness = 0.78
+uv_scale = 0.055
+
+[resource]
+texture_list = Array[Terrain3DTextureAsset]([SubResource("Asphalt"), SubResource("Cobblestone"), SubResource("GrassRock"), SubResource("MudLeaves"), SubResource("Concrete")])
