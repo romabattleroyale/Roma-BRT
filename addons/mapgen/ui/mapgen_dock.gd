@@ -68,7 +68,7 @@ func _ready() -> void:
 
 	_auto = CheckBox.new()
 	_auto.text = "Regenerate on change"
-	_auto.button_pressed = true
+	_auto.button_pressed = false
 	add_child(_auto)
 
 	var gen := Button.new()
