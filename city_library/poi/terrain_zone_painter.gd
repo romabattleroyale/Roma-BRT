@@ -94,6 +94,7 @@ func _load_resolved_pois() -> Array:
 
 func _weights_at(pos: Vector2, pois: Array) -> Dictionary:
     var weights: Dictionary = {}
+    var strongest_zone_weight := 0.0
     for poi in pois:
         if not (poi is Dictionary):
             continue
@@ -109,9 +110,13 @@ func _weights_at(pos: Vector2, pois: Array) -> Dictionary:
         if distance > inner:
             var t := (distance - inner) / maxf(0.001, outer - inner)
             weight = 1.0 - smoothstep(0.0, 1.0, t)
+        strongest_zone_weight = maxf(strongest_zone_weight, weight)
         var texture_id := int(poi.get("texture_id", DEFAULT_TEXTURE_ID))
         weights[texture_id] = maxf(float(weights.get(texture_id, 0.0)), weight)
 
+    # Grass is the base biome: fade each POI material back into it at the outer edge.
+    var background_weight := 1.0 - strongest_zone_weight
+    weights[DEFAULT_TEXTURE_ID] = maxf(float(weights.get(DEFAULT_TEXTURE_ID, 0.0)), background_weight)
     if weights.is_empty():
         weights[DEFAULT_TEXTURE_ID] = 1.0
     return weights
