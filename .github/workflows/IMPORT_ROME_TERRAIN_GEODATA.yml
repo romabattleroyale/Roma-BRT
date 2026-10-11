@@ -1,0 +1,58 @@
+name: Import Rome Terrain Geodata
+on:
+  workflow_dispatch:
+    inputs:
+      include_elevation:
+        description: "Download real DEM elevation samples as well as roads"
+        required: true
+        type: boolean
+        default: true
+permissions:
+  contents: write
+jobs:
+  import-geodata:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 0
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Download real OpenStreetMap roads and elevation
+        env:
+          INCLUDE_ELEVATION: ${{ inputs.include_elevation }}
+        run: |
+          python tools/import_rome_geodata.py
+      - name: Validate imported dataset
+        run: |
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          p = Path("data/rome_geodata/roads.geojson")
+          d = json.loads(p.read_text())
+          assert d.get("type") == "FeatureCollection"
+          assert len(d.get("features", [])) >= 20, f"Too few road ways: {len(d.get('features', []))}"
+          print(f"Validated {len(d['features'])} OSM ways; file size={p.stat().st_size} bytes")
+          e = Path("data/rome_geodata/elevation.json")
+          if e.exists():
+              dem = json.loads(e.read_text())
+              assert dem["width"] == dem["height"] == 21
+              assert len(dem["elevation_metres_north_to_south"]) == 21
+              print("Validated 21x21 real elevation samples")
+          PY
+      - name: Commit imported source data
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add data/rome_geodata/roads.geojson data/rome_geodata/elevation.json
+          if git diff --cached --quiet; then
+            echo "No geodata changes to commit."
+          else
+            git commit -m "Import real Rome road network and terrain elevation"
+            git push origin HEAD:main
+          fi
