@@ -100,8 +100,7 @@ func _procedural_sampietrini() -> StandardMaterial3D:
     return mat
 
 func _wait_for_terrain() -> void:
-    # MapGen is the active terrain system in main.tscn. Keep Terrain3D as a
-    # compatibility fallback for older scenes.
+    # MapGen is the sole terrain source. Roads must never wait for removed Terrain3D.
     for _i in range(RETRY_FRAMES):
         var scene := get_tree().current_scene
         if scene == null:
@@ -117,22 +116,8 @@ func _wait_for_terrain() -> void:
                 _collect_building_bounds()
                 _build_network()
                 return
-        var terrain: Node = scene.find_child("Terrain3D_HEIGHTMAP_2000x2000", true, false)
-        if terrain != null:
-            _terrain_data = terrain.get("data") as Object
-            if _terrain_data != null:
-                var range_variant: Variant = _terrain_data.call("get_height_range")
-                var height_range: Vector2 = Vector2.ZERO
-                if range_variant is Vector2:
-                    height_range = range_variant
-                if height_range.y - height_range.x > 0.5:
-                    print("ROMA ROADS V2: Terrain3D ready range=", height_range)
-                    await _wait_for_buildings()
-                    _collect_building_bounds()
-                    _build_network()
-                    return
         await get_tree().process_frame
-    push_error("ROMA ROADS V2: timeout waiting for MapGen/Terrain3D height data")
+    push_error("ROMA ROADS V2: timeout waiting for MapGenerator heightfield")
 
 func _wait_for_buildings() -> void:
     for _i in range(1200):
