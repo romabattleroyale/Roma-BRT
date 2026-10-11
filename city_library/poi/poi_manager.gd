@@ -44,6 +44,7 @@ func _build_poi_layout() -> void:
         _resolved.append(resolved)
         _spawn_poi(poi, resolved)
 
+    _save_resolved_layout(pois)
     print("ROMA POI PLACER: PASS slots=%d/%d buildings=%d map=2000x2000m modular=true" % [_resolved.size(), pois.size(), _buildings.size()])
     for item in _resolved:
         print("ROMA POI SLOT: %s local=(%.1f, %.1f) world=(%.1f, %.1f) footprint=%.1fx%.1f" % [
@@ -157,3 +158,86 @@ func _spawn_poi(poi: Dictionary, resolved: Dictionary) -> void:
         marker.mesh = box
         marker.position = Vector3(resolved["world_x"], SLOT_Y, resolved["world_z"])
         add_child(marker)
+
+
+func _save_resolved_layout(pois: Array) -> void:
+    var source_by_id: Dictionary = {}
+    for poi in pois:
+        if poi is Dictionary:
+            source_by_id[str(poi.get("id", ""))] = poi
+
+    var output: Array[Dictionary] = []
+    for item in _resolved:
+        var source: Dictionary = source_by_id.get(str(item.get("id", "")), {})
+        var poi_name := str(source.get("name", item.get("id", "POI")))
+        var zone := _zone_settings_for_poi(poi_name)
+        output.append({
+            "id": str(item.get("id", "")),
+            "name": poi_name,
+            "x": float(item.get("world_x", 0.0)),
+            "z": float(item.get("world_z", 0.0)),
+            "local_x": float(item.get("local_x", 0.0)),
+            "local_z": float(item.get("local_z", 0.0)),
+            "radius": float(zone.get("radius", 220.0)),
+            "falloff": float(zone.get("falloff", 90.0)),
+            "texture_id": _texture_id_for_poi(poi_name),
+            "target_error_m": float(item.get("target_error_m", 0.0))
+        })
+
+    var json_text := JSON.stringify(output, "\t")
+    var resource_path := "res://city_library/poi/poi_layout_resolved.json"
+    var file := FileAccess.open(resource_path, FileAccess.WRITE)
+    if file:
+        file.store_string(json_text + "\n")
+        file.close()
+        print("ROMA POI RESOLVED: saved ", resource_path, " count=", output.size())
+    else:
+        push_warning("ROMA POI RESOLVED: res:// non scrivibile, salvo in user://")
+    var user_file := FileAccess.open("user://poi_layout_resolved.json", FileAccess.WRITE)
+    if user_file:
+        user_file.store_string(json_text + "\n")
+        user_file.close()
+
+    # Attach the painter only after the manager has finalized all real POI slots.
+    var painter_script := load("res://city_library/poi/terrain_zone_painter.gd")
+    if painter_script:
+        var painter := Node.new()
+        painter.name = "TerrainZonePainter"
+        painter.set_script(painter_script)
+        add_child(painter)
+
+func _texture_id_for_poi(poi_name: String) -> int:
+    var name := poi_name.to_lower()
+    if "eur" in name or "civiltà" in name or "civilta" in name:
+        return 4
+    if "villa borghese" in name or "circo massimo" in name or "caracalla" in name:
+        return 2
+    if "termini" in name or "tiburtina" in name or "ostiense" in name or "piramide" in name:
+        return 0
+    return 1
+
+func _zone_settings_for_poi(poi_name: String) -> Dictionary:
+    var name := poi_name.to_lower()
+    if "colosseo" in name or "foro romano" in name or "palatino" in name:
+        return {"radius": 250.0, "falloff": 100.0}
+    if "termini" in name or "tiburtina" in name:
+        return {"radius": 200.0, "falloff": 80.0}
+    if "vaticano" in name or "san pietro" in name:
+        return {"radius": 300.0, "falloff": 120.0}
+    if "pantheon" in name or "navona" in name:
+        return {"radius": 220.0, "falloff": 90.0}
+    if "trevi" in name or "spagna" in name:
+        return {"radius": 220.0, "falloff": 90.0}
+    if "venezia" in name or "campidoglio" in name:
+        return {"radius": 220.0, "falloff": 90.0}
+    if "circo massimo" in name or "caracalla" in name:
+        return {"radius": 250.0, "falloff": 120.0}
+    if "villa borghese" in name or "popolo" in name:
+        return {"radius": 350.0, "falloff": 150.0}
+    if "trastevere" in name or "isola tiberina" in name:
+        return {"radius": 280.0, "falloff": 120.0}
+    if "ostiense" in name or "piramide" in name:
+        return {"radius": 220.0, "falloff": 90.0}
+    if "eur" in name or "civiltà" in name or "civilta" in name:
+        return {"radius": 300.0, "falloff": 120.0}
+    return {"radius": 220.0, "falloff": 90.0}
