@@ -26,7 +26,7 @@ func _setup() -> void:
 	# Reload assets without reusing a potentially stale cached resource.
 	# Terrain3D builds texture arrays at runtime, so log the actual source textures.
 	var roman_assets: Resource = ResourceLoader.load(
-		"res://terrain_materials/terrain_assets_roman_natural.tres",
+		"res://terrain_materials/terrain_assets_polyhaven_zones.tres",
 		"",
 		ResourceLoader.CACHE_MODE_IGNORE
 	)
