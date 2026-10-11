@@ -86,11 +86,11 @@ script = ExtResource("1_rt")
 
 [node name="V37Integration" type="Node3D" parent="."]
 script = ExtResource("5_v37")
-enable_buildings = true
-enable_pois = true
-enable_foliage = true
-enable_fire = false
-enable_roads = true
+enable_buildings = false
+enable_pois = false
+enable_foliage = false
+enable_fire = true
+enable_roads = false
 enable_technical_camera = false
 
 [node name="Urban_Grid" type="Node3D" parent="."]
