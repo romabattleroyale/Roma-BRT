@@ -190,6 +190,9 @@ func find_spawn_point(max_slope_deg: float = 20.0, margin_above_water: float = 2
 func _new_container(node_name: String) -> Node3D:
 	var n := Node3D.new()
 	n.name = node_name
+	# Roma BRT terrain uses world coordinates from 0..map_size; MapGen heightfields are centered around the origin.
+	# Offset generated layers so the preview aligns with the existing 0-based city terrain.
+	n.position = Vector3(settings.map_size * 0.5, 0.0, settings.map_size * 0.5)
 	n.set_meta(_GENERATED_META, true)
 	add_child(n)
 	return n
