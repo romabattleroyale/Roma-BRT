@@ -32,13 +32,14 @@ jobs:
 
       - name: Commit to main
         run: |
-          if git diff --quiet -- addons/mapgen; then
-            echo "MapGen already installed"
+          if [ -f addons/mapgen/plugin.cfg ] && git ls-files --error-unmatch addons/mapgen/plugin.cfg >/dev/null 2>&1; then
+            echo "MapGen is already tracked in the repository"
             exit 0
           fi
           git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add addons/mapgen
+          git config user.email "41898282+users.noreply.github.com"
+          git add -f addons/mapgen
+          git status --short
           git commit -m "Install MapGen addon into main project"
           git push origin HEAD:main
           
