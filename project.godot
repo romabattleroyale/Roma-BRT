@@ -57,10 +57,10 @@ move_right={
 ; Renderer refresh: Compatibility is intentional for desktop and Android while Terrain3D black rendering is investigated.
 renderer/rendering_method="gl_compatibility"
 renderer/rendering_method.mobile="gl_compatibility"
-anti_aliasing/quality/msaa_3d=4
+anti_aliasing/quality/msaa_3d=2
 anti_aliasing/quality/msaa_3d.mobile=2
 anti_aliasing/quality/msaa_2d=0
-anti_aliasing/quality/screen_space_aa=1
+anti_aliasing/quality/screen_space_aa=0
 lights_and_shadows/directional_shadow/size=4096
 lights_and_shadows/directional_shadow/size.mobile=2048
 lights_and_shadows/positional_shadow/atlas_size=4096
