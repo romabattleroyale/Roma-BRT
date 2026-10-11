@@ -81,12 +81,23 @@ func _resolve_poi(poi: Dictionary, placed: Array[Vector2]) -> Dictionary:
     var search_radius: float = float(_config.get("placement", {}).get("search_radius_m", 140.0))
     var step: float = float(_config.get("placement", {}).get("search_step_m", 10.0))
 
-    var cell: Array = poi.get("target_cell", [0, 0])
-    var ix: int = int(cell[0])
-    var iz: int = int(cell[1])
-    var target_x: float = lerp(-850.0, 850.0, float(ix) / 6.0)
-    var target_z: float = lerp(-700.0, 700.0, float(iz) / 2.0)
-    var target: Vector2 = Vector2(target_x, target_z)
+    # poi_layout.json stores intended positions in Godot world coordinates.
+    # Convert to the manager's local slot space before searching; older target_cell
+    # layouts remain supported only as a compatibility fallback.
+    var target := Vector2.ZERO
+    var configured_position: Variant = poi.get("position", null)
+    if configured_position is Dictionary and configured_position.has("x") and configured_position.has("z"):
+        target = Vector2(
+            float(configured_position.get("x", WORLD_OFFSET.x)) - WORLD_OFFSET.x,
+            float(configured_position.get("z", WORLD_OFFSET.z)) - WORLD_OFFSET.z
+        )
+    elif configured_position is Array and configured_position.size() >= 3:
+        target = Vector2(float(configured_position[0]) - WORLD_OFFSET.x, float(configured_position[2]) - WORLD_OFFSET.z)
+    else:
+        var cell: Array = poi.get("target_cell", [3, 1])
+        var ix: int = int(cell[0])
+        var iz: int = int(cell[1])
+        target = Vector2(lerp(-850.0, 850.0, float(ix) / 6.0), lerp(-700.0, 700.0, float(iz) / 2.0))
 
     var best: Vector2 = Vector2.ZERO
     var best_distance: float = INF
