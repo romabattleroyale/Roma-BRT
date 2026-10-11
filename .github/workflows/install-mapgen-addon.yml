@@ -20,14 +20,14 @@ jobs:
         uses: actions/checkout@v4
         with:
           repository: MarcelloMorettoni/mapgen
-          path: /tmp/mapgen
+          path: mapgen-source
 
       - name: Install addon
         run: |
-          test -f /tmp/mapgen/addons/mapgen/plugin.cfg
+          test -f mapgen-source/addons/mapgen/plugin.cfg
           mkdir -p addons
           rm -rf addons/mapgen
-          cp -a /tmp/mapgen/addons/mapgen addons/mapgen
+          cp -a mapgen-source/addons/mapgen addons/mapgen
           find addons/mapgen -type d -name .godot -prune -exec rm -rf {} +
 
       - name: Commit to main
