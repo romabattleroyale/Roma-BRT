@@ -49,7 +49,8 @@ func _paint_or_load_cache(terrain: Variant) -> void:
 
     # Android's res:// is read-only in exported builds. Keep the baked control-map
     # cache in user:// and restore it before deciding whether a repaint is needed.
-    terrain.assets = assets
+    # Terrain assets are assigned by TerrainBootstrap before native GPU resources initialize.
+    # Do not replace Terrain3D assets here: live replacement can invalidate texture RIDs on Vulkan.
     var signature := JSON.stringify(pois)
     var old_signature := ""
     if FileAccess.file_exists(CACHE_SIGNATURE):
