@@ -37,7 +37,7 @@ sky = SubResource("SunsetSky")
 ambient_light_source = 3
 ambient_light_color = Color(0.7, 0.55, 0.45, 1)
 ambient_light_sky_contribution = 1.0
-ambient_light_energy = 1.0
+ambient_light_energy = 1.25
 tonemap_mode = 2
 tonemap_exposure = 0.75
 tonemap_white = 8.0
@@ -62,7 +62,7 @@ environment = SubResource("Env")
 [node name="Sun" type="DirectionalLight3D" parent="."]
 rotation_degrees = Vector3(-35, 45, 0)
 light_color = Color(1.0, 0.82, 0.62, 1)
-light_energy = 1.55
+light_energy = 1.75
 shadow_enabled = true
 directional_shadow_max_distance = 300.0
 directional_shadow_fade_start = 0.8
@@ -72,7 +72,7 @@ shadow_bias = 0.05
 [node name="TerrainFillLight" type="DirectionalLight3D" parent="."]
 rotation_degrees = Vector3(30, -135, 0)
 light_color = Color(0.75, 0.75, 0.85, 1)
-light_energy = 0.8
+light_energy = 1.0
 shadow_enabled = false
 
 [node name="GroundBounceLight" type="DirectionalLight3D" parent="."]
