@@ -37,11 +37,9 @@ func _on_mobile_move(v: Vector2) -> void:
     mobile_move = v
 
 func _on_mobile_look(d: Vector2) -> void:
-    yaw -= d.x * touch_sensitivity
-    pitch -= d.y * touch_sensitivity
-    pitch = clamp(pitch, deg_to_rad(-89.0), deg_to_rad(89.0))
-    rotation.y = yaw
-    head.rotation.x = pitch
+    # CameraPivot owns camera yaw/pitch. Do not overwrite its rotation each physics frame.
+    if head.has_method("apply_look"):
+        head.apply_look(d, touch_sensitivity)
 
 func _on_mobile_boost(active: bool) -> void:
     mobile_boost = active
@@ -52,11 +50,8 @@ func _unhandled_input(event: InputEvent) -> void:
             looking = event.pressed
             Input.set_mouse_mode(Input.MOUSE_MODE_CAPTURED if looking else Input.MOUSE_MODE_VISIBLE)
     elif event is InputEventMouseMotion and looking:
-        yaw -= event.relative.x * mouse_sensitivity
-        pitch -= event.relative.y * mouse_sensitivity
-        pitch = clamp(pitch, deg_to_rad(-89.0), deg_to_rad(89.0))
-        rotation.y = yaw
-        head.rotation.x = pitch
+        # player_camera.gd applies captured mouse motion to CameraPivot.
+        pass
     elif event is InputEventKey and event.pressed and event.keycode == KEY_ESCAPE:
         looking = false
         Input.set_mouse_mode(Input.MOUSE_MODE_VISIBLE)
@@ -68,7 +63,8 @@ func _physics_process(delta: float) -> void:
 
     # Mobile joystick Y points down, while Godot's forward input is negative Z.
     var dir_local: Vector3 = Vector3(input_vec.x, 0.0, input_vec.y)
-    var dir_raw: Vector3 = transform.basis * dir_local
+    # Follow the visible camera yaw instead of a separate stale player yaw.
+    var dir_raw: Vector3 = head.global_basis * dir_local
     dir_raw.y = 0.0
     var dir: Vector3 = Vector3.ZERO
     if dir_raw.is_finite() and dir_raw.length_squared() > 0.0001:
