@@ -850,13 +850,17 @@ func _build_osm_network() -> void:
         if point_segments.is_empty():
             skipped += 1
             continue
+        # Respect an explicit OSM surface tag before applying Rome-style defaults.
+        # Gravel/earth/grass must not be rendered as Roman cobblestones.
         var surface: Material = _asphalt
-        if highway in ["pedestrian", "footway", "path", "steps", "cycleway"] or surface_tag in ["sett", "cobblestone", "paving_stones", "stone", "gravel"]:
+        if surface_tag in ["sett", "cobblestone", "paving_stones", "stone"]:
             surface = _sampietrini
         elif surface_tag in ["concrete", "concrete:plates", "cement"]:
             surface = _sidewalk
-        elif surface_tag in ["dirt", "ground", "earth", "mud", "grass"]:
+        elif surface_tag in ["gravel", "fine_gravel", "dirt", "ground", "earth", "mud", "grass", "unpaved"]:
             surface = _gutter
+        elif surface_tag.is_empty() and highway in ["pedestrian", "footway", "path", "steps", "cycleway"]:
+            surface = _sampietrini
         for segment in point_segments:
             if segment.size() < 2:
                 continue
