@@ -284,7 +284,7 @@ func _build_river_water(values: PackedFloat32Array, width: int, height: int) -> 
     var sh := Shader.new()
     sh.code = """
 shader_type spatial;
-render_mode cull_back, diffuse_burley, specular_schlick_ggx;
+render_mode cull_disabled, diffuse_burley, specular_schlick_ggx;
 
 // Strong, continuous river current. UV.x is the authored river axis (0..1).
 // The pattern is intentionally elongated and phase-distorted so it reads as
@@ -337,23 +337,23 @@ void fragment(){
     float foam = bank_mask * foam_flow * 0.20;
 
     // Deep stylized water + moving surface color + physically-inspired Fresnel.
-    vec3 deep = vec3(0.008, 0.055, 0.082);
-    vec3 mid = vec3(0.012, 0.115, 0.17);
-    vec3 moving = vec3(0.055, 0.235, 0.29);
-    vec3 bright = vec3(0.33, 0.56, 0.57);
+    vec3 deep = vec3(0.018, 0.105, 0.145);
+    vec3 mid = vec3(0.025, 0.205, 0.275);
+    vec3 moving = vec3(0.075, 0.345, 0.405);
+    vec3 bright = vec3(0.48, 0.78, 0.80);
 
     vec3 water = mix(deep, mid, 0.46);
-    water = mix(water, moving, current * 0.40);
+    water = mix(water, moving, 0.24 + current * 0.48);
 
     float fresnel = pow(1.0 - max(dot(normalize(VIEW), n), 0.0), 3.0);
     float sun_glint = pow(max(dot(n, normalize(vec3(-0.32, 0.78, 0.54))), 0.0), 18.0);
     float moving_glint = sun_glint * (0.25 + current * 0.75);
-    water += bright * moving_glint * (0.24 + fresnel * 0.30);
+    water += bright * moving_glint * (0.36 + fresnel * 0.42);
     water = mix(water, vec3(0.55, 0.72, 0.70), foam);
 
     ALBEDO = water;
-    ROUGHNESS = 0.16 - fresnel * 0.055;
-    SPECULAR = 0.95;
+    ROUGHNESS = 0.12 - fresnel * 0.035;
+    SPECULAR = 0.98;
     METALLIC = 0.0;
 }
 """
