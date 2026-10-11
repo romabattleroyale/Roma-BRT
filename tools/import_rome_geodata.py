@@ -27,6 +27,8 @@ DEM_STEP_M = 50.0
 OVERPASS = [
     "https://overpass-api.de/api/interpreter",
     "https://overpass.kumi.systems/api/interpreter",
+    "https://overpass.private.coffee/api/interpreter",
+    "https://overpass.nchc.org.tw/api/interpreter",
 ]
 WORLD_SIZE_M = 2000.0
 HEIGHTMAP_SAMPLES = 1081
@@ -49,52 +51,61 @@ def request(url: str, data: bytes | None = None, timeout: int = 90):
     with urllib.request.urlopen(req, timeout=timeout) as response:
         return response.read()
 
+
+def _overpass_json(query: str, label: str):
+    """Try independent Overpass instances with bounded retries and useful diagnostics."""
+    errors = []
+    for endpoint in OVERPASS:
+        for attempt in range(2):
+            try:
+                raw = request(endpoint, urllib.parse.urlencode({"data": query}).encode(), timeout=75)
+                payload = json.loads(raw)
+                if not isinstance(payload, dict) or "elements" not in payload:
+                    raise RuntimeError("Overpass response has no elements array")
+                print(f"{label}: OK from {endpoint} (attempt {attempt + 1})")
+                return payload
+            except Exception as exc:
+                errors.append(f"{endpoint} attempt {attempt + 1}: {type(exc).__name__}: {exc}")
+                time.sleep(1.5 * (attempt + 1))
+    raise RuntimeError(f"{label}: all Overpass instances failed; " + " | ".join(errors))
+
 def fetch_osm():
     south, west, north, east = bounds()
     query = f"""[out:json][timeout:60];
     way[highway~"^(motorway|motorway_link|trunk|trunk_link|primary|primary_link|secondary|secondary_link|tertiary|tertiary_link|unclassified|residential|living_street|service|road|track|pedestrian|footway|path|cycleway|steps)$"]({south},{west},{north},{east});
     out geom;"""
-    last_error = None
-    for endpoint in OVERPASS:
-        try:
-            raw = request(endpoint, urllib.parse.urlencode({"data": query}).encode())
-            data = json.loads(raw)
+    data = _overpass_json(query, "OSM roads")
             features = []
-            for way in data.get("elements", []):
-                tags = way.get("tags", {})
-                points = way.get("geometry", [])
-                if len(points) < 2:
-                    continue
-                coords = []
-                for p in points:
-                    x = (p["lon"] - CENTER_LON) * 111_320.0 * math.cos(math.radians(CENTER_LAT)) + 1000.0
-                    z = 1000.0 - (p["lat"] - CENTER_LAT) * 111_320.0
-                    coords.append([round(x, 2), round(z, 2)])
-                features.append({
-                    "type": "Feature",
-                    "properties": {
-                        "osm_id": way.get("id"),
-                        "highway": tags.get("highway", "residential"),
-                        "name": tags.get("name", ""),
-                        "surface": tags.get("surface", ""),
-                        "lanes": tags.get("lanes", ""),
-                        "width": tags.get("width", ""),
-                        "lit": tags.get("lit", ""),
-                        "oneway": tags.get("oneway", ""),
-                        "bridge": tags.get("bridge", ""),
-                        "tunnel": tags.get("tunnel", ""),
-                        "junction": tags.get("junction", ""),
-                        "sidewalk": tags.get("sidewalk", ""),
-                        "maxspeed": tags.get("maxspeed", ""),
-                    },
-                    "geometry": {"type": "LineString", "coordinates": coords},
-                })
-            return {"type":"FeatureCollection","source":"OpenStreetMap contributors","features":features}
-        except Exception as exc:
-            last_error = exc
-            time.sleep(2)
-    raise RuntimeError(f"Could not download OSM roads from any Overpass endpoint: {last_error}")
-
+        for way in data.get("elements", []):
+            tags = way.get("tags", {})
+            points = way.get("geometry", [])
+            if len(points) < 2:
+                continue
+            coords = []
+            for p in points:
+                x = (p["lon"] - CENTER_LON) * 111_320.0 * math.cos(math.radians(CENTER_LAT)) + 1000.0
+                z = 1000.0 - (p["lat"] - CENTER_LAT) * 111_320.0
+                coords.append([round(x, 2), round(z, 2)])
+            features.append({
+                "type": "Feature",
+                "properties": {
+                    "osm_id": way.get("id"),
+                    "highway": tags.get("highway", "residential"),
+                    "name": tags.get("name", ""),
+                    "surface": tags.get("surface", ""),
+                    "lanes": tags.get("lanes", ""),
+                    "width": tags.get("width", ""),
+                    "lit": tags.get("lit", ""),
+                    "oneway": tags.get("oneway", ""),
+                    "bridge": tags.get("bridge", ""),
+                    "tunnel": tags.get("tunnel", ""),
+                    "junction": tags.get("junction", ""),
+                    "sidewalk": tags.get("sidewalk", ""),
+                    "maxspeed": tags.get("maxspeed", ""),
+                },
+                "geometry": {"type": "LineString", "coordinates": coords},
+            })
+        return {"type":"FeatureCollection","source":"OpenStreetMap contributors","features":features}
 
 def fetch_river_path():
     """Build the runtime river ribbon from real OpenStreetMap waterway geometry."""
@@ -102,17 +113,7 @@ def fetch_river_path():
     query = f"""[out:json][timeout:60];
     way["waterway"="river"]({south},{west},{north},{east});
     out geom;"""
-    last_error = None
-    data = None
-    for endpoint in OVERPASS:
-        try:
-            data = json.loads(request(endpoint, urllib.parse.urlencode({"data": query}).encode()))
-            break
-        except Exception as exc:
-            last_error = exc
-            time.sleep(2)
-    if data is None:
-        raise RuntimeError(f"Could not download OSM Tevere geometry: {last_error}")
+    data = _overpass_json(query, "OSM Tevere")
 
     segments = []
     for way in data.get("elements", []):
