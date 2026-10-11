@@ -137,10 +137,12 @@ func _apply_weights(data, pos: Vector3, weights: Dictionary) -> void:
         var base_weight := float(weights[base_id])
         var overlay_weight := float(weights[overlay_id])
         blend = overlay_weight / maxf(0.0001, base_weight + overlay_weight)
-    data.set_control_auto(pos, false)
-    data.set_control_base_id(pos, base_id)
-    data.set_control_overlay_id(pos, overlay_id)
-    data.set_control_blend(pos, blend)
+    # Encode Terrain3D's uint32 control-map bitfield in one native write.
+    # This avoids four expensive GDExtension calls per sample on mobile.
+    # Layout: base[31:27], overlay[26:22], blend[21:14], auto-shader bit[0].
+    var blend_byte := clampi(roundi(blend * 255.0), 0, 255)
+    var control_value: int = ((base_id & 0x1F) << 27) | ((overlay_id & 0x1F) << 22) | ((blend_byte & 0xFF) << 14)
+    data.set_control(pos, control_value)
 
 func _write_text(path: String, value: String) -> void:
     var file := FileAccess.open(path, FileAccess.WRITE)
