@@ -22,7 +22,7 @@ OUT = ROOT / "data" / "rome_geodata"
 CENTER_LAT, CENTER_LON = 41.8902, 12.4922
 HALF_SIZE_M = 1000.0
 # Elevation sampling at 100 m intervals, then interpolate in Godot/import pipeline.
-DEM_STEP_M = 100.0
+DEM_STEP_M = 50.0
 OVERPASS = [
     "https://overpass-api.de/api/interpreter",
     "https://overpass.kumi.systems/api/interpreter",
@@ -88,7 +88,7 @@ def fetch_osm():
     raise RuntimeError(f"Could not download OSM roads from any Overpass endpoint: {last_error}")
 
 def fetch_elevation():
-    # Open-Meteo's elevation API serves a real global DEM. Sample a 21x21 grid
+    # Open-Meteo's elevation API serves a real global DEM. Sample a 41x41 grid
     # (100 m spacing) to avoid a huge number of requests and preserve terrain relief.
     south, west, north, east = bounds()
     rows = []
