@@ -14,6 +14,7 @@ var mobile_move := Vector2.ZERO
 var mobile_boost := false
 var terrain_data: Object
 var terrain_node: Node3D
+var map_generator: Node3D
 @export var eye_height := 1.7
 @export var terrain_follow_rate := 12.0
 
@@ -92,20 +93,32 @@ func _physics_process(delta: float) -> void:
 
 
 func _find_terrain_data() -> void:
-    var terrain := get_tree().current_scene.find_child("Terrain3D_HEIGHTMAP_2000x2000", true, false)
+    var scene := get_tree().current_scene
+    if scene == null:
+        return
+    # MapGen is the active terrain system in the current main scene.
+    var map_node := scene.find_child("MapGenerator", true, false)
+    if map_node != null and map_node.has_method("sample_height"):
+        map_generator = map_node as Node3D
+        return
+    # Backward compatibility while opening older scenes that still use Terrain3D.
+    var terrain := scene.find_child("Terrain3D_HEIGHTMAP_2000x2000", true, false)
     if terrain != null:
         terrain_node = terrain as Node3D
         terrain_data = terrain.get("data") as Object
 
 func _follow_terrain(delta: float) -> void:
-    if terrain_data == null:
+    if map_generator == null and terrain_data == null:
         _find_terrain_data()
-    if terrain_data == null or not terrain_data.has_method("get_height"):
-        return
-    var h_variant: Variant = terrain_data.call("get_height", Vector3(global_position.x, 0.0, global_position.z))
-    if not (h_variant is float or h_variant is int):
-        return
-    var ground_y := float(h_variant)
+    var ground_y := NAN
+    if map_generator != null and is_instance_valid(map_generator):
+        var sampled: Variant = map_generator.call("sample_height", global_position.x, global_position.z)
+        if sampled is float or sampled is int:
+            ground_y = float(sampled)
+    elif terrain_data != null and terrain_data.has_method("get_height"):
+        var h_variant: Variant = terrain_data.call("get_height", Vector3(global_position.x, 0.0, global_position.z))
+        if h_variant is float or h_variant is int:
+            ground_y = float(h_variant)
     if is_nan(ground_y) or is_inf(ground_y):
         return
     var target_y := ground_y + eye_height
