@@ -20,5 +20,5 @@ func _on_map_generation_started(status_label: Label) -> void:
     status_label.text = "MapGen: generazione terreno in corso…"
 
 
-func _on_map_generation_finished(_heightfield: Resource, seconds: float, status_label: Label) -> void:
+func _on_map_generation_finished(_heightfield: Variant, seconds: float, status_label: Label) -> void:
     status_label.text = "MapGen pronto • terreno generato in %.2f s" % seconds
