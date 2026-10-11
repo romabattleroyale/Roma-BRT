@@ -5,6 +5,7 @@ Default bounds cover a 2 km x 2 km square centered on the Colosseum.
 Outputs:
   res://data/rome_geodata/roads.geojson  (OSM road centerlines, coordinates in game metres)
   res://data/rome_geodata/elevation.json (real DEM samples in game metres)
+  res://terrain_materials/river_path.json (real OSM Tevere centerline, heightmap pixel coordinates)
 This is an import step, not a runtime network dependency. Run from the repo root.
 """
 from __future__ import annotations
@@ -27,6 +28,10 @@ OVERPASS = [
     "https://overpass-api.de/api/interpreter",
     "https://overpass.kumi.systems/api/interpreter",
 ]
+WORLD_SIZE_M = 2000.0
+HEIGHTMAP_SAMPLES = 1081
+RIVER_HALF_WIDTH_M = 45.0  # 90 m total width, within the 70–120 m urban Tiber range
+
 USER_AGENT = "RomaBRT-GeodataImporter/1.0 (terrain import; OSM contributors credited)"
 
 def bounds():
@@ -90,6 +95,83 @@ def fetch_osm():
             time.sleep(2)
     raise RuntimeError(f"Could not download OSM roads from any Overpass endpoint: {last_error}")
 
+
+def fetch_river_path():
+    """Build the runtime river ribbon from real OpenStreetMap waterway geometry."""
+    south, west, north, east = bounds()
+    query = f"""[out:json][timeout:60];
+    way["waterway"="river"]({south},{west},{north},{east});
+    out geom;"""
+    last_error = None
+    data = None
+    for endpoint in OVERPASS:
+        try:
+            data = json.loads(request(endpoint, urllib.parse.urlencode({"data": query}).encode()))
+            break
+        except Exception as exc:
+            last_error = exc
+            time.sleep(2)
+    if data is None:
+        raise RuntimeError(f"Could not download OSM Tevere geometry: {last_error}")
+
+    segments = []
+    for way in data.get("elements", []):
+        geometry = way.get("geometry", [])
+        if len(geometry) < 2:
+            continue
+        coords = []
+        for p in geometry:
+            x_m = (p["lon"] - CENTER_LON) * 111_320.0 * math.cos(math.radians(CENTER_LAT)) + 1000.0
+            z_m = 1000.0 - (p["lat"] - CENTER_LAT) * 111_320.0
+            if 0.0 <= x_m <= WORLD_SIZE_M and 0.0 <= z_m <= WORLD_SIZE_M:
+                coords.append((x_m, z_m))
+        if len(coords) >= 2:
+            segments.append(coords)
+
+    if not segments:
+        raise RuntimeError("OSM returned no waterway=river geometry inside the Rome map bounds")
+
+    route = segments.pop(0)
+    while segments:
+        end = route[-1]
+        best = None
+        best_dist = float("inf")
+        reverse = False
+        for idx, seg in enumerate(segments):
+            for rev, candidate in ((False, seg[0]), (True, seg[-1])):
+                dist = math.hypot(candidate[0] - end[0], candidate[1] - end[1])
+                if dist < best_dist:
+                    best, best_dist, reverse = idx, dist, rev
+        if best is None or best_dist > 120.0:
+            break
+        segment = segments.pop(best)
+        if reverse:
+            segment.reverse()
+        if math.hypot(segment[0][0] - route[-1][0], segment[0][1] - route[-1][1]) < 3.0:
+            route.extend(segment[1:])
+        else:
+            route.extend(segment)
+
+    spacing = WORLD_SIZE_M / (HEIGHTMAP_SAMPLES - 1)
+    points = []
+    last = None
+    for x_m, z_m in route:
+        px = x_m / spacing
+        pz = z_m / spacing
+        if last is None or math.hypot(px - last[0], pz - last[1]) >= 1.0:
+            points.append({"x": round(px, 3), "z": round(pz, 3), "half_width": RIVER_HALF_WIDTH_M})
+            last = (px, pz)
+
+    if len(points) < 20:
+        raise RuntimeError(f"OSM Tevere path too short after clipping/deduplication: {len(points)} points")
+    return {
+        "source": "OpenStreetMap contributors; waterway=river; map bounds centered on Colosseum",
+        "world_size_m": WORLD_SIZE_M,
+        "heightmap_samples": HEIGHTMAP_SAMPLES,
+        "half_width_m": RIVER_HALF_WIDTH_M,
+        "points": points,
+    }
+
 def fetch_elevation():
     # Open-Meteo's elevation API serves a real global DEM. Sample a 41x41 grid
     # (50 m spacing) to avoid a huge number of requests and preserve terrain relief.
@@ -139,6 +221,12 @@ def main():
     dem = fetch_elevation()
     (OUT / "elevation.json").write_text(json.dumps(dem, separators=(",", ":")), encoding="utf-8")
     print(f"Saved {dem['width']}x{dem['height']} elevation samples.")
+    print("Downloading actual OSM Tevere centerline...")
+    river = fetch_river_path()
+    river_out = ROOT / "terrain_materials" / "river_path.json"
+    river_out.parent.mkdir(parents=True, exist_ok=True)
+    river_out.write_text(json.dumps(river, separators=(",", ":")), encoding="utf-8")
+    print(f"Saved real Tevere path: {len(river['points'])} points, half-width={RIVER_HALF_WIDTH_M:.0f} m.")
     print("Source: © OpenStreetMap contributors; elevation: Open-Meteo global DEM.")
     print("NOTE: these are source datasets; Godot terrain/road mesh baking is a separate integration step.")
 
