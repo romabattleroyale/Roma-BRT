@@ -29,3 +29,5 @@ The Roma-Royale V37 systems are being integrated selectively. Terrain creation f
 
 ### GitHub workflow
 Use commits as checkpoints. Never commit `.godot/` or generated exports.
+
+<!-- AUTO_SYNC_TEST_20261011_1855: if this marker appears in Documents/roma-brt-main/README.md, GitHub-to-Godot-folder sync succeeded. -->
