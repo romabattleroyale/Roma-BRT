@@ -826,22 +826,31 @@ func _build_osm_network() -> void:
             continue
         var properties: Dictionary = feature.get("properties", {})
         var highway := str(properties.get("highway", "residential"))
+        var surface_tag := str(properties.get("surface", "")).to_lower()
         var width := _osm_road_width(highway, str(properties.get("width", "")), str(properties.get("lanes", "")))
         var points: Array[Vector3] = []
         for coord_variant in coords:
             if not (coord_variant is Array) or (coord_variant as Array).size() < 2:
                 continue
             var coord: Array = coord_variant
-            var x := clampf(float(coord[0]), 0.0, 2000.0)
-            var z := clampf(float(coord[1]), 0.0, 2000.0)
+            var x := float(coord[0])
+            var z := float(coord[1])
+            # Do not clamp out-of-bounds OSM points onto the map edge: that creates
+            # false straight roads along the world border. Keep only real in-bounds points.
+            if x < 0.0 or x > 2000.0 or z < 0.0 or z > 2000.0:
+                continue
             if points.is_empty() or Vector2(points.back().x - x, points.back().z - z).length() > 0.75:
                 points.append(Vector3(x, 0.0, z))
         if points.size() < 2:
             skipped += 1
             continue
         var surface: Material = _asphalt
-        if highway in ["pedestrian", "footway", "path", "steps"]:
+        if highway in ["pedestrian", "footway", "path", "steps", "cycleway"] or surface_tag in ["sett", "cobblestone", "paving_stones", "stone", "gravel"]:
             surface = _sampietrini
+        elif surface_tag in ["concrete", "concrete:plates", "cement"]:
+            surface = _sidewalk
+        elif surface_tag in ["dirt", "ground", "earth", "mud", "grass"]:
+            surface = _gutter
         _add_osm_polyline(points, width, surface, highway)
         built += 1
         if built % 8 == 0:
