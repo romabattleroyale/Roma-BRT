@@ -213,7 +213,7 @@ func _build_manual_control_map(values: PackedFloat32Array, width: int, height: i
             var dx := 0.0 if dx_dist <= 0.0 else ((values[z * width + x1] - values[z * width + x0]) * HEIGHT_SCALE_M / dx_dist)
             var dz := 0.0 if dz_dist <= 0.0 else ((values[z1 * width + x] - values[z0 * width + x]) * HEIGHT_SCALE_M / dz_dist)
             var slope_deg := rad_to_deg(atan(sqrt(dx * dx + dz * dz)))
-            var soil_weight := smoothstep(slope_start, slope_full, slope_deg)
+            var soil_weight := 0.0 # Flat terrain stays grass; no square soil patches from heightmap noise.
 
             # Narrow Roman riverbank: at most ~4 m from the supplied centerline mask.
             if bank_dilated[z * width + x] != 0:
