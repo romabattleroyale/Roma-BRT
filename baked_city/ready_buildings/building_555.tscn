@@ -441,7 +441,11 @@ metadata/surface_roles = Array[String](["facade", "other", "other", "other", "ot
 [sub_resource type="BoxShape3D" id="BoxShape3D_7xjyu"]
 size = Vector3(28, 16, 12)
 
+<<<<<<< Updated upstream
 [node name="building_555" type="Node3D" unique_id=1685311819]
+=======
+[node name="building_555" type="Node3D" unique_id=1938576621]
+>>>>>>> Stashed changes
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 1728.14, 13.969344, 693.28)
 metadata/ready_bake = true
 metadata/ready_index = 554
@@ -451,24 +455,37 @@ metadata/v11_facade_color = "travertino"
 metadata/v11_height_floors = 5
 metadata/ready_signature = "palazzo_lungo|f5|r550|c3|rc0"
 
+<<<<<<< Updated upstream
 [node name="_OmniLight3D_865312" type="OmniLight3D" parent="." unique_id=2022010041]
+=======
+[node name="_OmniLight3D_865312" type="OmniLight3D" parent="." unique_id=410557196]
+>>>>>>> Stashed changes
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.55, -5)
 light_color = Color(1, 0.84313726, 0.627451, 1)
 light_energy = 0.42
 omni_range = 4.5
 
+<<<<<<< Updated upstream
 [node name="_OmniLight3D_865345" type="OmniLight3D" parent="." unique_id=2121820962]
+=======
+[node name="_OmniLight3D_865345" type="OmniLight3D" parent="." unique_id=825995302]
+>>>>>>> Stashed changes
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 7.95, -5)
 light_color = Color(1, 0.84313726, 0.627451, 1)
 light_energy = 0.42
 omni_range = 4.5
 
+<<<<<<< Updated upstream
 [node name="_OmniLight3D_865378" type="OmniLight3D" parent="." unique_id=1742250945]
+=======
+[node name="_OmniLight3D_865378" type="OmniLight3D" parent="." unique_id=1850102349]
+>>>>>>> Stashed changes
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 14.35, -5)
 light_color = Color(1, 0.84313726, 0.627451, 1)
 light_energy = 0.42
 omni_range = 4.5
 
+<<<<<<< Updated upstream
 [node name="_Node3D_865582" type="Node3D" parent="." unique_id=1623419181]
 transform = Transform3D(0.8480481, 0, 0.52991927, 0, 1, 0, -0.52991927, 0, 0.8480481, -0.65250003, 1.45, -6.225)
 
@@ -476,6 +493,15 @@ transform = Transform3D(0.8480481, 0, 0.52991927, 0, 1, 0, -0.52991927, 0, 0.848
 transform = Transform3D(0.8480481, 0, -0.52991927, 0, 1, 0, 0.52991927, 0, 0.8480481, 0.65250003, 1.45, -6.225)
 
 [node name="PROTECTED_VOLUME_WINDOW" type="Area3D" parent="." unique_id=668821506]
+=======
+[node name="_Node3D_865582" type="Node3D" parent="." unique_id=1944267577]
+transform = Transform3D(0.8480481, 0, 0.52991927, 0, 1, 0, -0.52991927, 0, 0.8480481, -0.65250003, 1.45, -6.225)
+
+[node name="_Node3D_865588" type="Node3D" parent="." unique_id=713397335]
+transform = Transform3D(0.8480481, 0, -0.52991927, 0, 1, 0, 0.52991927, 0, 0.8480481, 0.65250003, 1.45, -6.225)
+
+[node name="PROTECTED_VOLUME_WINDOW" type="Area3D" parent="." unique_id=113131814]
+>>>>>>> Stashed changes
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.45, -6.17)
 collision_layer = 0
 collision_mask = 0
@@ -485,6 +511,7 @@ metadata/protected_volume = true
 metadata/clearance_depth_m = 1.0
 metadata/clearance_rule = "No structural/decorative module may occupy this volume."
 
+<<<<<<< Updated upstream
 [node name="_Node3D_865600" type="Node3D" parent="." unique_id=2108920255]
 transform = Transform3D(0.8480481, 0, 0.52991927, 0, 1, 0, -0.52991927, 0, 0.8480481, -10.17, 1.43, 6.115)
 
@@ -492,6 +519,15 @@ transform = Transform3D(0.8480481, 0, 0.52991927, 0, 1, 0, -0.52991927, 0, 0.848
 transform = Transform3D(0.8480481, 0, -0.52991927, 0, 1, 0, 0.52991927, 0, 0.8480481, -8.73, 1.43, 6.115)
 
 [node name="_Area3D_865613" type="Area3D" parent="." unique_id=1214950506]
+=======
+[node name="_Node3D_865600" type="Node3D" parent="." unique_id=294842668]
+transform = Transform3D(0.8480481, 0, 0.52991927, 0, 1, 0, -0.52991927, 0, 0.8480481, -10.17, 1.43, 6.115)
+
+[node name="_Node3D_865606" type="Node3D" parent="." unique_id=909120141]
+transform = Transform3D(0.8480481, 0, -0.52991927, 0, 1, 0, 0.52991927, 0, 0.8480481, -8.73, 1.43, 6.115)
+
+[node name="_Area3D_865613" type="Area3D" parent="." unique_id=1972944031]
+>>>>>>> Stashed changes
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -9.45, 1.43, 6.17)
 collision_layer = 0
 collision_mask = 0
@@ -501,6 +537,7 @@ metadata/protected_volume = true
 metadata/clearance_depth_m = 1.0
 metadata/clearance_rule = "No structural/decorative module may occupy this volume."
 
+<<<<<<< Updated upstream
 [node name="_Node3D_865619" type="Node3D" parent="." unique_id=1598777006]
 transform = Transform3D(0.8480481, 0, 0.52991927, 0, 1, 0, -0.52991927, 0, 0.8480481, -7.02, 1.43, 6.115)
 
@@ -508,6 +545,15 @@ transform = Transform3D(0.8480481, 0, 0.52991927, 0, 1, 0, -0.52991927, 0, 0.848
 transform = Transform3D(0.8480481, 0, -0.52991927, 0, 1, 0, 0.52991927, 0, 0.8480481, -5.5800004, 1.43, 6.115)
 
 [node name="_Area3D_865632" type="Area3D" parent="." unique_id=320474174]
+=======
+[node name="_Node3D_865619" type="Node3D" parent="." unique_id=1686738999]
+transform = Transform3D(0.8480481, 0, 0.52991927, 0, 1, 0, -0.52991927, 0, 0.8480481, -7.02, 1.43, 6.115)
+
+[node name="_Node3D_865625" type="Node3D" parent="." unique_id=1164185026]
+transform = Transform3D(0.8480481, 0, -0.52991927, 0, 1, 0, 0.52991927, 0, 0.8480481, -5.5800004, 1.43, 6.115)
+
+[node name="_Area3D_865632" type="Area3D" parent="." unique_id=2025750360]
+>>>>>>> Stashed changes
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -6.3, 1.43, 6.17)
 collision_layer = 0
 collision_mask = 0
@@ -517,6 +563,7 @@ metadata/protected_volume = true
 metadata/clearance_depth_m = 1.0
 metadata/clearance_rule = "No structural/decorative module may occupy this volume."
 
+<<<<<<< Updated upstream
 [node name="_Node3D_865638" type="Node3D" parent="." unique_id=1996207886]
 transform = Transform3D(0.8480481, 0, 0.52991927, 0, 1, 0, -0.52991927, 0, 0.8480481, -3.8700001, 1.43, 6.115)
 
@@ -524,6 +571,15 @@ transform = Transform3D(0.8480481, 0, 0.52991927, 0, 1, 0, -0.52991927, 0, 0.848
 transform = Transform3D(0.8480481, 0, -0.52991927, 0, 1, 0, 0.52991927, 0, 0.8480481, -2.43, 1.43, 6.115)
 
 [node name="_Area3D_865651" type="Area3D" parent="." unique_id=1674083863]
+=======
+[node name="_Node3D_865638" type="Node3D" parent="." unique_id=656249920]
+transform = Transform3D(0.8480481, 0, 0.52991927, 0, 1, 0, -0.52991927, 0, 0.8480481, -3.8700001, 1.43, 6.115)
+
+[node name="_Node3D_865644" type="Node3D" parent="." unique_id=309760841]
+transform = Transform3D(0.8480481, 0, -0.52991927, 0, 1, 0, 0.52991927, 0, 0.8480481, -2.43, 1.43, 6.115)
+
+[node name="_Area3D_865651" type="Area3D" parent="." unique_id=1515664932]
+>>>>>>> Stashed changes
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -3.15, 1.43, 6.17)
 collision_layer = 0
 collision_mask = 0
@@ -533,6 +589,7 @@ metadata/protected_volume = true
 metadata/clearance_depth_m = 1.0
 metadata/clearance_rule = "No structural/decorative module may occupy this volume."
 
+<<<<<<< Updated upstream
 [node name="_Node3D_865657" type="Node3D" parent="." unique_id=859622416]
 transform = Transform3D(0.8480481, 0, 0.52991927, 0, 1, 0, -0.52991927, 0, 0.8480481, -0.72, 1.43, 6.115)
 
@@ -540,6 +597,15 @@ transform = Transform3D(0.8480481, 0, 0.52991927, 0, 1, 0, -0.52991927, 0, 0.848
 transform = Transform3D(0.8480481, 0, -0.52991927, 0, 1, 0, 0.52991927, 0, 0.8480481, 0.72, 1.43, 6.115)
 
 [node name="_Area3D_865670" type="Area3D" parent="." unique_id=190599314]
+=======
+[node name="_Node3D_865657" type="Node3D" parent="." unique_id=444262918]
+transform = Transform3D(0.8480481, 0, 0.52991927, 0, 1, 0, -0.52991927, 0, 0.8480481, -0.72, 1.43, 6.115)
+
+[node name="_Node3D_865663" type="Node3D" parent="." unique_id=1265435784]
+transform = Transform3D(0.8480481, 0, -0.52991927, 0, 1, 0, 0.52991927, 0, 0.8480481, 0.72, 1.43, 6.115)
+
+[node name="_Area3D_865670" type="Area3D" parent="." unique_id=228489683]
+>>>>>>> Stashed changes
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.43, 6.17)
 collision_layer = 0
 collision_mask = 0
@@ -549,6 +615,7 @@ metadata/protected_volume = true
 metadata/clearance_depth_m = 1.0
 metadata/clearance_rule = "No structural/decorative module may occupy this volume."
 
+<<<<<<< Updated upstream
 [node name="_Node3D_865676" type="Node3D" parent="." unique_id=455701711]
 transform = Transform3D(0.8480481, 0, 0.52991927, 0, 1, 0, -0.52991927, 0, 0.8480481, 2.43, 1.43, 6.115)
 
@@ -556,6 +623,15 @@ transform = Transform3D(0.8480481, 0, 0.52991927, 0, 1, 0, -0.52991927, 0, 0.848
 transform = Transform3D(0.8480481, 0, -0.52991927, 0, 1, 0, 0.52991927, 0, 0.8480481, 3.8700001, 1.43, 6.115)
 
 [node name="_Area3D_865689" type="Area3D" parent="." unique_id=1571935768]
+=======
+[node name="_Node3D_865676" type="Node3D" parent="." unique_id=1299001349]
+transform = Transform3D(0.8480481, 0, 0.52991927, 0, 1, 0, -0.52991927, 0, 0.8480481, 2.43, 1.43, 6.115)
+
+[node name="_Node3D_865682" type="Node3D" parent="." unique_id=1220733259]
+transform = Transform3D(0.8480481, 0, -0.52991927, 0, 1, 0, 0.52991927, 0, 0.8480481, 3.8700001, 1.43, 6.115)
+
+[node name="_Area3D_865689" type="Area3D" parent="." unique_id=151986874]
+>>>>>>> Stashed changes
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 3.15, 1.43, 6.17)
 collision_layer = 0
 collision_mask = 0
@@ -565,6 +641,7 @@ metadata/protected_volume = true
 metadata/clearance_depth_m = 1.0
 metadata/clearance_rule = "No structural/decorative module may occupy this volume."
 
+<<<<<<< Updated upstream
 [node name="_Node3D_865695" type="Node3D" parent="." unique_id=1151418729]
 transform = Transform3D(0.8480481, 0, 0.52991927, 0, 1, 0, -0.52991927, 0, 0.8480481, 5.5800004, 1.43, 6.115)
 
@@ -572,6 +649,15 @@ transform = Transform3D(0.8480481, 0, 0.52991927, 0, 1, 0, -0.52991927, 0, 0.848
 transform = Transform3D(0.8480481, 0, -0.52991927, 0, 1, 0, 0.52991927, 0, 0.8480481, 7.02, 1.43, 6.115)
 
 [node name="_Area3D_865708" type="Area3D" parent="." unique_id=1218619349]
+=======
+[node name="_Node3D_865695" type="Node3D" parent="." unique_id=85935032]
+transform = Transform3D(0.8480481, 0, 0.52991927, 0, 1, 0, -0.52991927, 0, 0.8480481, 5.5800004, 1.43, 6.115)
+
+[node name="_Node3D_865701" type="Node3D" parent="." unique_id=1888343460]
+transform = Transform3D(0.8480481, 0, -0.52991927, 0, 1, 0, 0.52991927, 0, 0.8480481, 7.02, 1.43, 6.115)
+
+[node name="_Area3D_865708" type="Area3D" parent="." unique_id=2131876114]
+>>>>>>> Stashed changes
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 6.3, 1.43, 6.17)
 collision_layer = 0
 collision_mask = 0
@@ -581,6 +667,7 @@ metadata/protected_volume = true
 metadata/clearance_depth_m = 1.0
 metadata/clearance_rule = "No structural/decorative module may occupy this volume."
 
+<<<<<<< Updated upstream
 [node name="_Node3D_865714" type="Node3D" parent="." unique_id=1254364621]
 transform = Transform3D(0.8480481, 0, 0.52991927, 0, 1, 0, -0.52991927, 0, 0.8480481, 8.73, 1.43, 6.115)
 
@@ -588,6 +675,15 @@ transform = Transform3D(0.8480481, 0, 0.52991927, 0, 1, 0, -0.52991927, 0, 0.848
 transform = Transform3D(0.8480481, 0, -0.52991927, 0, 1, 0, 0.52991927, 0, 0.8480481, 10.17, 1.43, 6.115)
 
 [node name="_Area3D_865727" type="Area3D" parent="." unique_id=1900215754]
+=======
+[node name="_Node3D_865714" type="Node3D" parent="." unique_id=121771090]
+transform = Transform3D(0.8480481, 0, 0.52991927, 0, 1, 0, -0.52991927, 0, 0.8480481, 8.73, 1.43, 6.115)
+
+[node name="_Node3D_865720" type="Node3D" parent="." unique_id=401655329]
+transform = Transform3D(0.8480481, 0, -0.52991927, 0, 1, 0, 0.52991927, 0, 0.8480481, 10.17, 1.43, 6.115)
+
+[node name="_Area3D_865727" type="Area3D" parent="." unique_id=582466435]
+>>>>>>> Stashed changes
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 9.45, 1.43, 6.17)
 collision_layer = 0
 collision_mask = 0
@@ -597,6 +693,7 @@ metadata/protected_volume = true
 metadata/clearance_depth_m = 1.0
 metadata/clearance_rule = "No structural/decorative module may occupy this volume."
 
+<<<<<<< Updated upstream
 [node name="_Node3D_865732" type="Node3D" parent="." unique_id=2049712214]
 transform = Transform3D(0.8660254, 0, -0.5, 0, 1, 0, 0.5, 0, 0.8660254, -14.09, 1.42, -4.884)
 
@@ -604,6 +701,15 @@ transform = Transform3D(0.8660254, 0, -0.5, 0, 1, 0, 0.5, 0, 0.8660254, -14.09, 
 transform = Transform3D(0.8660254, 0, 0.5, 0, 1, 0, -0.5, 0, 0.8660254, -14.09, 1.42, -3.5159998)
 
 [node name="_Area3D_865737" type="Area3D" parent="." unique_id=834884678]
+=======
+[node name="_Node3D_865732" type="Node3D" parent="." unique_id=1523464961]
+transform = Transform3D(0.8660254, 0, -0.5, 0, 1, 0, 0.5, 0, 0.8660254, -14.09, 1.42, -4.884)
+
+[node name="_Node3D_865734" type="Node3D" parent="." unique_id=1228273172]
+transform = Transform3D(0.8660254, 0, 0.5, 0, 1, 0, -0.5, 0, 0.8660254, -14.09, 1.42, -3.5159998)
+
+[node name="_Area3D_865737" type="Area3D" parent="." unique_id=1734806407]
+>>>>>>> Stashed changes
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -14.17, 1.42, -4.2)
 collision_layer = 0
 collision_mask = 0
@@ -613,6 +719,7 @@ metadata/protected_volume = true
 metadata/clearance_depth_m = 1.0
 metadata/clearance_rule = "No structural/decorative module may occupy this volume."
 
+<<<<<<< Updated upstream
 [node name="_Node3D_865742" type="Node3D" parent="." unique_id=1774300904]
 transform = Transform3D(0.8660254, 0, 0.5, 0, 1, 0, -0.5, 0, 0.8660254, 14.09, 1.42, -4.884)
 
@@ -620,6 +727,15 @@ transform = Transform3D(0.8660254, 0, 0.5, 0, 1, 0, -0.5, 0, 0.8660254, 14.09, 1
 transform = Transform3D(0.8660254, 0, -0.5, 0, 1, 0, 0.5, 0, 0.8660254, 14.09, 1.42, -3.5159998)
 
 [node name="_Area3D_865747" type="Area3D" parent="." unique_id=804148332]
+=======
+[node name="_Node3D_865742" type="Node3D" parent="." unique_id=494745929]
+transform = Transform3D(0.8660254, 0, 0.5, 0, 1, 0, -0.5, 0, 0.8660254, 14.09, 1.42, -4.884)
+
+[node name="_Node3D_865744" type="Node3D" parent="." unique_id=1479585927]
+transform = Transform3D(0.8660254, 0, -0.5, 0, 1, 0, 0.5, 0, 0.8660254, 14.09, 1.42, -3.5159998)
+
+[node name="_Area3D_865747" type="Area3D" parent="." unique_id=1397824233]
+>>>>>>> Stashed changes
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 14.17, 1.42, -4.2)
 collision_layer = 0
 collision_mask = 0
@@ -629,6 +745,7 @@ metadata/protected_volume = true
 metadata/clearance_depth_m = 1.0
 metadata/clearance_rule = "No structural/decorative module may occupy this volume."
 
+<<<<<<< Updated upstream
 [node name="_Node3D_865752" type="Node3D" parent="." unique_id=230169473]
 transform = Transform3D(0.8660254, 0, -0.5, 0, 1, 0, 0.5, 0, 0.8660254, -14.09, 1.42, -0.684)
 
@@ -636,6 +753,15 @@ transform = Transform3D(0.8660254, 0, -0.5, 0, 1, 0, 0.5, 0, 0.8660254, -14.09, 
 transform = Transform3D(0.8660254, 0, 0.5, 0, 1, 0, -0.5, 0, 0.8660254, -14.09, 1.42, 0.684)
 
 [node name="_Area3D_865757" type="Area3D" parent="." unique_id=1190708227]
+=======
+[node name="_Node3D_865752" type="Node3D" parent="." unique_id=490804202]
+transform = Transform3D(0.8660254, 0, -0.5, 0, 1, 0, 0.5, 0, 0.8660254, -14.09, 1.42, -0.684)
+
+[node name="_Node3D_865754" type="Node3D" parent="." unique_id=1865143959]
+transform = Transform3D(0.8660254, 0, 0.5, 0, 1, 0, -0.5, 0, 0.8660254, -14.09, 1.42, 0.684)
+
+[node name="_Area3D_865757" type="Area3D" parent="." unique_id=160562493]
+>>>>>>> Stashed changes
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -14.17, 1.42, 0)
 collision_layer = 0
 collision_mask = 0
@@ -645,6 +771,7 @@ metadata/protected_volume = true
 metadata/clearance_depth_m = 1.0
 metadata/clearance_rule = "No structural/decorative module may occupy this volume."
 
+<<<<<<< Updated upstream
 [node name="_Node3D_865762" type="Node3D" parent="." unique_id=283131583]
 transform = Transform3D(0.8660254, 0, 0.5, 0, 1, 0, -0.5, 0, 0.8660254, 14.09, 1.42, -0.684)
 
@@ -652,6 +779,15 @@ transform = Transform3D(0.8660254, 0, 0.5, 0, 1, 0, -0.5, 0, 0.8660254, 14.09, 1
 transform = Transform3D(0.8660254, 0, -0.5, 0, 1, 0, 0.5, 0, 0.8660254, 14.09, 1.42, 0.684)
 
 [node name="_Area3D_865767" type="Area3D" parent="." unique_id=191863243]
+=======
+[node name="_Node3D_865762" type="Node3D" parent="." unique_id=1085840167]
+transform = Transform3D(0.8660254, 0, 0.5, 0, 1, 0, -0.5, 0, 0.8660254, 14.09, 1.42, -0.684)
+
+[node name="_Node3D_865764" type="Node3D" parent="." unique_id=278457849]
+transform = Transform3D(0.8660254, 0, -0.5, 0, 1, 0, 0.5, 0, 0.8660254, 14.09, 1.42, 0.684)
+
+[node name="_Area3D_865767" type="Area3D" parent="." unique_id=1264034965]
+>>>>>>> Stashed changes
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 14.17, 1.42, 0)
 collision_layer = 0
 collision_mask = 0
@@ -661,6 +797,7 @@ metadata/protected_volume = true
 metadata/clearance_depth_m = 1.0
 metadata/clearance_rule = "No structural/decorative module may occupy this volume."
 
+<<<<<<< Updated upstream
 [node name="_Node3D_865772" type="Node3D" parent="." unique_id=1788911677]
 transform = Transform3D(0.8660254, 0, -0.5, 0, 1, 0, 0.5, 0, 0.8660254, -14.09, 1.42, 3.5159998)
 
@@ -668,6 +805,15 @@ transform = Transform3D(0.8660254, 0, -0.5, 0, 1, 0, 0.5, 0, 0.8660254, -14.09, 
 transform = Transform3D(0.8660254, 0, 0.5, 0, 1, 0, -0.5, 0, 0.8660254, -14.09, 1.42, 4.884)
 
 [node name="_Area3D_865777" type="Area3D" parent="." unique_id=325362225]
+=======
+[node name="_Node3D_865772" type="Node3D" parent="." unique_id=1864202249]
+transform = Transform3D(0.8660254, 0, -0.5, 0, 1, 0, 0.5, 0, 0.8660254, -14.09, 1.42, 3.5159998)
+
+[node name="_Node3D_865774" type="Node3D" parent="." unique_id=1382622732]
+transform = Transform3D(0.8660254, 0, 0.5, 0, 1, 0, -0.5, 0, 0.8660254, -14.09, 1.42, 4.884)
+
+[node name="_Area3D_865777" type="Area3D" parent="." unique_id=1167505518]
+>>>>>>> Stashed changes
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -14.17, 1.42, 4.2)
 collision_layer = 0
 collision_mask = 0
@@ -677,6 +823,7 @@ metadata/protected_volume = true
 metadata/clearance_depth_m = 1.0
 metadata/clearance_rule = "No structural/decorative module may occupy this volume."
 
+<<<<<<< Updated upstream
 [node name="_Node3D_865782" type="Node3D" parent="." unique_id=2027404731]
 transform = Transform3D(0.8660254, 0, 0.5, 0, 1, 0, -0.5, 0, 0.8660254, 14.09, 1.42, 3.5159998)
 
@@ -684,6 +831,15 @@ transform = Transform3D(0.8660254, 0, 0.5, 0, 1, 0, -0.5, 0, 0.8660254, 14.09, 1
 transform = Transform3D(0.8660254, 0, -0.5, 0, 1, 0, 0.5, 0, 0.8660254, 14.09, 1.42, 4.884)
 
 [node name="_Area3D_865787" type="Area3D" parent="." unique_id=1244277016]
+=======
+[node name="_Node3D_865782" type="Node3D" parent="." unique_id=1292071471]
+transform = Transform3D(0.8660254, 0, 0.5, 0, 1, 0, -0.5, 0, 0.8660254, 14.09, 1.42, 3.5159998)
+
+[node name="_Node3D_865784" type="Node3D" parent="." unique_id=1127599833]
+transform = Transform3D(0.8660254, 0, -0.5, 0, 1, 0, 0.5, 0, 0.8660254, 14.09, 1.42, 4.884)
+
+[node name="_Area3D_865787" type="Area3D" parent="." unique_id=2117340807]
+>>>>>>> Stashed changes
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 14.17, 1.42, 4.2)
 collision_layer = 0
 collision_mask = 0
@@ -693,6 +849,7 @@ metadata/protected_volume = true
 metadata/clearance_depth_m = 1.0
 metadata/clearance_rule = "No structural/decorative module may occupy this volume."
 
+<<<<<<< Updated upstream
 [node name="_Node3D_865793" type="Node3D" parent="." unique_id=1909793020]
 transform = Transform3D(0.8480481, 0, 0.52991927, 0, 1, 0, -0.52991927, 0, 0.8480481, -11.374001, 4.65, -6.225)
 
@@ -700,6 +857,15 @@ transform = Transform3D(0.8480481, 0, 0.52991927, 0, 1, 0, -0.52991927, 0, 0.848
 transform = Transform3D(0.8480481, 0, -0.52991927, 0, 1, 0, 0.52991927, 0, 0.8480481, -9.826, 4.65, -6.225)
 
 [node name="_Area3D_865806" type="Area3D" parent="." unique_id=574491785]
+=======
+[node name="_Node3D_865793" type="Node3D" parent="." unique_id=1625221986]
+transform = Transform3D(0.8480481, 0, 0.52991927, 0, 1, 0, -0.52991927, 0, 0.8480481, -11.374001, 4.65, -6.225)
+
+[node name="_Node3D_865799" type="Node3D" parent="." unique_id=116430790]
+transform = Transform3D(0.8480481, 0, -0.52991927, 0, 1, 0, 0.52991927, 0, 0.8480481, -9.826, 4.65, -6.225)
+
+[node name="_Area3D_865806" type="Area3D" parent="." unique_id=1810575198]
+>>>>>>> Stashed changes
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -10.6, 4.65, -6.17)
 collision_layer = 0
 collision_mask = 0
@@ -709,6 +875,7 @@ metadata/protected_volume = true
 metadata/clearance_depth_m = 1.0
 metadata/clearance_rule = "No structural/decorative module may occupy this volume."
 
+<<<<<<< Updated upstream
 [node name="_Node3D_865812" type="Node3D" parent="." unique_id=820172655]
 transform = Transform3D(0.8480481, 0, 0.52991927, 0, 1, 0, -0.52991927, 0, 0.8480481, -8.345428, 4.65, -6.225)
 
@@ -716,6 +883,15 @@ transform = Transform3D(0.8480481, 0, 0.52991927, 0, 1, 0, -0.52991927, 0, 0.848
 transform = Transform3D(0.8480481, 0, -0.52991927, 0, 1, 0, 0.52991927, 0, 0.8480481, -6.7974286, 4.65, -6.225)
 
 [node name="_Area3D_865825" type="Area3D" parent="." unique_id=992263626]
+=======
+[node name="_Node3D_865812" type="Node3D" parent="." unique_id=1597165240]
+transform = Transform3D(0.8480481, 0, 0.52991927, 0, 1, 0, -0.52991927, 0, 0.8480481, -8.345428, 4.65, -6.225)
+
+[node name="_Node3D_865818" type="Node3D" parent="." unique_id=1304018777]
+transform = Transform3D(0.8480481, 0, -0.52991927, 0, 1, 0, 0.52991927, 0, 0.8480481, -6.7974286, 4.65, -6.225)
+
+[node name="_Area3D_865825" type="Area3D" parent="." unique_id=659325999]
+>>>>>>> Stashed changes
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -7.571429, 4.65, -6.17)
 collision_layer = 0
 collision_mask = 0
@@ -725,6 +901,7 @@ metadata/protected_volume = true
 metadata/clearance_depth_m = 1.0
 metadata/clearance_rule = "No structural/decorative module may occupy this volume."
 
+<<<<<<< Updated upstream
 [node name="_Node3D_865831" type="Node3D" parent="." unique_id=150522996]
 transform = Transform3D(0.8480481, 0, 0.52991927, 0, 1, 0, -0.52991927, 0, 0.8480481, -5.3168573, 4.65, -6.225)
 
@@ -732,6 +909,15 @@ transform = Transform3D(0.8480481, 0, 0.52991927, 0, 1, 0, -0.52991927, 0, 0.848
 transform = Transform3D(0.8480481, 0, -0.52991927, 0, 1, 0, 0.52991927, 0, 0.8480481, -3.7688572, 4.65, -6.225)
 
 [node name="_Area3D_865844" type="Area3D" parent="." unique_id=505471367]
+=======
+[node name="_Node3D_865831" type="Node3D" parent="." unique_id=94612275]
+transform = Transform3D(0.8480481, 0, 0.52991927, 0, 1, 0, -0.52991927, 0, 0.8480481, -5.3168573, 4.65, -6.225)
+
+[node name="_Node3D_865837" type="Node3D" parent="." unique_id=1263560157]
+transform = Transform3D(0.8480481, 0, -0.52991927, 0, 1, 0, 0.52991927, 0, 0.8480481, -3.7688572, 4.65, -6.225)
+
+[node name="_Area3D_865844" type="Area3D" parent="." unique_id=1654396452]
+>>>>>>> Stashed changes
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -4.542857, 4.65, -6.17)
 collision_layer = 0
 collision_mask = 0
@@ -741,6 +927,7 @@ metadata/protected_volume = true
 metadata/clearance_depth_m = 1.0
 metadata/clearance_rule = "No structural/decorative module may occupy this volume."
 
+<<<<<<< Updated upstream
 [node name="_Node3D_865850" type="Node3D" parent="." unique_id=1216165581]
 transform = Transform3D(0.8480481, 0, 0.52991927, 0, 1, 0, -0.52991927, 0, 0.8480481, -2.2882857, 4.65, -6.225)
 
@@ -748,6 +935,15 @@ transform = Transform3D(0.8480481, 0, 0.52991927, 0, 1, 0, -0.52991927, 0, 0.848
 transform = Transform3D(0.8480481, 0, -0.52991927, 0, 1, 0, 0.52991927, 0, 0.8480481, -0.7402857, 4.65, -6.225)
 
 [node name="_Area3D_865863" type="Area3D" parent="." unique_id=976189047]
+=======
+[node name="_Node3D_865850" type="Node3D" parent="." unique_id=1840521128]
+transform = Transform3D(0.8480481, 0, 0.52991927, 0, 1, 0, -0.52991927, 0, 0.8480481, -2.2882857, 4.65, -6.225)
+
+[node name="_Node3D_865856" type="Node3D" parent="." unique_id=1605323937]
+transform = Transform3D(0.8480481, 0, -0.52991927, 0, 1, 0, 0.52991927, 0, 0.8480481, -0.7402857, 4.65, -6.225)
+
+[node name="_Area3D_865863" type="Area3D" parent="." unique_id=128300999]
+>>>>>>> Stashed changes
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -1.5142857, 4.65, -6.17)
 collision_layer = 0
 collision_mask = 0
@@ -757,6 +953,7 @@ metadata/protected_volume = true
 metadata/clearance_depth_m = 1.0
 metadata/clearance_rule = "No structural/decorative module may occupy this volume."
 
+<<<<<<< Updated upstream
 [node name="_Node3D_865869" type="Node3D" parent="." unique_id=567887533]
 transform = Transform3D(0.8480481, 0, 0.52991927, 0, 1, 0, -0.52991927, 0, 0.8480481, 0.7402857, 4.65, -6.225)
 
@@ -764,6 +961,15 @@ transform = Transform3D(0.8480481, 0, 0.52991927, 0, 1, 0, -0.52991927, 0, 0.848
 transform = Transform3D(0.8480481, 0, -0.52991927, 0, 1, 0, 0.52991927, 0, 0.8480481, 2.2882857, 4.65, -6.225)
 
 [node name="_Area3D_865882" type="Area3D" parent="." unique_id=389816653]
+=======
+[node name="_Node3D_865869" type="Node3D" parent="." unique_id=1480179833]
+transform = Transform3D(0.8480481, 0, 0.52991927, 0, 1, 0, -0.52991927, 0, 0.8480481, 0.7402857, 4.65, -6.225)
+
+[node name="_Node3D_865875" type="Node3D" parent="." unique_id=1100648942]
+transform = Transform3D(0.8480481, 0, -0.52991927, 0, 1, 0, 0.52991927, 0, 0.8480481, 2.2882857, 4.65, -6.225)
+
+[node name="_Area3D_865882" type="Area3D" parent="." unique_id=2144823395]
+>>>>>>> Stashed changes
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 1.5142857, 4.65, -6.17)
 collision_layer = 0
 collision_mask = 0
@@ -773,6 +979,7 @@ metadata/protected_volume = true
 metadata/clearance_depth_m = 1.0
 metadata/clearance_rule = "No structural/decorative module may occupy this volume."
 
+<<<<<<< Updated upstream
 [node name="_Node3D_865888" type="Node3D" parent="." unique_id=1995376057]
 transform = Transform3D(0.8480481, 0, 0.52991927, 0, 1, 0, -0.52991927, 0, 0.8480481, 3.7688572, 4.65, -6.225)
 
@@ -780,6 +987,15 @@ transform = Transform3D(0.8480481, 0, 0.52991927, 0, 1, 0, -0.52991927, 0, 0.848
 transform = Transform3D(0.8480481, 0, -0.52991927, 0, 1, 0, 0.52991927, 0, 0.8480481, 5.3168573, 4.65, -6.225)
 
 [node name="_Area3D_865901" type="Area3D" parent="." unique_id=1142693779]
+=======
+[node name="_Node3D_865888" type="Node3D" parent="." unique_id=2073420384]
+transform = Transform3D(0.8480481, 0, 0.52991927, 0, 1, 0, -0.52991927, 0, 0.8480481, 3.7688572, 4.65, -6.225)
+
+[node name="_Node3D_865894" type="Node3D" parent="." unique_id=1794990697]
+transform = Transform3D(0.8480481, 0, -0.52991927, 0, 1, 0, 0.52991927, 0, 0.8480481, 5.3168573, 4.65, -6.225)
+
+[node name="_Area3D_865901" type="Area3D" parent="." unique_id=1150722526]
+>>>>>>> Stashed changes
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 4.542857, 4.65, -6.17)
 collision_layer = 0
 collision_mask = 0
@@ -789,6 +1005,7 @@ metadata/protected_volume = true
 metadata/clearance_depth_m = 1.0
 metadata/clearance_rule = "No structural/decorative module may occupy this volume."
 
+<<<<<<< Updated upstream
 [node name="_Node3D_865907" type="Node3D" parent="." unique_id=1581862129]
 transform = Transform3D(0.8480481, 0, 0.52991927, 0, 1, 0, -0.52991927, 0, 0.8480481, 6.7974286, 4.65, -6.225)
 
@@ -796,6 +1013,15 @@ transform = Transform3D(0.8480481, 0, 0.52991927, 0, 1, 0, -0.52991927, 0, 0.848
 transform = Transform3D(0.8480481, 0, -0.52991927, 0, 1, 0, 0.52991927, 0, 0.8480481, 8.345428, 4.65, -6.225)
 
 [node name="_Area3D_865920" type="Area3D" parent="." unique_id=1591373651]
+=======
+[node name="_Node3D_865907" type="Node3D" parent="." unique_id=1406882516]
+transform = Transform3D(0.8480481, 0, 0.52991927, 0, 1, 0, -0.52991927, 0, 0.8480481, 6.7974286, 4.65, -6.225)
+
+[node name="_Node3D_865913" type="Node3D" parent="." unique_id=1671470039]
+transform = Transform3D(0.8480481, 0, -0.52991927, 0, 1, 0, 0.52991927, 0, 0.8480481, 8.345428, 4.65, -6.225)
+
+[node name="_Area3D_865920" type="Area3D" parent="." unique_id=1942924407]
+>>>>>>> Stashed changes
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 7.571429, 4.65, -6.17)
 collision_layer = 0
 collision_mask = 0
@@ -805,6 +1031,7 @@ metadata/protected_volume = true
 metadata/clearance_depth_m = 1.0
 metadata/clearance_rule = "No structural/decorative module may occupy this volume."
 
+<<<<<<< Updated upstream
 [node name="_Node3D_865926" type="Node3D" parent="." unique_id=13472121]
 transform = Transform3D(0.8480481, 0, 0.52991927, 0, 1, 0, -0.52991927, 0, 0.8480481, 9.826, 4.65, -6.225)
 
@@ -812,6 +1039,15 @@ transform = Transform3D(0.8480481, 0, 0.52991927, 0, 1, 0, -0.52991927, 0, 0.848
 transform = Transform3D(0.8480481, 0, -0.52991927, 0, 1, 0, 0.52991927, 0, 0.8480481, 11.374001, 4.65, -6.225)
 
 [node name="_Area3D_865939" type="Area3D" parent="." unique_id=189698034]
+=======
+[node name="_Node3D_865926" type="Node3D" parent="." unique_id=1475522410]
+transform = Transform3D(0.8480481, 0, 0.52991927, 0, 1, 0, -0.52991927, 0, 0.8480481, 9.826, 4.65, -6.225)
+
+[node name="_Node3D_865932" type="Node3D" parent="." unique_id=53012037]
+transform = Transform3D(0.8480481, 0, -0.52991927, 0, 1, 0, 0.52991927, 0, 0.8480481, 11.374001, 4.65, -6.225)
+
+[node name="_Area3D_865939" type="Area3D" parent="." unique_id=2039334822]
+>>>>>>> Stashed changes
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 10.6, 4.65, -6.17)
 collision_layer = 0
 collision_mask = 0
@@ -821,6 +1057,7 @@ metadata/protected_volume = true
 metadata/clearance_depth_m = 1.0
 metadata/clearance_rule = "No structural/decorative module may occupy this volume."
 
+<<<<<<< Updated upstream
 [node name="_Node3D_865945" type="Node3D" parent="." unique_id=802578780]
 transform = Transform3D(0.8480481, 0, 0.52991927, 0, 1, 0, -0.52991927, 0, 0.8480481, -10.17, 4.63, 6.115)
 
@@ -828,6 +1065,15 @@ transform = Transform3D(0.8480481, 0, 0.52991927, 0, 1, 0, -0.52991927, 0, 0.848
 transform = Transform3D(0.8480481, 0, -0.52991927, 0, 1, 0, 0.52991927, 0, 0.8480481, -8.73, 4.63, 6.115)
 
 [node name="_Area3D_865958" type="Area3D" parent="." unique_id=202900791]
+=======
+[node name="_Node3D_865945" type="Node3D" parent="." unique_id=534845221]
+transform = Transform3D(0.8480481, 0, 0.52991927, 0, 1, 0, -0.52991927, 0, 0.8480481, -10.17, 4.63, 6.115)
+
+[node name="_Node3D_865951" type="Node3D" parent="." unique_id=1440249413]
+transform = Transform3D(0.8480481, 0, -0.52991927, 0, 1, 0, 0.52991927, 0, 0.8480481, -8.73, 4.63, 6.115)
+
+[node name="_Area3D_865958" type="Area3D" parent="." unique_id=849081029]
+>>>>>>> Stashed changes
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -9.45, 4.63, 6.17)
 collision_layer = 0
 collision_mask = 0
@@ -837,6 +1083,7 @@ metadata/protected_volume = true
 metadata/clearance_depth_m = 1.0
 metadata/clearance_rule = "No structural/decorative module may occupy this volume."
 
+<<<<<<< Updated upstream
 [node name="_Node3D_865964" type="Node3D" parent="." unique_id=577509047]
 transform = Transform3D(0.8480481, 0, 0.52991927, 0, 1, 0, -0.52991927, 0, 0.8480481, -7.02, 4.63, 6.115)
 
@@ -844,6 +1091,15 @@ transform = Transform3D(0.8480481, 0, 0.52991927, 0, 1, 0, -0.52991927, 0, 0.848
 transform = Transform3D(0.8480481, 0, -0.52991927, 0, 1, 0, 0.52991927, 0, 0.8480481, -5.5800004, 4.63, 6.115)
 
 [node name="_Area3D_865977" type="Area3D" parent="." unique_id=1994720008]
+=======
+[node name="_Node3D_865964" type="Node3D" parent="." unique_id=924079481]
+transform = Transform3D(0.8480481, 0, 0.52991927, 0, 1, 0, -0.52991927, 0, 0.8480481, -7.02, 4.63, 6.115)
+
+[node name="_Node3D_865970" type="Node3D" parent="." unique_id=432061734]
+transform = Transform3D(0.8480481, 0, -0.52991927, 0, 1, 0, 0.52991927, 0, 0.8480481, -5.5800004, 4.63, 6.115)
+
+[node name="_Area3D_865977" type="Area3D" parent="." unique_id=465250153]
+>>>>>>> Stashed changes
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -6.3, 4.63, 6.17)
 collision_layer = 0
 collision_mask = 0
@@ -853,6 +1109,7 @@ metadata/protected_volume = true
 metadata/clearance_depth_m = 1.0
 metadata/clearance_rule = "No structural/decorative module may occupy this volume."
 
+<<<<<<< Updated upstream
 [node name="_Node3D_865983" type="Node3D" parent="." unique_id=2001000841]
 transform = Transform3D(0.8480481, 0, 0.52991927, 0, 1, 0, -0.52991927, 0, 0.8480481, -3.8700001, 4.63, 6.115)
 
@@ -860,6 +1117,15 @@ transform = Transform3D(0.8480481, 0, 0.52991927, 0, 1, 0, -0.52991927, 0, 0.848
 transform = Transform3D(0.8480481, 0, -0.52991927, 0, 1, 0, 0.52991927, 0, 0.8480481, -2.43, 4.63, 6.115)
 
 [node name="_Area3D_865996" type="Area3D" parent="." unique_id=1550590415]
+=======
+[node name="_Node3D_865983" type="Node3D" parent="." unique_id=1852516624]
+transform = Transform3D(0.8480481, 0, 0.52991927, 0, 1, 0, -0.52991927, 0, 0.8480481, -3.8700001, 4.63, 6.115)
+
+[node name="_Node3D_865989" type="Node3D" parent="." unique_id=461979517]
+transform = Transform3D(0.8480481, 0, -0.52991927, 0, 1, 0, 0.52991927, 0, 0.8480481, -2.43, 4.63, 6.115)
+
+[node name="_Area3D_865996" type="Area3D" parent="." unique_id=1980788656]
+>>>>>>> Stashed changes
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -3.15, 4.63, 6.17)
 collision_layer = 0
 collision_mask = 0
@@ -869,6 +1135,7 @@ metadata/protected_volume = true
 metadata/clearance_depth_m = 1.0
 metadata/clearance_rule = "No structural/decorative module may occupy this volume."
 
+<<<<<<< Updated upstream
 [node name="_Node3D_866002" type="Node3D" parent="." unique_id=939894560]
 transform = Transform3D(0.8480481, 0, 0.52991927, 0, 1, 0, -0.52991927, 0, 0.8480481, -0.72, 4.63, 6.115)
 
@@ -876,6 +1143,15 @@ transform = Transform3D(0.8480481, 0, 0.52991927, 0, 1, 0, -0.52991927, 0, 0.848
 transform = Transform3D(0.8480481, 0, -0.52991927, 0, 1, 0, 0.52991927, 0, 0.8480481, 0.72, 4.63, 6.115)
 
 [node name="_Area3D_866015" type="Area3D" parent="." unique_id=2119580889]
+=======
+[node name="_Node3D_866002" type="Node3D" parent="." unique_id=660886481]
+transform = Transform3D(0.8480481, 0, 0.52991927, 0, 1, 0, -0.52991927, 0, 0.8480481, -0.72, 4.63, 6.115)
+
+[node name="_Node3D_866008" type="Node3D" parent="." unique_id=383164015]
+transform = Transform3D(0.8480481, 0, -0.52991927, 0, 1, 0, 0.52991927, 0, 0.8480481, 0.72, 4.63, 6.115)
+
+[node name="_Area3D_866015" type="Area3D" parent="." unique_id=1809503972]
+>>>>>>> Stashed changes
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 4.63, 6.17)
 collision_layer = 0
 collision_mask = 0
@@ -885,6 +1161,7 @@ metadata/protected_volume = true
 metadata/clearance_depth_m = 1.0
 metadata/clearance_rule = "No structural/decorative module may occupy this volume."
 
+<<<<<<< Updated upstream
 [node name="_Node3D_866021" type="Node3D" parent="." unique_id=1465165698]
 transform = Transform3D(0.8480481, 0, 0.52991927, 0, 1, 0, -0.52991927, 0, 0.8480481, 2.43, 4.63, 6.115)
 
@@ -892,6 +1169,15 @@ transform = Transform3D(0.8480481, 0, 0.52991927, 0, 1, 0, -0.52991927, 0, 0.848
 transform = Transform3D(0.8480481, 0, -0.52991927, 0, 1, 0, 0.52991927, 0, 0.8480481, 3.8700001, 4.63, 6.115)
 
 [node name="_Area3D_866034" type="Area3D" parent="." unique_id=1374301806]
+=======
+[node name="_Node3D_866021" type="Node3D" parent="." unique_id=1611763388]
+transform = Transform3D(0.8480481, 0, 0.52991927, 0, 1, 0, -0.52991927, 0, 0.8480481, 2.43, 4.63, 6.115)
+
+[node name="_Node3D_866027" type="Node3D" parent="." unique_id=1206396784]
+transform = Transform3D(0.8480481, 0, -0.52991927, 0, 1, 0, 0.52991927, 0, 0.8480481, 3.8700001, 4.63, 6.115)
+
+[node name="_Area3D_866034" type="Area3D" parent="." unique_id=1290766366]
+>>>>>>> Stashed changes
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 3.15, 4.63, 6.17)
 collision_layer = 0
 collision_mask = 0
@@ -901,6 +1187,7 @@ metadata/protected_volume = true
 metadata/clearance_depth_m = 1.0
 metadata/clearance_rule = "No structural/decorative module may occupy this volume."
 
+<<<<<<< Updated upstream
 [node name="_Node3D_866040" type="Node3D" parent="." unique_id=1696989487]
 transform = Transform3D(0.8480481, 0, 0.52991927, 0, 1, 0, -0.52991927, 0, 0.8480481, 5.5800004, 4.63, 6.115)
 
@@ -908,6 +1195,15 @@ transform = Transform3D(0.8480481, 0, 0.52991927, 0, 1, 0, -0.52991927, 0, 0.848
 transform = Transform3D(0.8480481, 0, -0.52991927, 0, 1, 0, 0.52991927, 0, 0.8480481, 7.02, 4.63, 6.115)
 
 [node name="_Area3D_866053" type="Area3D" parent="." unique_id=1734597517]
+=======
+[node name="_Node3D_866040" type="Node3D" parent="." unique_id=1593545979]
+transform = Transform3D(0.8480481, 0, 0.52991927, 0, 1, 0, -0.52991927, 0, 0.8480481, 5.5800004, 4.63, 6.115)
+
+[node name="_Node3D_866046" type="Node3D" parent="." unique_id=1469697520]
+transform = Transform3D(0.8480481, 0, -0.52991927, 0, 1, 0, 0.52991927, 0, 0.8480481, 7.02, 4.63, 6.115)
+
+[node name="_Area3D_866053" type="Area3D" parent="." unique_id=608098520]
+>>>>>>> Stashed changes
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 6.3, 4.63, 6.17)
 collision_layer = 0
 collision_mask = 0
@@ -917,6 +1213,7 @@ metadata/protected_volume = true
 metadata/clearance_depth_m = 1.0
 metadata/clearance_rule = "No structural/decorative module may occupy this volume."
 
+<<<<<<< Updated upstream
 [node name="_Node3D_866059" type="Node3D" parent="." unique_id=506543271]
 transform = Transform3D(0.8480481, 0, 0.52991927, 0, 1, 0, -0.52991927, 0, 0.8480481, 8.73, 4.63, 6.115)
 
@@ -924,6 +1221,15 @@ transform = Transform3D(0.8480481, 0, 0.52991927, 0, 1, 0, -0.52991927, 0, 0.848
 transform = Transform3D(0.8480481, 0, -0.52991927, 0, 1, 0, 0.52991927, 0, 0.8480481, 10.17, 4.63, 6.115)
 
 [node name="_Area3D_866072" type="Area3D" parent="." unique_id=1087241135]
+=======
+[node name="_Node3D_866059" type="Node3D" parent="." unique_id=2044832318]
+transform = Transform3D(0.8480481, 0, 0.52991927, 0, 1, 0, -0.52991927, 0, 0.8480481, 8.73, 4.63, 6.115)
+
+[node name="_Node3D_866065" type="Node3D" parent="." unique_id=1788137283]
+transform = Transform3D(0.8480481, 0, -0.52991927, 0, 1, 0, 0.52991927, 0, 0.8480481, 10.17, 4.63, 6.115)
+
+[node name="_Area3D_866072" type="Area3D" parent="." unique_id=1627031041]
+>>>>>>> Stashed changes
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 9.45, 4.63, 6.17)
 collision_layer = 0
 collision_mask = 0
@@ -933,6 +1239,7 @@ metadata/protected_volume = true
 metadata/clearance_depth_m = 1.0
 metadata/clearance_rule = "No structural/decorative module may occupy this volume."
 
+<<<<<<< Updated upstream
 [node name="_Node3D_866077" type="Node3D" parent="." unique_id=831668930]
 transform = Transform3D(0.8660254, 0, -0.5, 0, 1, 0, 0.5, 0, 0.8660254, -14.09, 4.62, -4.884)
 
@@ -940,6 +1247,15 @@ transform = Transform3D(0.8660254, 0, -0.5, 0, 1, 0, 0.5, 0, 0.8660254, -14.09, 
 transform = Transform3D(0.8660254, 0, 0.5, 0, 1, 0, -0.5, 0, 0.8660254, -14.09, 4.62, -3.5159998)
 
 [node name="_Area3D_866082" type="Area3D" parent="." unique_id=1807478878]
+=======
+[node name="_Node3D_866077" type="Node3D" parent="." unique_id=594908461]
+transform = Transform3D(0.8660254, 0, -0.5, 0, 1, 0, 0.5, 0, 0.8660254, -14.09, 4.62, -4.884)
+
+[node name="_Node3D_866079" type="Node3D" parent="." unique_id=1466226408]
+transform = Transform3D(0.8660254, 0, 0.5, 0, 1, 0, -0.5, 0, 0.8660254, -14.09, 4.62, -3.5159998)
+
+[node name="_Area3D_866082" type="Area3D" parent="." unique_id=489885110]
+>>>>>>> Stashed changes
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -14.17, 4.62, -4.2)
 collision_layer = 0
 collision_mask = 0
@@ -949,6 +1265,7 @@ metadata/protected_volume = true
 metadata/clearance_depth_m = 1.0
 metadata/clearance_rule = "No structural/decorative module may occupy this volume."
 
+<<<<<<< Updated upstream
 [node name="_Node3D_866087" type="Node3D" parent="." unique_id=1741369740]
 transform = Transform3D(0.8660254, 0, 0.5, 0, 1, 0, -0.5, 0, 0.8660254, 14.09, 4.62, -4.884)
 
@@ -956,6 +1273,15 @@ transform = Transform3D(0.8660254, 0, 0.5, 0, 1, 0, -0.5, 0, 0.8660254, 14.09, 4
 transform = Transform3D(0.8660254, 0, -0.5, 0, 1, 0, 0.5, 0, 0.8660254, 14.09, 4.62, -3.5159998)
 
 [node name="_Area3D_866092" type="Area3D" parent="." unique_id=1116983701]
+=======
+[node name="_Node3D_866087" type="Node3D" parent="." unique_id=1427968852]
+transform = Transform3D(0.8660254, 0, 0.5, 0, 1, 0, -0.5, 0, 0.8660254, 14.09, 4.62, -4.884)
+
+[node name="_Node3D_866089" type="Node3D" parent="." unique_id=1062404459]
+transform = Transform3D(0.8660254, 0, -0.5, 0, 1, 0, 0.5, 0, 0.8660254, 14.09, 4.62, -3.5159998)
+
+[node name="_Area3D_866092" type="Area3D" parent="." unique_id=384660417]
+>>>>>>> Stashed changes
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 14.17, 4.62, -4.2)
 collision_layer = 0
 collision_mask = 0
@@ -965,6 +1291,7 @@ metadata/protected_volume = true
 metadata/clearance_depth_m = 1.0
 metadata/clearance_rule = "No structural/decorative module may occupy this volume."
 
+<<<<<<< Updated upstream
 [node name="_Node3D_866097" type="Node3D" parent="." unique_id=1273166843]
 transform = Transform3D(0.8660254, 0, -0.5, 0, 1, 0, 0.5, 0, 0.8660254, -14.09, 4.62, -0.684)
 
@@ -972,6 +1299,15 @@ transform = Transform3D(0.8660254, 0, -0.5, 0, 1, 0, 0.5, 0, 0.8660254, -14.09, 
 transform = Transform3D(0.8660254, 0, 0.5, 0, 1, 0, -0.5, 0, 0.8660254, -14.09, 4.62, 0.684)
 
 [node name="_Area3D_866102" type="Area3D" parent="." unique_id=131148408]
+=======
+[node name="_Node3D_866097" type="Node3D" parent="." unique_id=1242692843]
+transform = Transform3D(0.8660254, 0, -0.5, 0, 1, 0, 0.5, 0, 0.8660254, -14.09, 4.62, -0.684)
+
+[node name="_Node3D_866099" type="Node3D" parent="." unique_id=351435590]
+transform = Transform3D(0.8660254, 0, 0.5, 0, 1, 0, -0.5, 0, 0.8660254, -14.09, 4.62, 0.684)
+
+[node name="_Area3D_866102" type="Area3D" parent="." unique_id=1857917293]
+>>>>>>> Stashed changes
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -14.17, 4.62, 0)
 collision_layer = 0
 collision_mask = 0
@@ -981,6 +1317,7 @@ metadata/protected_volume = true
 metadata/clearance_depth_m = 1.0
 metadata/clearance_rule = "No structural/decorative module may occupy this volume."
 
+<<<<<<< Updated upstream
 [node name="_Node3D_866107" type="Node3D" parent="." unique_id=1185214489]
 transform = Transform3D(0.8660254, 0, 0.5, 0, 1, 0, -0.5, 0, 0.8660254, 14.09, 4.62, -0.684)
 
@@ -988,6 +1325,15 @@ transform = Transform3D(0.8660254, 0, 0.5, 0, 1, 0, -0.5, 0, 0.8660254, 14.09, 4
 transform = Transform3D(0.8660254, 0, -0.5, 0, 1, 0, 0.5, 0, 0.8660254, 14.09, 4.62, 0.684)
 
 [node name="_Area3D_866112" type="Area3D" parent="." unique_id=1066232674]
+=======
+[node name="_Node3D_866107" type="Node3D" parent="." unique_id=1515613985]
+transform = Transform3D(0.8660254, 0, 0.5, 0, 1, 0, -0.5, 0, 0.8660254, 14.09, 4.62, -0.684)
+
+[node name="_Node3D_866109" type="Node3D" parent="." unique_id=1120251832]
+transform = Transform3D(0.8660254, 0, -0.5, 0, 1, 0, 0.5, 0, 0.8660254, 14.09, 4.62, 0.684)
+
+[node name="_Area3D_866112" type="Area3D" parent="." unique_id=1833402709]
+>>>>>>> Stashed changes
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 14.17, 4.62, 0)
 collision_layer = 0
 collision_mask = 0
@@ -997,6 +1343,7 @@ metadata/protected_volume = true
 metadata/clearance_depth_m = 1.0
 metadata/clearance_rule = "No structural/decorative module may occupy this volume."
 
+<<<<<<< Updated upstream
 [node name="_Node3D_866117" type="Node3D" parent="." unique_id=1451024101]
 transform = Transform3D(0.8660254, 0, -0.5, 0, 1, 0, 0.5, 0, 0.8660254, -14.09, 4.62, 3.5159998)
 
@@ -1004,6 +1351,15 @@ transform = Transform3D(0.8660254, 0, -0.5, 0, 1, 0, 0.5, 0, 0.8660254, -14.09, 
 transform = Transform3D(0.8660254, 0, 0.5, 0, 1, 0, -0.5, 0, 0.8660254, -14.09, 4.62, 4.884)
 
 [node name="_Area3D_866122" type="Area3D" parent="." unique_id=689570478]
+=======
+[node name="_Node3D_866117" type="Node3D" parent="." unique_id=96776514]
+transform = Transform3D(0.8660254, 0, -0.5, 0, 1, 0, 0.5, 0, 0.8660254, -14.09, 4.62, 3.5159998)
+
+[node name="_Node3D_866119" type="Node3D" parent="." unique_id=562516894]
+transform = Transform3D(0.8660254, 0, 0.5, 0, 1, 0, -0.5, 0, 0.8660254, -14.09, 4.62, 4.884)
+
+[node name="_Area3D_866122" type="Area3D" parent="." unique_id=1504855829]
+>>>>>>> Stashed changes
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -14.17, 4.62, 4.2)
 collision_layer = 0
 collision_mask = 0
@@ -1013,6 +1369,7 @@ metadata/protected_volume = true
 metadata/clearance_depth_m = 1.0
 metadata/clearance_rule = "No structural/decorative module may occupy this volume."
 
+<<<<<<< Updated upstream
 [node name="_Node3D_866127" type="Node3D" parent="." unique_id=2099060411]
 transform = Transform3D(0.8660254, 0, 0.5, 0, 1, 0, -0.5, 0, 0.8660254, 14.09, 4.62, 3.5159998)
 
@@ -1020,6 +1377,15 @@ transform = Transform3D(0.8660254, 0, 0.5, 0, 1, 0, -0.5, 0, 0.8660254, 14.09, 4
 transform = Transform3D(0.8660254, 0, -0.5, 0, 1, 0, 0.5, 0, 0.8660254, 14.09, 4.62, 4.884)
 
 [node name="_Area3D_866132" type="Area3D" parent="." unique_id=721601686]
+=======
+[node name="_Node3D_866127" type="Node3D" parent="." unique_id=1906510216]
+transform = Transform3D(0.8660254, 0, 0.5, 0, 1, 0, -0.5, 0, 0.8660254, 14.09, 4.62, 3.5159998)
+
+[node name="_Node3D_866129" type="Node3D" parent="." unique_id=1165295622]
+transform = Transform3D(0.8660254, 0, -0.5, 0, 1, 0, 0.5, 0, 0.8660254, 14.09, 4.62, 4.884)
+
+[node name="_Area3D_866132" type="Area3D" parent="." unique_id=1776273217]
+>>>>>>> Stashed changes
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 14.17, 4.62, 4.2)
 collision_layer = 0
 collision_mask = 0
@@ -1029,6 +1395,7 @@ metadata/protected_volume = true
 metadata/clearance_depth_m = 1.0
 metadata/clearance_rule = "No structural/decorative module may occupy this volume."
 
+<<<<<<< Updated upstream
 [node name="_Node3D_866138" type="Node3D" parent="." unique_id=787984543]
 transform = Transform3D(0.8480481, 0, 0.52991927, 0, 1, 0, -0.52991927, 0, 0.8480481, -11.374001, 7.85, -6.225)
 
@@ -1036,6 +1403,15 @@ transform = Transform3D(0.8480481, 0, 0.52991927, 0, 1, 0, -0.52991927, 0, 0.848
 transform = Transform3D(0.8480481, 0, -0.52991927, 0, 1, 0, 0.52991927, 0, 0.8480481, -9.826, 7.85, -6.225)
 
 [node name="_Area3D_866151" type="Area3D" parent="." unique_id=1253256585]
+=======
+[node name="_Node3D_866138" type="Node3D" parent="." unique_id=771680049]
+transform = Transform3D(0.8480481, 0, 0.52991927, 0, 1, 0, -0.52991927, 0, 0.8480481, -11.374001, 7.85, -6.225)
+
+[node name="_Node3D_866144" type="Node3D" parent="." unique_id=521366810]
+transform = Transform3D(0.8480481, 0, -0.52991927, 0, 1, 0, 0.52991927, 0, 0.8480481, -9.826, 7.85, -6.225)
+
+[node name="_Area3D_866151" type="Area3D" parent="." unique_id=1900734543]
+>>>>>>> Stashed changes
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -10.6, 7.85, -6.17)
 collision_layer = 0
 collision_mask = 0
@@ -1045,6 +1421,7 @@ metadata/protected_volume = true
 metadata/clearance_depth_m = 1.0
 metadata/clearance_rule = "No structural/decorative module may occupy this volume."
 
+<<<<<<< Updated upstream
 [node name="_Node3D_866157" type="Node3D" parent="." unique_id=1040717386]
 transform = Transform3D(0.8480481, 0, 0.52991927, 0, 1, 0, -0.52991927, 0, 0.8480481, -8.345428, 7.85, -6.225)
 
@@ -1052,6 +1429,15 @@ transform = Transform3D(0.8480481, 0, 0.52991927, 0, 1, 0, -0.52991927, 0, 0.848
 transform = Transform3D(0.8480481, 0, -0.52991927, 0, 1, 0, 0.52991927, 0, 0.8480481, -6.7974286, 7.85, -6.225)
 
 [node name="_Area3D_866170" type="Area3D" parent="." unique_id=413841488]
+=======
+[node name="_Node3D_866157" type="Node3D" parent="." unique_id=541921696]
+transform = Transform3D(0.8480481, 0, 0.52991927, 0, 1, 0, -0.52991927, 0, 0.8480481, -8.345428, 7.85, -6.225)
+
+[node name="_Node3D_866163" type="Node3D" parent="." unique_id=1294909574]
+transform = Transform3D(0.8480481, 0, -0.52991927, 0, 1, 0, 0.52991927, 0, 0.8480481, -6.7974286, 7.85, -6.225)
+
+[node name="_Area3D_866170" type="Area3D" parent="." unique_id=783968599]
+>>>>>>> Stashed changes
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -7.571429, 7.85, -6.17)
 collision_layer = 0
 collision_mask = 0
@@ -1061,6 +1447,7 @@ metadata/protected_volume = true
 metadata/clearance_depth_m = 1.0
 metadata/clearance_rule = "No structural/decorative module may occupy this volume."
 
+<<<<<<< Updated upstream
 [node name="_Node3D_866176" type="Node3D" parent="." unique_id=1210048156]
 transform = Transform3D(0.8480481, 0, 0.52991927, 0, 1, 0, -0.52991927, 0, 0.8480481, -5.3168573, 7.85, -6.225)
 
@@ -1068,6 +1455,15 @@ transform = Transform3D(0.8480481, 0, 0.52991927, 0, 1, 0, -0.52991927, 0, 0.848
 transform = Transform3D(0.8480481, 0, -0.52991927, 0, 1, 0, 0.52991927, 0, 0.8480481, -3.7688572, 7.85, -6.225)
 
 [node name="_Area3D_866189" type="Area3D" parent="." unique_id=929454755]
+=======
+[node name="_Node3D_866176" type="Node3D" parent="." unique_id=610135474]
+transform = Transform3D(0.8480481, 0, 0.52991927, 0, 1, 0, -0.52991927, 0, 0.8480481, -5.3168573, 7.85, -6.225)
+
+[node name="_Node3D_866182" type="Node3D" parent="." unique_id=1232763309]
+transform = Transform3D(0.8480481, 0, -0.52991927, 0, 1, 0, 0.52991927, 0, 0.8480481, -3.7688572, 7.85, -6.225)
+
+[node name="_Area3D_866189" type="Area3D" parent="." unique_id=1864177301]
+>>>>>>> Stashed changes
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -4.542857, 7.85, -6.17)
 collision_layer = 0
 collision_mask = 0
@@ -1077,6 +1473,7 @@ metadata/protected_volume = true
 metadata/clearance_depth_m = 1.0
 metadata/clearance_rule = "No structural/decorative module may occupy this volume."
 
+<<<<<<< Updated upstream
 [node name="_Node3D_866195" type="Node3D" parent="." unique_id=1971163032]
 transform = Transform3D(0.8480481, 0, 0.52991927, 0, 1, 0, -0.52991927, 0, 0.8480481, -2.2882857, 7.85, -6.225)
 
@@ -1084,6 +1481,15 @@ transform = Transform3D(0.8480481, 0, 0.52991927, 0, 1, 0, -0.52991927, 0, 0.848
 transform = Transform3D(0.8480481, 0, -0.52991927, 0, 1, 0, 0.52991927, 0, 0.8480481, -0.7402857, 7.85, -6.225)
 
 [node name="_Area3D_866208" type="Area3D" parent="." unique_id=2030897176]
+=======
+[node name="_Node3D_866195" type="Node3D" parent="." unique_id=2011620188]
+transform = Transform3D(0.8480481, 0, 0.52991927, 0, 1, 0, -0.52991927, 0, 0.8480481, -2.2882857, 7.85, -6.225)
+
+[node name="_Node3D_866201" type="Node3D" parent="." unique_id=645107412]
+transform = Transform3D(0.8480481, 0, -0.52991927, 0, 1, 0, 0.52991927, 0, 0.8480481, -0.7402857, 7.85, -6.225)
+
+[node name="_Area3D_866208" type="Area3D" parent="." unique_id=921376238]
+>>>>>>> Stashed changes
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -1.5142857, 7.85, -6.17)
 collision_layer = 0
 collision_mask = 0
@@ -1093,6 +1499,7 @@ metadata/protected_volume = true
 metadata/clearance_depth_m = 1.0
 metadata/clearance_rule = "No structural/decorative module may occupy this volume."
 
+<<<<<<< Updated upstream
 [node name="_Node3D_866214" type="Node3D" parent="." unique_id=961863402]
 transform = Transform3D(0.8480481, 0, 0.52991927, 0, 1, 0, -0.52991927, 0, 0.8480481, 0.7402857, 7.85, -6.225)
 
@@ -1100,6 +1507,15 @@ transform = Transform3D(0.8480481, 0, 0.52991927, 0, 1, 0, -0.52991927, 0, 0.848
 transform = Transform3D(0.8480481, 0, -0.52991927, 0, 1, 0, 0.52991927, 0, 0.8480481, 2.2882857, 7.85, -6.225)
 
 [node name="_Area3D_866227" type="Area3D" parent="." unique_id=391680967]
+=======
+[node name="_Node3D_866214" type="Node3D" parent="." unique_id=928548708]
+transform = Transform3D(0.8480481, 0, 0.52991927, 0, 1, 0, -0.52991927, 0, 0.8480481, 0.7402857, 7.85, -6.225)
+
+[node name="_Node3D_866220" type="Node3D" parent="." unique_id=2018985851]
+transform = Transform3D(0.8480481, 0, -0.52991927, 0, 1, 0, 0.52991927, 0, 0.8480481, 2.2882857, 7.85, -6.225)
+
+[node name="_Area3D_866227" type="Area3D" parent="." unique_id=576066127]
+>>>>>>> Stashed changes
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 1.5142857, 7.85, -6.17)
 collision_layer = 0
 collision_mask = 0
@@ -1109,6 +1525,7 @@ metadata/protected_volume = true
 metadata/clearance_depth_m = 1.0
 metadata/clearance_rule = "No structural/decorative module may occupy this volume."
 
+<<<<<<< Updated upstream
 [node name="_Node3D_866233" type="Node3D" parent="." unique_id=931051393]
 transform = Transform3D(0.8480481, 0, 0.52991927, 0, 1, 0, -0.52991927, 0, 0.8480481, 3.7688572, 7.85, -6.225)
 
@@ -1116,6 +1533,15 @@ transform = Transform3D(0.8480481, 0, 0.52991927, 0, 1, 0, -0.52991927, 0, 0.848
 transform = Transform3D(0.8480481, 0, -0.52991927, 0, 1, 0, 0.52991927, 0, 0.8480481, 5.3168573, 7.85, -6.225)
 
 [node name="_Area3D_866246" type="Area3D" parent="." unique_id=996705408]
+=======
+[node name="_Node3D_866233" type="Node3D" parent="." unique_id=2027436964]
+transform = Transform3D(0.8480481, 0, 0.52991927, 0, 1, 0, -0.52991927, 0, 0.8480481, 3.7688572, 7.85, -6.225)
+
+[node name="_Node3D_866239" type="Node3D" parent="." unique_id=248716481]
+transform = Transform3D(0.8480481, 0, -0.52991927, 0, 1, 0, 0.52991927, 0, 0.8480481, 5.3168573, 7.85, -6.225)
+
+[node name="_Area3D_866246" type="Area3D" parent="." unique_id=1113578600]
+>>>>>>> Stashed changes
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 4.542857, 7.85, -6.17)
 collision_layer = 0
 collision_mask = 0
@@ -1125,6 +1551,7 @@ metadata/protected_volume = true
 metadata/clearance_depth_m = 1.0
 metadata/clearance_rule = "No structural/decorative module may occupy this volume."
 
+<<<<<<< Updated upstream
 [node name="_Node3D_866252" type="Node3D" parent="." unique_id=1416495462]
 transform = Transform3D(0.8480481, 0, 0.52991927, 0, 1, 0, -0.52991927, 0, 0.8480481, 6.7974286, 7.85, -6.225)
 
@@ -1132,6 +1559,15 @@ transform = Transform3D(0.8480481, 0, 0.52991927, 0, 1, 0, -0.52991927, 0, 0.848
 transform = Transform3D(0.8480481, 0, -0.52991927, 0, 1, 0, 0.52991927, 0, 0.8480481, 8.345428, 7.85, -6.225)
 
 [node name="_Area3D_866265" type="Area3D" parent="." unique_id=686789681]
+=======
+[node name="_Node3D_866252" type="Node3D" parent="." unique_id=1663553854]
+transform = Transform3D(0.8480481, 0, 0.52991927, 0, 1, 0, -0.52991927, 0, 0.8480481, 6.7974286, 7.85, -6.225)
+
+[node name="_Node3D_866258" type="Node3D" parent="." unique_id=2085130830]
+transform = Transform3D(0.8480481, 0, -0.52991927, 0, 1, 0, 0.52991927, 0, 0.8480481, 8.345428, 7.85, -6.225)
+
+[node name="_Area3D_866265" type="Area3D" parent="." unique_id=2074859958]
+>>>>>>> Stashed changes
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 7.571429, 7.85, -6.17)
 collision_layer = 0
 collision_mask = 0
@@ -1141,6 +1577,7 @@ metadata/protected_volume = true
 metadata/clearance_depth_m = 1.0
 metadata/clearance_rule = "No structural/decorative module may occupy this volume."
 
+<<<<<<< Updated upstream
 [node name="_Node3D_866271" type="Node3D" parent="." unique_id=309345072]
 transform = Transform3D(0.8480481, 0, 0.52991927, 0, 1, 0, -0.52991927, 0, 0.8480481, 9.826, 7.85, -6.225)
 
@@ -1148,6 +1585,15 @@ transform = Transform3D(0.8480481, 0, 0.52991927, 0, 1, 0, -0.52991927, 0, 0.848
 transform = Transform3D(0.8480481, 0, -0.52991927, 0, 1, 0, 0.52991927, 0, 0.8480481, 11.374001, 7.85, -6.225)
 
 [node name="_Area3D_866284" type="Area3D" parent="." unique_id=1730445877]
+=======
+[node name="_Node3D_866271" type="Node3D" parent="." unique_id=2065216417]
+transform = Transform3D(0.8480481, 0, 0.52991927, 0, 1, 0, -0.52991927, 0, 0.8480481, 9.826, 7.85, -6.225)
+
+[node name="_Node3D_866277" type="Node3D" parent="." unique_id=931913997]
+transform = Transform3D(0.8480481, 0, -0.52991927, 0, 1, 0, 0.52991927, 0, 0.8480481, 11.374001, 7.85, -6.225)
+
+[node name="_Area3D_866284" type="Area3D" parent="." unique_id=588307020]
+>>>>>>> Stashed changes
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 10.6, 7.85, -6.17)
 collision_layer = 0
 collision_mask = 0
@@ -1157,6 +1603,7 @@ metadata/protected_volume = true
 metadata/clearance_depth_m = 1.0
 metadata/clearance_rule = "No structural/decorative module may occupy this volume."
 
+<<<<<<< Updated upstream
 [node name="_Node3D_866290" type="Node3D" parent="." unique_id=1991827832]
 transform = Transform3D(0.8480481, 0, 0.52991927, 0, 1, 0, -0.52991927, 0, 0.8480481, -10.17, 7.83, 6.115)
 
@@ -1164,6 +1611,15 @@ transform = Transform3D(0.8480481, 0, 0.52991927, 0, 1, 0, -0.52991927, 0, 0.848
 transform = Transform3D(0.8480481, 0, -0.52991927, 0, 1, 0, 0.52991927, 0, 0.8480481, -8.73, 7.83, 6.115)
 
 [node name="_Area3D_866303" type="Area3D" parent="." unique_id=391508559]
+=======
+[node name="_Node3D_866290" type="Node3D" parent="." unique_id=272769622]
+transform = Transform3D(0.8480481, 0, 0.52991927, 0, 1, 0, -0.52991927, 0, 0.8480481, -10.17, 7.83, 6.115)
+
+[node name="_Node3D_866296" type="Node3D" parent="." unique_id=1070419067]
+transform = Transform3D(0.8480481, 0, -0.52991927, 0, 1, 0, 0.52991927, 0, 0.8480481, -8.73, 7.83, 6.115)
+
+[node name="_Area3D_866303" type="Area3D" parent="." unique_id=1326865242]
+>>>>>>> Stashed changes
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -9.45, 7.83, 6.17)
 collision_layer = 0
 collision_mask = 0
@@ -1173,6 +1629,7 @@ metadata/protected_volume = true
 metadata/clearance_depth_m = 1.0
 metadata/clearance_rule = "No structural/decorative module may occupy this volume."
 
+<<<<<<< Updated upstream
 [node name="_Node3D_866309" type="Node3D" parent="." unique_id=2130990609]
 transform = Transform3D(0.8480481, 0, 0.52991927, 0, 1, 0, -0.52991927, 0, 0.8480481, -7.02, 7.83, 6.115)
 
@@ -1180,6 +1637,15 @@ transform = Transform3D(0.8480481, 0, 0.52991927, 0, 1, 0, -0.52991927, 0, 0.848
 transform = Transform3D(0.8480481, 0, -0.52991927, 0, 1, 0, 0.52991927, 0, 0.8480481, -5.5800004, 7.83, 6.115)
 
 [node name="_Area3D_866322" type="Area3D" parent="." unique_id=457280347]
+=======
+[node name="_Node3D_866309" type="Node3D" parent="." unique_id=1400125680]
+transform = Transform3D(0.8480481, 0, 0.52991927, 0, 1, 0, -0.52991927, 0, 0.8480481, -7.02, 7.83, 6.115)
+
+[node name="_Node3D_866315" type="Node3D" parent="." unique_id=790358174]
+transform = Transform3D(0.8480481, 0, -0.52991927, 0, 1, 0, 0.52991927, 0, 0.8480481, -5.5800004, 7.83, 6.115)
+
+[node name="_Area3D_866322" type="Area3D" parent="." unique_id=1654640614]
+>>>>>>> Stashed changes
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -6.3, 7.83, 6.17)
 collision_layer = 0
 collision_mask = 0
@@ -1189,6 +1655,7 @@ metadata/protected_volume = true
 metadata/clearance_depth_m = 1.0
 metadata/clearance_rule = "No structural/decorative module may occupy this volume."
 
+<<<<<<< Updated upstream
 [node name="_Node3D_866328" type="Node3D" parent="." unique_id=954347641]
 transform = Transform3D(0.8480481, 0, 0.52991927, 0, 1, 0, -0.52991927, 0, 0.8480481, -3.8700001, 7.83, 6.115)
 
@@ -1196,6 +1663,15 @@ transform = Transform3D(0.8480481, 0, 0.52991927, 0, 1, 0, -0.52991927, 0, 0.848
 transform = Transform3D(0.8480481, 0, -0.52991927, 0, 1, 0, 0.52991927, 0, 0.8480481, -2.43, 7.83, 6.115)
 
 [node name="_Area3D_866341" type="Area3D" parent="." unique_id=1145117759]
+=======
+[node name="_Node3D_866328" type="Node3D" parent="." unique_id=44556540]
+transform = Transform3D(0.8480481, 0, 0.52991927, 0, 1, 0, -0.52991927, 0, 0.8480481, -3.8700001, 7.83, 6.115)
+
+[node name="_Node3D_866334" type="Node3D" parent="." unique_id=319748402]
+transform = Transform3D(0.8480481, 0, -0.52991927, 0, 1, 0, 0.52991927, 0, 0.8480481, -2.43, 7.83, 6.115)
+
+[node name="_Area3D_866341" type="Area3D" parent="." unique_id=472909091]
+>>>>>>> Stashed changes
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -3.15, 7.83, 6.17)
 collision_layer = 0
 collision_mask = 0
@@ -1205,6 +1681,7 @@ metadata/protected_volume = true
 metadata/clearance_depth_m = 1.0
 metadata/clearance_rule = "No structural/decorative module may occupy this volume."
 
+<<<<<<< Updated upstream
 [node name="_Node3D_866347" type="Node3D" parent="." unique_id=1171540495]
 transform = Transform3D(0.8480481, 0, 0.52991927, 0, 1, 0, -0.52991927, 0, 0.8480481, -0.72, 7.83, 6.115)
 
@@ -1212,6 +1689,15 @@ transform = Transform3D(0.8480481, 0, 0.52991927, 0, 1, 0, -0.52991927, 0, 0.848
 transform = Transform3D(0.8480481, 0, -0.52991927, 0, 1, 0, 0.52991927, 0, 0.8480481, 0.72, 7.83, 6.115)
 
 [node name="_Area3D_866360" type="Area3D" parent="." unique_id=686506363]
+=======
+[node name="_Node3D_866347" type="Node3D" parent="." unique_id=1638078435]
+transform = Transform3D(0.8480481, 0, 0.52991927, 0, 1, 0, -0.52991927, 0, 0.8480481, -0.72, 7.83, 6.115)
+
+[node name="_Node3D_866353" type="Node3D" parent="." unique_id=320249974]
+transform = Transform3D(0.8480481, 0, -0.52991927, 0, 1, 0, 0.52991927, 0, 0.8480481, 0.72, 7.83, 6.115)
+
+[node name="_Area3D_866360" type="Area3D" parent="." unique_id=1179028144]
+>>>>>>> Stashed changes
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 7.83, 6.17)
 collision_layer = 0
 collision_mask = 0
@@ -1221,6 +1707,7 @@ metadata/protected_volume = true
 metadata/clearance_depth_m = 1.0
 metadata/clearance_rule = "No structural/decorative module may occupy this volume."
 
+<<<<<<< Updated upstream
 [node name="_Node3D_866366" type="Node3D" parent="." unique_id=95867569]
 transform = Transform3D(0.8480481, 0, 0.52991927, 0, 1, 0, -0.52991927, 0, 0.8480481, 2.43, 7.83, 6.115)
 
@@ -1228,6 +1715,15 @@ transform = Transform3D(0.8480481, 0, 0.52991927, 0, 1, 0, -0.52991927, 0, 0.848
 transform = Transform3D(0.8480481, 0, -0.52991927, 0, 1, 0, 0.52991927, 0, 0.8480481, 3.8700001, 7.83, 6.115)
 
 [node name="_Area3D_866379" type="Area3D" parent="." unique_id=980093031]
+=======
+[node name="_Node3D_866366" type="Node3D" parent="." unique_id=1860195519]
+transform = Transform3D(0.8480481, 0, 0.52991927, 0, 1, 0, -0.52991927, 0, 0.8480481, 2.43, 7.83, 6.115)
+
+[node name="_Node3D_866372" type="Node3D" parent="." unique_id=1741977824]
+transform = Transform3D(0.8480481, 0, -0.52991927, 0, 1, 0, 0.52991927, 0, 0.8480481, 3.8700001, 7.83, 6.115)
+
+[node name="_Area3D_866379" type="Area3D" parent="." unique_id=270657559]
+>>>>>>> Stashed changes
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 3.15, 7.83, 6.17)
 collision_layer = 0
 collision_mask = 0
@@ -1237,6 +1733,7 @@ metadata/protected_volume = true
 metadata/clearance_depth_m = 1.0
 metadata/clearance_rule = "No structural/decorative module may occupy this volume."
 
+<<<<<<< Updated upstream
 [node name="_Node3D_866385" type="Node3D" parent="." unique_id=1383350074]
 transform = Transform3D(0.8480481, 0, 0.52991927, 0, 1, 0, -0.52991927, 0, 0.8480481, 5.5800004, 7.83, 6.115)
 
@@ -1244,6 +1741,15 @@ transform = Transform3D(0.8480481, 0, 0.52991927, 0, 1, 0, -0.52991927, 0, 0.848
 transform = Transform3D(0.8480481, 0, -0.52991927, 0, 1, 0, 0.52991927, 0, 0.8480481, 7.02, 7.83, 6.115)
 
 [node name="_Area3D_866398" type="Area3D" parent="." unique_id=1359343581]
+=======
+[node name="_Node3D_866385" type="Node3D" parent="." unique_id=366710841]
+transform = Transform3D(0.8480481, 0, 0.52991927, 0, 1, 0, -0.52991927, 0, 0.8480481, 5.5800004, 7.83, 6.115)
+
+[node name="_Node3D_866391" type="Node3D" parent="." unique_id=181308276]
+transform = Transform3D(0.8480481, 0, -0.52991927, 0, 1, 0, 0.52991927, 0, 0.8480481, 7.02, 7.83, 6.115)
+
+[node name="_Area3D_866398" type="Area3D" parent="." unique_id=942592975]
+>>>>>>> Stashed changes
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 6.3, 7.83, 6.17)
 collision_layer = 0
 collision_mask = 0
@@ -1253,6 +1759,7 @@ metadata/protected_volume = true
 metadata/clearance_depth_m = 1.0
 metadata/clearance_rule = "No structural/decorative module may occupy this volume."
 
+<<<<<<< Updated upstream
 [node name="_Node3D_866404" type="Node3D" parent="." unique_id=2145954354]
 transform = Transform3D(0.8480481, 0, 0.52991927, 0, 1, 0, -0.52991927, 0, 0.8480481, 8.73, 7.83, 6.115)
 
@@ -1260,6 +1767,15 @@ transform = Transform3D(0.8480481, 0, 0.52991927, 0, 1, 0, -0.52991927, 0, 0.848
 transform = Transform3D(0.8480481, 0, -0.52991927, 0, 1, 0, 0.52991927, 0, 0.8480481, 10.17, 7.83, 6.115)
 
 [node name="_Area3D_866417" type="Area3D" parent="." unique_id=1397301035]
+=======
+[node name="_Node3D_866404" type="Node3D" parent="." unique_id=996519227]
+transform = Transform3D(0.8480481, 0, 0.52991927, 0, 1, 0, -0.52991927, 0, 0.8480481, 8.73, 7.83, 6.115)
+
+[node name="_Node3D_866410" type="Node3D" parent="." unique_id=809848321]
+transform = Transform3D(0.8480481, 0, -0.52991927, 0, 1, 0, 0.52991927, 0, 0.8480481, 10.17, 7.83, 6.115)
+
+[node name="_Area3D_866417" type="Area3D" parent="." unique_id=1475048098]
+>>>>>>> Stashed changes
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 9.45, 7.83, 6.17)
 collision_layer = 0
 collision_mask = 0
@@ -1269,6 +1785,7 @@ metadata/protected_volume = true
 metadata/clearance_depth_m = 1.0
 metadata/clearance_rule = "No structural/decorative module may occupy this volume."
 
+<<<<<<< Updated upstream
 [node name="_Node3D_866422" type="Node3D" parent="." unique_id=718822648]
 transform = Transform3D(0.8660254, 0, -0.5, 0, 1, 0, 0.5, 0, 0.8660254, -14.09, 7.82, -4.884)
 
@@ -1276,6 +1793,15 @@ transform = Transform3D(0.8660254, 0, -0.5, 0, 1, 0, 0.5, 0, 0.8660254, -14.09, 
 transform = Transform3D(0.8660254, 0, 0.5, 0, 1, 0, -0.5, 0, 0.8660254, -14.09, 7.82, -3.5159998)
 
 [node name="_Area3D_866427" type="Area3D" parent="." unique_id=229599412]
+=======
+[node name="_Node3D_866422" type="Node3D" parent="." unique_id=659578260]
+transform = Transform3D(0.8660254, 0, -0.5, 0, 1, 0, 0.5, 0, 0.8660254, -14.09, 7.82, -4.884)
+
+[node name="_Node3D_866424" type="Node3D" parent="." unique_id=1198803555]
+transform = Transform3D(0.8660254, 0, 0.5, 0, 1, 0, -0.5, 0, 0.8660254, -14.09, 7.82, -3.5159998)
+
+[node name="_Area3D_866427" type="Area3D" parent="." unique_id=2058606680]
+>>>>>>> Stashed changes
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -14.17, 7.82, -4.2)
 collision_layer = 0
 collision_mask = 0
@@ -1285,6 +1811,7 @@ metadata/protected_volume = true
 metadata/clearance_depth_m = 1.0
 metadata/clearance_rule = "No structural/decorative module may occupy this volume."
 
+<<<<<<< Updated upstream
 [node name="_Node3D_866432" type="Node3D" parent="." unique_id=852579734]
 transform = Transform3D(0.8660254, 0, 0.5, 0, 1, 0, -0.5, 0, 0.8660254, 14.09, 7.82, -4.884)
 
@@ -1292,6 +1819,15 @@ transform = Transform3D(0.8660254, 0, 0.5, 0, 1, 0, -0.5, 0, 0.8660254, 14.09, 7
 transform = Transform3D(0.8660254, 0, -0.5, 0, 1, 0, 0.5, 0, 0.8660254, 14.09, 7.82, -3.5159998)
 
 [node name="_Area3D_866437" type="Area3D" parent="." unique_id=1634761954]
+=======
+[node name="_Node3D_866432" type="Node3D" parent="." unique_id=139116736]
+transform = Transform3D(0.8660254, 0, 0.5, 0, 1, 0, -0.5, 0, 0.8660254, 14.09, 7.82, -4.884)
+
+[node name="_Node3D_866434" type="Node3D" parent="." unique_id=1669953569]
+transform = Transform3D(0.8660254, 0, -0.5, 0, 1, 0, 0.5, 0, 0.8660254, 14.09, 7.82, -3.5159998)
+
+[node name="_Area3D_866437" type="Area3D" parent="." unique_id=514489273]
+>>>>>>> Stashed changes
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 14.17, 7.82, -4.2)
 collision_layer = 0
 collision_mask = 0
@@ -1301,6 +1837,7 @@ metadata/protected_volume = true
 metadata/clearance_depth_m = 1.0
 metadata/clearance_rule = "No structural/decorative module may occupy this volume."
 
+<<<<<<< Updated upstream
 [node name="_Node3D_866442" type="Node3D" parent="." unique_id=1383920531]
 transform = Transform3D(0.8660254, 0, -0.5, 0, 1, 0, 0.5, 0, 0.8660254, -14.09, 7.82, -0.684)
 
@@ -1308,6 +1845,15 @@ transform = Transform3D(0.8660254, 0, -0.5, 0, 1, 0, 0.5, 0, 0.8660254, -14.09, 
 transform = Transform3D(0.8660254, 0, 0.5, 0, 1, 0, -0.5, 0, 0.8660254, -14.09, 7.82, 0.684)
 
 [node name="_Area3D_866447" type="Area3D" parent="." unique_id=1465694158]
+=======
+[node name="_Node3D_866442" type="Node3D" parent="." unique_id=611734919]
+transform = Transform3D(0.8660254, 0, -0.5, 0, 1, 0, 0.5, 0, 0.8660254, -14.09, 7.82, -0.684)
+
+[node name="_Node3D_866444" type="Node3D" parent="." unique_id=702388898]
+transform = Transform3D(0.8660254, 0, 0.5, 0, 1, 0, -0.5, 0, 0.8660254, -14.09, 7.82, 0.684)
+
+[node name="_Area3D_866447" type="Area3D" parent="." unique_id=1969406312]
+>>>>>>> Stashed changes
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -14.17, 7.82, 0)
 collision_layer = 0
 collision_mask = 0
@@ -1317,6 +1863,7 @@ metadata/protected_volume = true
 metadata/clearance_depth_m = 1.0
 metadata/clearance_rule = "No structural/decorative module may occupy this volume."
 
+<<<<<<< Updated upstream
 [node name="_Node3D_866452" type="Node3D" parent="." unique_id=1204763640]
 transform = Transform3D(0.8660254, 0, 0.5, 0, 1, 0, -0.5, 0, 0.8660254, 14.09, 7.82, -0.684)
 
@@ -1324,6 +1871,15 @@ transform = Transform3D(0.8660254, 0, 0.5, 0, 1, 0, -0.5, 0, 0.8660254, 14.09, 7
 transform = Transform3D(0.8660254, 0, -0.5, 0, 1, 0, 0.5, 0, 0.8660254, 14.09, 7.82, 0.684)
 
 [node name="_Area3D_866457" type="Area3D" parent="." unique_id=1171183642]
+=======
+[node name="_Node3D_866452" type="Node3D" parent="." unique_id=1055693320]
+transform = Transform3D(0.8660254, 0, 0.5, 0, 1, 0, -0.5, 0, 0.8660254, 14.09, 7.82, -0.684)
+
+[node name="_Node3D_866454" type="Node3D" parent="." unique_id=189108998]
+transform = Transform3D(0.8660254, 0, -0.5, 0, 1, 0, 0.5, 0, 0.8660254, 14.09, 7.82, 0.684)
+
+[node name="_Area3D_866457" type="Area3D" parent="." unique_id=572067089]
+>>>>>>> Stashed changes
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 14.17, 7.82, 0)
 collision_layer = 0
 collision_mask = 0
@@ -1333,6 +1889,7 @@ metadata/protected_volume = true
 metadata/clearance_depth_m = 1.0
 metadata/clearance_rule = "No structural/decorative module may occupy this volume."
 
+<<<<<<< Updated upstream
 [node name="_Node3D_866462" type="Node3D" parent="." unique_id=753267774]
 transform = Transform3D(0.8660254, 0, -0.5, 0, 1, 0, 0.5, 0, 0.8660254, -14.09, 7.82, 3.5159998)
 
@@ -1340,6 +1897,15 @@ transform = Transform3D(0.8660254, 0, -0.5, 0, 1, 0, 0.5, 0, 0.8660254, -14.09, 
 transform = Transform3D(0.8660254, 0, 0.5, 0, 1, 0, -0.5, 0, 0.8660254, -14.09, 7.82, 4.884)
 
 [node name="_Area3D_866467" type="Area3D" parent="." unique_id=260641369]
+=======
+[node name="_Node3D_866462" type="Node3D" parent="." unique_id=1587798375]
+transform = Transform3D(0.8660254, 0, -0.5, 0, 1, 0, 0.5, 0, 0.8660254, -14.09, 7.82, 3.5159998)
+
+[node name="_Node3D_866464" type="Node3D" parent="." unique_id=855606605]
+transform = Transform3D(0.8660254, 0, 0.5, 0, 1, 0, -0.5, 0, 0.8660254, -14.09, 7.82, 4.884)
+
+[node name="_Area3D_866467" type="Area3D" parent="." unique_id=1366239010]
+>>>>>>> Stashed changes
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -14.17, 7.82, 4.2)
 collision_layer = 0
 collision_mask = 0
@@ -1349,6 +1915,7 @@ metadata/protected_volume = true
 metadata/clearance_depth_m = 1.0
 metadata/clearance_rule = "No structural/decorative module may occupy this volume."
 
+<<<<<<< Updated upstream
 [node name="_Node3D_866472" type="Node3D" parent="." unique_id=1911254660]
 transform = Transform3D(0.8660254, 0, 0.5, 0, 1, 0, -0.5, 0, 0.8660254, 14.09, 7.82, 3.5159998)
 
@@ -1356,6 +1923,15 @@ transform = Transform3D(0.8660254, 0, 0.5, 0, 1, 0, -0.5, 0, 0.8660254, 14.09, 7
 transform = Transform3D(0.8660254, 0, -0.5, 0, 1, 0, 0.5, 0, 0.8660254, 14.09, 7.82, 4.884)
 
 [node name="_Area3D_866477" type="Area3D" parent="." unique_id=1241791882]
+=======
+[node name="_Node3D_866472" type="Node3D" parent="." unique_id=72309269]
+transform = Transform3D(0.8660254, 0, 0.5, 0, 1, 0, -0.5, 0, 0.8660254, 14.09, 7.82, 3.5159998)
+
+[node name="_Node3D_866474" type="Node3D" parent="." unique_id=311798317]
+transform = Transform3D(0.8660254, 0, -0.5, 0, 1, 0, 0.5, 0, 0.8660254, 14.09, 7.82, 4.884)
+
+[node name="_Area3D_866477" type="Area3D" parent="." unique_id=125708369]
+>>>>>>> Stashed changes
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 14.17, 7.82, 4.2)
 collision_layer = 0
 collision_mask = 0
@@ -1365,6 +1941,7 @@ metadata/protected_volume = true
 metadata/clearance_depth_m = 1.0
 metadata/clearance_rule = "No structural/decorative module may occupy this volume."
 
+<<<<<<< Updated upstream
 [node name="_Node3D_866483" type="Node3D" parent="." unique_id=847542953]
 transform = Transform3D(0.8480481, 0, 0.52991927, 0, 1, 0, -0.52991927, 0, 0.8480481, -11.374001, 11.05, -6.225)
 
@@ -1372,6 +1949,15 @@ transform = Transform3D(0.8480481, 0, 0.52991927, 0, 1, 0, -0.52991927, 0, 0.848
 transform = Transform3D(0.8480481, 0, -0.52991927, 0, 1, 0, 0.52991927, 0, 0.8480481, -9.826, 11.05, -6.225)
 
 [node name="_Area3D_866496" type="Area3D" parent="." unique_id=1696732732]
+=======
+[node name="_Node3D_866483" type="Node3D" parent="." unique_id=1263122453]
+transform = Transform3D(0.8480481, 0, 0.52991927, 0, 1, 0, -0.52991927, 0, 0.8480481, -11.374001, 11.05, -6.225)
+
+[node name="_Node3D_866489" type="Node3D" parent="." unique_id=660638717]
+transform = Transform3D(0.8480481, 0, -0.52991927, 0, 1, 0, 0.52991927, 0, 0.8480481, -9.826, 11.05, -6.225)
+
+[node name="_Area3D_866496" type="Area3D" parent="." unique_id=1138973507]
+>>>>>>> Stashed changes
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -10.6, 11.05, -6.17)
 collision_layer = 0
 collision_mask = 0
@@ -1381,6 +1967,7 @@ metadata/protected_volume = true
 metadata/clearance_depth_m = 1.0
 metadata/clearance_rule = "No structural/decorative module may occupy this volume."
 
+<<<<<<< Updated upstream
 [node name="_Node3D_866502" type="Node3D" parent="." unique_id=1465228745]
 transform = Transform3D(0.8480481, 0, 0.52991927, 0, 1, 0, -0.52991927, 0, 0.8480481, -8.345428, 11.05, -6.225)
 
@@ -1388,6 +1975,15 @@ transform = Transform3D(0.8480481, 0, 0.52991927, 0, 1, 0, -0.52991927, 0, 0.848
 transform = Transform3D(0.8480481, 0, -0.52991927, 0, 1, 0, 0.52991927, 0, 0.8480481, -6.7974286, 11.05, -6.225)
 
 [node name="_Area3D_866515" type="Area3D" parent="." unique_id=378938651]
+=======
+[node name="_Node3D_866502" type="Node3D" parent="." unique_id=1603280450]
+transform = Transform3D(0.8480481, 0, 0.52991927, 0, 1, 0, -0.52991927, 0, 0.8480481, -8.345428, 11.05, -6.225)
+
+[node name="_Node3D_866508" type="Node3D" parent="." unique_id=1250551883]
+transform = Transform3D(0.8480481, 0, -0.52991927, 0, 1, 0, 0.52991927, 0, 0.8480481, -6.7974286, 11.05, -6.225)
+
+[node name="_Area3D_866515" type="Area3D" parent="." unique_id=1976522032]
+>>>>>>> Stashed changes
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -7.571429, 11.05, -6.17)
 collision_layer = 0
 collision_mask = 0
@@ -1397,6 +1993,7 @@ metadata/protected_volume = true
 metadata/clearance_depth_m = 1.0
 metadata/clearance_rule = "No structural/decorative module may occupy this volume."
 
+<<<<<<< Updated upstream
 [node name="_Node3D_866521" type="Node3D" parent="." unique_id=788059849]
 transform = Transform3D(0.8480481, 0, 0.52991927, 0, 1, 0, -0.52991927, 0, 0.8480481, -5.3168573, 11.05, -6.225)
 
@@ -1404,6 +2001,15 @@ transform = Transform3D(0.8480481, 0, 0.52991927, 0, 1, 0, -0.52991927, 0, 0.848
 transform = Transform3D(0.8480481, 0, -0.52991927, 0, 1, 0, 0.52991927, 0, 0.8480481, -3.7688572, 11.05, -6.225)
 
 [node name="_Area3D_866534" type="Area3D" parent="." unique_id=817416220]
+=======
+[node name="_Node3D_866521" type="Node3D" parent="." unique_id=1590402445]
+transform = Transform3D(0.8480481, 0, 0.52991927, 0, 1, 0, -0.52991927, 0, 0.8480481, -5.3168573, 11.05, -6.225)
+
+[node name="_Node3D_866527" type="Node3D" parent="." unique_id=472747831]
+transform = Transform3D(0.8480481, 0, -0.52991927, 0, 1, 0, 0.52991927, 0, 0.8480481, -3.7688572, 11.05, -6.225)
+
+[node name="_Area3D_866534" type="Area3D" parent="." unique_id=1041747289]
+>>>>>>> Stashed changes
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -4.542857, 11.05, -6.17)
 collision_layer = 0
 collision_mask = 0
@@ -1413,6 +2019,7 @@ metadata/protected_volume = true
 metadata/clearance_depth_m = 1.0
 metadata/clearance_rule = "No structural/decorative module may occupy this volume."
 
+<<<<<<< Updated upstream
 [node name="_Node3D_866540" type="Node3D" parent="." unique_id=1552222697]
 transform = Transform3D(0.8480481, 0, 0.52991927, 0, 1, 0, -0.52991927, 0, 0.8480481, -2.2882857, 11.05, -6.225)
 
@@ -1420,6 +2027,15 @@ transform = Transform3D(0.8480481, 0, 0.52991927, 0, 1, 0, -0.52991927, 0, 0.848
 transform = Transform3D(0.8480481, 0, -0.52991927, 0, 1, 0, 0.52991927, 0, 0.8480481, -0.7402857, 11.05, -6.225)
 
 [node name="_Area3D_866553" type="Area3D" parent="." unique_id=1942875854]
+=======
+[node name="_Node3D_866540" type="Node3D" parent="." unique_id=1458074252]
+transform = Transform3D(0.8480481, 0, 0.52991927, 0, 1, 0, -0.52991927, 0, 0.8480481, -2.2882857, 11.05, -6.225)
+
+[node name="_Node3D_866546" type="Node3D" parent="." unique_id=985800998]
+transform = Transform3D(0.8480481, 0, -0.52991927, 0, 1, 0, 0.52991927, 0, 0.8480481, -0.7402857, 11.05, -6.225)
+
+[node name="_Area3D_866553" type="Area3D" parent="." unique_id=1311678208]
+>>>>>>> Stashed changes
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -1.5142857, 11.05, -6.17)
 collision_layer = 0
 collision_mask = 0
@@ -1429,6 +2045,7 @@ metadata/protected_volume = true
 metadata/clearance_depth_m = 1.0
 metadata/clearance_rule = "No structural/decorative module may occupy this volume."
 
+<<<<<<< Updated upstream
 [node name="_Node3D_866559" type="Node3D" parent="." unique_id=362265807]
 transform = Transform3D(0.8480481, 0, 0.52991927, 0, 1, 0, -0.52991927, 0, 0.8480481, 0.7402857, 11.05, -6.225)
 
@@ -1436,6 +2053,15 @@ transform = Transform3D(0.8480481, 0, 0.52991927, 0, 1, 0, -0.52991927, 0, 0.848
 transform = Transform3D(0.8480481, 0, -0.52991927, 0, 1, 0, 0.52991927, 0, 0.8480481, 2.2882857, 11.05, -6.225)
 
 [node name="_Area3D_866572" type="Area3D" parent="." unique_id=1106007185]
+=======
+[node name="_Node3D_866559" type="Node3D" parent="." unique_id=333500671]
+transform = Transform3D(0.8480481, 0, 0.52991927, 0, 1, 0, -0.52991927, 0, 0.8480481, 0.7402857, 11.05, -6.225)
+
+[node name="_Node3D_866565" type="Node3D" parent="." unique_id=2070858935]
+transform = Transform3D(0.8480481, 0, -0.52991927, 0, 1, 0, 0.52991927, 0, 0.8480481, 2.2882857, 11.05, -6.225)
+
+[node name="_Area3D_866572" type="Area3D" parent="." unique_id=434588613]
+>>>>>>> Stashed changes
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 1.5142857, 11.05, -6.17)
 collision_layer = 0
 collision_mask = 0
@@ -1445,6 +2071,7 @@ metadata/protected_volume = true
 metadata/clearance_depth_m = 1.0
 metadata/clearance_rule = "No structural/decorative module may occupy this volume."
 
+<<<<<<< Updated upstream
 [node name="_Node3D_866578" type="Node3D" parent="." unique_id=918433785]
 transform = Transform3D(0.8480481, 0, 0.52991927, 0, 1, 0, -0.52991927, 0, 0.8480481, 3.7688572, 11.05, -6.225)
 
@@ -1452,6 +2079,15 @@ transform = Transform3D(0.8480481, 0, 0.52991927, 0, 1, 0, -0.52991927, 0, 0.848
 transform = Transform3D(0.8480481, 0, -0.52991927, 0, 1, 0, 0.52991927, 0, 0.8480481, 5.3168573, 11.05, -6.225)
 
 [node name="_Area3D_866591" type="Area3D" parent="." unique_id=1184535621]
+=======
+[node name="_Node3D_866578" type="Node3D" parent="." unique_id=2093997594]
+transform = Transform3D(0.8480481, 0, 0.52991927, 0, 1, 0, -0.52991927, 0, 0.8480481, 3.7688572, 11.05, -6.225)
+
+[node name="_Node3D_866584" type="Node3D" parent="." unique_id=1572313096]
+transform = Transform3D(0.8480481, 0, -0.52991927, 0, 1, 0, 0.52991927, 0, 0.8480481, 5.3168573, 11.05, -6.225)
+
+[node name="_Area3D_866591" type="Area3D" parent="." unique_id=840143297]
+>>>>>>> Stashed changes
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 4.542857, 11.05, -6.17)
 collision_layer = 0
 collision_mask = 0
@@ -1461,6 +2097,7 @@ metadata/protected_volume = true
 metadata/clearance_depth_m = 1.0
 metadata/clearance_rule = "No structural/decorative module may occupy this volume."
 
+<<<<<<< Updated upstream
 [node name="_Node3D_866597" type="Node3D" parent="." unique_id=1207359451]
 transform = Transform3D(0.8480481, 0, 0.52991927, 0, 1, 0, -0.52991927, 0, 0.8480481, 6.7974286, 11.05, -6.225)
 
@@ -1468,6 +2105,15 @@ transform = Transform3D(0.8480481, 0, 0.52991927, 0, 1, 0, -0.52991927, 0, 0.848
 transform = Transform3D(0.8480481, 0, -0.52991927, 0, 1, 0, 0.52991927, 0, 0.8480481, 8.345428, 11.05, -6.225)
 
 [node name="_Area3D_866610" type="Area3D" parent="." unique_id=1099040043]
+=======
+[node name="_Node3D_866597" type="Node3D" parent="." unique_id=1443979933]
+transform = Transform3D(0.8480481, 0, 0.52991927, 0, 1, 0, -0.52991927, 0, 0.8480481, 6.7974286, 11.05, -6.225)
+
+[node name="_Node3D_866603" type="Node3D" parent="." unique_id=1331966964]
+transform = Transform3D(0.8480481, 0, -0.52991927, 0, 1, 0, 0.52991927, 0, 0.8480481, 8.345428, 11.05, -6.225)
+
+[node name="_Area3D_866610" type="Area3D" parent="." unique_id=2130965662]
+>>>>>>> Stashed changes
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 7.571429, 11.05, -6.17)
 collision_layer = 0
 collision_mask = 0
@@ -1477,6 +2123,7 @@ metadata/protected_volume = true
 metadata/clearance_depth_m = 1.0
 metadata/clearance_rule = "No structural/decorative module may occupy this volume."
 
+<<<<<<< Updated upstream
 [node name="_Node3D_866616" type="Node3D" parent="." unique_id=196595092]
 transform = Transform3D(0.8480481, 0, 0.52991927, 0, 1, 0, -0.52991927, 0, 0.8480481, 9.826, 11.05, -6.225)
 
@@ -1484,6 +2131,15 @@ transform = Transform3D(0.8480481, 0, 0.52991927, 0, 1, 0, -0.52991927, 0, 0.848
 transform = Transform3D(0.8480481, 0, -0.52991927, 0, 1, 0, 0.52991927, 0, 0.8480481, 11.374001, 11.05, -6.225)
 
 [node name="_Area3D_866629" type="Area3D" parent="." unique_id=1002081656]
+=======
+[node name="_Node3D_866616" type="Node3D" parent="." unique_id=1586860876]
+transform = Transform3D(0.8480481, 0, 0.52991927, 0, 1, 0, -0.52991927, 0, 0.8480481, 9.826, 11.05, -6.225)
+
+[node name="_Node3D_866622" type="Node3D" parent="." unique_id=548610165]
+transform = Transform3D(0.8480481, 0, -0.52991927, 0, 1, 0, 0.52991927, 0, 0.8480481, 11.374001, 11.05, -6.225)
+
+[node name="_Area3D_866629" type="Area3D" parent="." unique_id=1300563035]
+>>>>>>> Stashed changes
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 10.6, 11.05, -6.17)
 collision_layer = 0
 collision_mask = 0
@@ -1493,6 +2149,7 @@ metadata/protected_volume = true
 metadata/clearance_depth_m = 1.0
 metadata/clearance_rule = "No structural/decorative module may occupy this volume."
 
+<<<<<<< Updated upstream
 [node name="_Node3D_866635" type="Node3D" parent="." unique_id=1428456044]
 transform = Transform3D(0.8480481, 0, 0.52991927, 0, 1, 0, -0.52991927, 0, 0.8480481, -10.17, 11.03, 6.115)
 
@@ -1500,6 +2157,15 @@ transform = Transform3D(0.8480481, 0, 0.52991927, 0, 1, 0, -0.52991927, 0, 0.848
 transform = Transform3D(0.8480481, 0, -0.52991927, 0, 1, 0, 0.52991927, 0, 0.8480481, -8.73, 11.03, 6.115)
 
 [node name="_Area3D_866648" type="Area3D" parent="." unique_id=836342090]
+=======
+[node name="_Node3D_866635" type="Node3D" parent="." unique_id=1582340622]
+transform = Transform3D(0.8480481, 0, 0.52991927, 0, 1, 0, -0.52991927, 0, 0.8480481, -10.17, 11.03, 6.115)
+
+[node name="_Node3D_866641" type="Node3D" parent="." unique_id=777630558]
+transform = Transform3D(0.8480481, 0, -0.52991927, 0, 1, 0, 0.52991927, 0, 0.8480481, -8.73, 11.03, 6.115)
+
+[node name="_Area3D_866648" type="Area3D" parent="." unique_id=1449717252]
+>>>>>>> Stashed changes
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -9.45, 11.03, 6.17)
 collision_layer = 0
 collision_mask = 0
@@ -1509,6 +2175,7 @@ metadata/protected_volume = true
 metadata/clearance_depth_m = 1.0
 metadata/clearance_rule = "No structural/decorative module may occupy this volume."
 
+<<<<<<< Updated upstream
 [node name="_Node3D_866654" type="Node3D" parent="." unique_id=1473623579]
 transform = Transform3D(0.8480481, 0, 0.52991927, 0, 1, 0, -0.52991927, 0, 0.8480481, -7.02, 11.03, 6.115)
 
@@ -1516,6 +2183,15 @@ transform = Transform3D(0.8480481, 0, 0.52991927, 0, 1, 0, -0.52991927, 0, 0.848
 transform = Transform3D(0.8480481, 0, -0.52991927, 0, 1, 0, 0.52991927, 0, 0.8480481, -5.5800004, 11.03, 6.115)
 
 [node name="_Area3D_866667" type="Area3D" parent="." unique_id=1749127376]
+=======
+[node name="_Node3D_866654" type="Node3D" parent="." unique_id=1094160574]
+transform = Transform3D(0.8480481, 0, 0.52991927, 0, 1, 0, -0.52991927, 0, 0.8480481, -7.02, 11.03, 6.115)
+
+[node name="_Node3D_866660" type="Node3D" parent="." unique_id=793015264]
+transform = Transform3D(0.8480481, 0, -0.52991927, 0, 1, 0, 0.52991927, 0, 0.8480481, -5.5800004, 11.03, 6.115)
+
+[node name="_Area3D_866667" type="Area3D" parent="." unique_id=976929844]
+>>>>>>> Stashed changes
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -6.3, 11.03, 6.17)
 collision_layer = 0
 collision_mask = 0
@@ -1525,6 +2201,7 @@ metadata/protected_volume = true
 metadata/clearance_depth_m = 1.0
 metadata/clearance_rule = "No structural/decorative module may occupy this volume."
 
+<<<<<<< Updated upstream
 [node name="_Node3D_866673" type="Node3D" parent="." unique_id=1606112589]
 transform = Transform3D(0.8480481, 0, 0.52991927, 0, 1, 0, -0.52991927, 0, 0.8480481, -3.8700001, 11.03, 6.115)
 
@@ -1532,6 +2209,15 @@ transform = Transform3D(0.8480481, 0, 0.52991927, 0, 1, 0, -0.52991927, 0, 0.848
 transform = Transform3D(0.8480481, 0, -0.52991927, 0, 1, 0, 0.52991927, 0, 0.8480481, -2.43, 11.03, 6.115)
 
 [node name="_Area3D_866686" type="Area3D" parent="." unique_id=51820399]
+=======
+[node name="_Node3D_866673" type="Node3D" parent="." unique_id=351242559]
+transform = Transform3D(0.8480481, 0, 0.52991927, 0, 1, 0, -0.52991927, 0, 0.8480481, -3.8700001, 11.03, 6.115)
+
+[node name="_Node3D_866679" type="Node3D" parent="." unique_id=1512200685]
+transform = Transform3D(0.8480481, 0, -0.52991927, 0, 1, 0, 0.52991927, 0, 0.8480481, -2.43, 11.03, 6.115)
+
+[node name="_Area3D_866686" type="Area3D" parent="." unique_id=833346761]
+>>>>>>> Stashed changes
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -3.15, 11.03, 6.17)
 collision_layer = 0
 collision_mask = 0
@@ -1541,6 +2227,7 @@ metadata/protected_volume = true
 metadata/clearance_depth_m = 1.0
 metadata/clearance_rule = "No structural/decorative module may occupy this volume."
 
+<<<<<<< Updated upstream
 [node name="_Node3D_866692" type="Node3D" parent="." unique_id=1138749415]
 transform = Transform3D(0.8480481, 0, 0.52991927, 0, 1, 0, -0.52991927, 0, 0.8480481, -0.72, 11.03, 6.115)
 
@@ -1548,6 +2235,15 @@ transform = Transform3D(0.8480481, 0, 0.52991927, 0, 1, 0, -0.52991927, 0, 0.848
 transform = Transform3D(0.8480481, 0, -0.52991927, 0, 1, 0, 0.52991927, 0, 0.8480481, 0.72, 11.03, 6.115)
 
 [node name="_Area3D_866705" type="Area3D" parent="." unique_id=101153855]
+=======
+[node name="_Node3D_866692" type="Node3D" parent="." unique_id=713381925]
+transform = Transform3D(0.8480481, 0, 0.52991927, 0, 1, 0, -0.52991927, 0, 0.8480481, -0.72, 11.03, 6.115)
+
+[node name="_Node3D_866698" type="Node3D" parent="." unique_id=189037752]
+transform = Transform3D(0.8480481, 0, -0.52991927, 0, 1, 0, 0.52991927, 0, 0.8480481, 0.72, 11.03, 6.115)
+
+[node name="_Area3D_866705" type="Area3D" parent="." unique_id=1221242260]
+>>>>>>> Stashed changes
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 11.03, 6.17)
 collision_layer = 0
 collision_mask = 0
@@ -1557,6 +2253,7 @@ metadata/protected_volume = true
 metadata/clearance_depth_m = 1.0
 metadata/clearance_rule = "No structural/decorative module may occupy this volume."
 
+<<<<<<< Updated upstream
 [node name="_Node3D_866711" type="Node3D" parent="." unique_id=67515795]
 transform = Transform3D(0.8480481, 0, 0.52991927, 0, 1, 0, -0.52991927, 0, 0.8480481, 2.43, 11.03, 6.115)
 
@@ -1564,6 +2261,15 @@ transform = Transform3D(0.8480481, 0, 0.52991927, 0, 1, 0, -0.52991927, 0, 0.848
 transform = Transform3D(0.8480481, 0, -0.52991927, 0, 1, 0, 0.52991927, 0, 0.8480481, 3.8700001, 11.03, 6.115)
 
 [node name="_Area3D_866724" type="Area3D" parent="." unique_id=1380553237]
+=======
+[node name="_Node3D_866711" type="Node3D" parent="." unique_id=959722746]
+transform = Transform3D(0.8480481, 0, 0.52991927, 0, 1, 0, -0.52991927, 0, 0.8480481, 2.43, 11.03, 6.115)
+
+[node name="_Node3D_866717" type="Node3D" parent="." unique_id=1654113510]
+transform = Transform3D(0.8480481, 0, -0.52991927, 0, 1, 0, 0.52991927, 0, 0.8480481, 3.8700001, 11.03, 6.115)
+
+[node name="_Area3D_866724" type="Area3D" parent="." unique_id=1326752876]
+>>>>>>> Stashed changes
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 3.15, 11.03, 6.17)
 collision_layer = 0
 collision_mask = 0
@@ -1573,6 +2279,7 @@ metadata/protected_volume = true
 metadata/clearance_depth_m = 1.0
 metadata/clearance_rule = "No structural/decorative module may occupy this volume."
 
+<<<<<<< Updated upstream
 [node name="_Node3D_866730" type="Node3D" parent="." unique_id=695086828]
 transform = Transform3D(0.8480481, 0, 0.52991927, 0, 1, 0, -0.52991927, 0, 0.8480481, 5.5800004, 11.03, 6.115)
 
@@ -1580,6 +2287,15 @@ transform = Transform3D(0.8480481, 0, 0.52991927, 0, 1, 0, -0.52991927, 0, 0.848
 transform = Transform3D(0.8480481, 0, -0.52991927, 0, 1, 0, 0.52991927, 0, 0.8480481, 7.02, 11.03, 6.115)
 
 [node name="_Area3D_866743" type="Area3D" parent="." unique_id=1064327045]
+=======
+[node name="_Node3D_866730" type="Node3D" parent="." unique_id=660197505]
+transform = Transform3D(0.8480481, 0, 0.52991927, 0, 1, 0, -0.52991927, 0, 0.8480481, 5.5800004, 11.03, 6.115)
+
+[node name="_Node3D_866736" type="Node3D" parent="." unique_id=1514652086]
+transform = Transform3D(0.8480481, 0, -0.52991927, 0, 1, 0, 0.52991927, 0, 0.8480481, 7.02, 11.03, 6.115)
+
+[node name="_Area3D_866743" type="Area3D" parent="." unique_id=189536575]
+>>>>>>> Stashed changes
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 6.3, 11.03, 6.17)
 collision_layer = 0
 collision_mask = 0
@@ -1589,6 +2305,7 @@ metadata/protected_volume = true
 metadata/clearance_depth_m = 1.0
 metadata/clearance_rule = "No structural/decorative module may occupy this volume."
 
+<<<<<<< Updated upstream
 [node name="_Node3D_866749" type="Node3D" parent="." unique_id=527387659]
 transform = Transform3D(0.8480481, 0, 0.52991927, 0, 1, 0, -0.52991927, 0, 0.8480481, 8.73, 11.03, 6.115)
 
@@ -1596,6 +2313,15 @@ transform = Transform3D(0.8480481, 0, 0.52991927, 0, 1, 0, -0.52991927, 0, 0.848
 transform = Transform3D(0.8480481, 0, -0.52991927, 0, 1, 0, 0.52991927, 0, 0.8480481, 10.17, 11.03, 6.115)
 
 [node name="_Area3D_866762" type="Area3D" parent="." unique_id=1054485889]
+=======
+[node name="_Node3D_866749" type="Node3D" parent="." unique_id=563539688]
+transform = Transform3D(0.8480481, 0, 0.52991927, 0, 1, 0, -0.52991927, 0, 0.8480481, 8.73, 11.03, 6.115)
+
+[node name="_Node3D_866755" type="Node3D" parent="." unique_id=1563981721]
+transform = Transform3D(0.8480481, 0, -0.52991927, 0, 1, 0, 0.52991927, 0, 0.8480481, 10.17, 11.03, 6.115)
+
+[node name="_Area3D_866762" type="Area3D" parent="." unique_id=1631768916]
+>>>>>>> Stashed changes
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 9.45, 11.03, 6.17)
 collision_layer = 0
 collision_mask = 0
@@ -1605,6 +2331,7 @@ metadata/protected_volume = true
 metadata/clearance_depth_m = 1.0
 metadata/clearance_rule = "No structural/decorative module may occupy this volume."
 
+<<<<<<< Updated upstream
 [node name="_Node3D_866767" type="Node3D" parent="." unique_id=227281693]
 transform = Transform3D(0.8660254, 0, -0.5, 0, 1, 0, 0.5, 0, 0.8660254, -14.09, 11.02, -4.884)
 
@@ -1612,6 +2339,15 @@ transform = Transform3D(0.8660254, 0, -0.5, 0, 1, 0, 0.5, 0, 0.8660254, -14.09, 
 transform = Transform3D(0.8660254, 0, 0.5, 0, 1, 0, -0.5, 0, 0.8660254, -14.09, 11.02, -3.5159998)
 
 [node name="_Area3D_866772" type="Area3D" parent="." unique_id=1942381960]
+=======
+[node name="_Node3D_866767" type="Node3D" parent="." unique_id=1904329678]
+transform = Transform3D(0.8660254, 0, -0.5, 0, 1, 0, 0.5, 0, 0.8660254, -14.09, 11.02, -4.884)
+
+[node name="_Node3D_866769" type="Node3D" parent="." unique_id=557564576]
+transform = Transform3D(0.8660254, 0, 0.5, 0, 1, 0, -0.5, 0, 0.8660254, -14.09, 11.02, -3.5159998)
+
+[node name="_Area3D_866772" type="Area3D" parent="." unique_id=1634397336]
+>>>>>>> Stashed changes
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -14.17, 11.02, -4.2)
 collision_layer = 0
 collision_mask = 0
@@ -1621,6 +2357,7 @@ metadata/protected_volume = true
 metadata/clearance_depth_m = 1.0
 metadata/clearance_rule = "No structural/decorative module may occupy this volume."
 
+<<<<<<< Updated upstream
 [node name="_Node3D_866777" type="Node3D" parent="." unique_id=1290726854]
 transform = Transform3D(0.8660254, 0, 0.5, 0, 1, 0, -0.5, 0, 0.8660254, 14.09, 11.02, -4.884)
 
@@ -1628,6 +2365,15 @@ transform = Transform3D(0.8660254, 0, 0.5, 0, 1, 0, -0.5, 0, 0.8660254, 14.09, 1
 transform = Transform3D(0.8660254, 0, -0.5, 0, 1, 0, 0.5, 0, 0.8660254, 14.09, 11.02, -3.5159998)
 
 [node name="_Area3D_866782" type="Area3D" parent="." unique_id=393097968]
+=======
+[node name="_Node3D_866777" type="Node3D" parent="." unique_id=926411593]
+transform = Transform3D(0.8660254, 0, 0.5, 0, 1, 0, -0.5, 0, 0.8660254, 14.09, 11.02, -4.884)
+
+[node name="_Node3D_866779" type="Node3D" parent="." unique_id=221236613]
+transform = Transform3D(0.8660254, 0, -0.5, 0, 1, 0, 0.5, 0, 0.8660254, 14.09, 11.02, -3.5159998)
+
+[node name="_Area3D_866782" type="Area3D" parent="." unique_id=963637162]
+>>>>>>> Stashed changes
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 14.17, 11.02, -4.2)
 collision_layer = 0
 collision_mask = 0
@@ -1637,6 +2383,7 @@ metadata/protected_volume = true
 metadata/clearance_depth_m = 1.0
 metadata/clearance_rule = "No structural/decorative module may occupy this volume."
 
+<<<<<<< Updated upstream
 [node name="_Node3D_866787" type="Node3D" parent="." unique_id=1577856656]
 transform = Transform3D(0.8660254, 0, -0.5, 0, 1, 0, 0.5, 0, 0.8660254, -14.09, 11.02, -0.684)
 
@@ -1644,6 +2391,15 @@ transform = Transform3D(0.8660254, 0, -0.5, 0, 1, 0, 0.5, 0, 0.8660254, -14.09, 
 transform = Transform3D(0.8660254, 0, 0.5, 0, 1, 0, -0.5, 0, 0.8660254, -14.09, 11.02, 0.684)
 
 [node name="_Area3D_866792" type="Area3D" parent="." unique_id=1437827470]
+=======
+[node name="_Node3D_866787" type="Node3D" parent="." unique_id=2085343954]
+transform = Transform3D(0.8660254, 0, -0.5, 0, 1, 0, 0.5, 0, 0.8660254, -14.09, 11.02, -0.684)
+
+[node name="_Node3D_866789" type="Node3D" parent="." unique_id=395580044]
+transform = Transform3D(0.8660254, 0, 0.5, 0, 1, 0, -0.5, 0, 0.8660254, -14.09, 11.02, 0.684)
+
+[node name="_Area3D_866792" type="Area3D" parent="." unique_id=890923245]
+>>>>>>> Stashed changes
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -14.17, 11.02, 0)
 collision_layer = 0
 collision_mask = 0
@@ -1653,6 +2409,7 @@ metadata/protected_volume = true
 metadata/clearance_depth_m = 1.0
 metadata/clearance_rule = "No structural/decorative module may occupy this volume."
 
+<<<<<<< Updated upstream
 [node name="_Node3D_866797" type="Node3D" parent="." unique_id=691705131]
 transform = Transform3D(0.8660254, 0, 0.5, 0, 1, 0, -0.5, 0, 0.8660254, 14.09, 11.02, -0.684)
 
@@ -1660,6 +2417,15 @@ transform = Transform3D(0.8660254, 0, 0.5, 0, 1, 0, -0.5, 0, 0.8660254, 14.09, 1
 transform = Transform3D(0.8660254, 0, -0.5, 0, 1, 0, 0.5, 0, 0.8660254, 14.09, 11.02, 0.684)
 
 [node name="_Area3D_866802" type="Area3D" parent="." unique_id=51767936]
+=======
+[node name="_Node3D_866797" type="Node3D" parent="." unique_id=1129395229]
+transform = Transform3D(0.8660254, 0, 0.5, 0, 1, 0, -0.5, 0, 0.8660254, 14.09, 11.02, -0.684)
+
+[node name="_Node3D_866799" type="Node3D" parent="." unique_id=2058070980]
+transform = Transform3D(0.8660254, 0, -0.5, 0, 1, 0, 0.5, 0, 0.8660254, 14.09, 11.02, 0.684)
+
+[node name="_Area3D_866802" type="Area3D" parent="." unique_id=457536458]
+>>>>>>> Stashed changes
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 14.17, 11.02, 0)
 collision_layer = 0
 collision_mask = 0
@@ -1669,6 +2435,7 @@ metadata/protected_volume = true
 metadata/clearance_depth_m = 1.0
 metadata/clearance_rule = "No structural/decorative module may occupy this volume."
 
+<<<<<<< Updated upstream
 [node name="_Node3D_866807" type="Node3D" parent="." unique_id=1227073581]
 transform = Transform3D(0.8660254, 0, -0.5, 0, 1, 0, 0.5, 0, 0.8660254, -14.09, 11.02, 3.5159998)
 
@@ -1676,6 +2443,15 @@ transform = Transform3D(0.8660254, 0, -0.5, 0, 1, 0, 0.5, 0, 0.8660254, -14.09, 
 transform = Transform3D(0.8660254, 0, 0.5, 0, 1, 0, -0.5, 0, 0.8660254, -14.09, 11.02, 4.884)
 
 [node name="_Area3D_866812" type="Area3D" parent="." unique_id=1540790757]
+=======
+[node name="_Node3D_866807" type="Node3D" parent="." unique_id=616776242]
+transform = Transform3D(0.8660254, 0, -0.5, 0, 1, 0, 0.5, 0, 0.8660254, -14.09, 11.02, 3.5159998)
+
+[node name="_Node3D_866809" type="Node3D" parent="." unique_id=864751731]
+transform = Transform3D(0.8660254, 0, 0.5, 0, 1, 0, -0.5, 0, 0.8660254, -14.09, 11.02, 4.884)
+
+[node name="_Area3D_866812" type="Area3D" parent="." unique_id=1271194023]
+>>>>>>> Stashed changes
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -14.17, 11.02, 4.2)
 collision_layer = 0
 collision_mask = 0
@@ -1685,6 +2461,7 @@ metadata/protected_volume = true
 metadata/clearance_depth_m = 1.0
 metadata/clearance_rule = "No structural/decorative module may occupy this volume."
 
+<<<<<<< Updated upstream
 [node name="_Node3D_866817" type="Node3D" parent="." unique_id=472018487]
 transform = Transform3D(0.8660254, 0, 0.5, 0, 1, 0, -0.5, 0, 0.8660254, 14.09, 11.02, 3.5159998)
 
@@ -1692,6 +2469,15 @@ transform = Transform3D(0.8660254, 0, 0.5, 0, 1, 0, -0.5, 0, 0.8660254, 14.09, 1
 transform = Transform3D(0.8660254, 0, -0.5, 0, 1, 0, 0.5, 0, 0.8660254, 14.09, 11.02, 4.884)
 
 [node name="_Area3D_866822" type="Area3D" parent="." unique_id=2147300495]
+=======
+[node name="_Node3D_866817" type="Node3D" parent="." unique_id=1098329788]
+transform = Transform3D(0.8660254, 0, 0.5, 0, 1, 0, -0.5, 0, 0.8660254, 14.09, 11.02, 3.5159998)
+
+[node name="_Node3D_866819" type="Node3D" parent="." unique_id=517623240]
+transform = Transform3D(0.8660254, 0, -0.5, 0, 1, 0, 0.5, 0, 0.8660254, 14.09, 11.02, 4.884)
+
+[node name="_Area3D_866822" type="Area3D" parent="." unique_id=1247678850]
+>>>>>>> Stashed changes
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 14.17, 11.02, 4.2)
 collision_layer = 0
 collision_mask = 0
@@ -1701,6 +2487,7 @@ metadata/protected_volume = true
 metadata/clearance_depth_m = 1.0
 metadata/clearance_rule = "No structural/decorative module may occupy this volume."
 
+<<<<<<< Updated upstream
 [node name="_Node3D_866828" type="Node3D" parent="." unique_id=496360666]
 transform = Transform3D(0.8480481, 0, 0.52991927, 0, 1, 0, -0.52991927, 0, 0.8480481, -11.374001, 14.25, -6.225)
 
@@ -1708,6 +2495,15 @@ transform = Transform3D(0.8480481, 0, 0.52991927, 0, 1, 0, -0.52991927, 0, 0.848
 transform = Transform3D(0.8480481, 0, -0.52991927, 0, 1, 0, 0.52991927, 0, 0.8480481, -9.826, 14.25, -6.225)
 
 [node name="_Area3D_866841" type="Area3D" parent="." unique_id=632997467]
+=======
+[node name="_Node3D_866828" type="Node3D" parent="." unique_id=1811726956]
+transform = Transform3D(0.8480481, 0, 0.52991927, 0, 1, 0, -0.52991927, 0, 0.8480481, -11.374001, 14.25, -6.225)
+
+[node name="_Node3D_866834" type="Node3D" parent="." unique_id=1560903603]
+transform = Transform3D(0.8480481, 0, -0.52991927, 0, 1, 0, 0.52991927, 0, 0.8480481, -9.826, 14.25, -6.225)
+
+[node name="_Area3D_866841" type="Area3D" parent="." unique_id=2075509870]
+>>>>>>> Stashed changes
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -10.6, 14.25, -6.17)
 collision_layer = 0
 collision_mask = 0
@@ -1717,6 +2513,7 @@ metadata/protected_volume = true
 metadata/clearance_depth_m = 1.0
 metadata/clearance_rule = "No structural/decorative module may occupy this volume."
 
+<<<<<<< Updated upstream
 [node name="_Node3D_866847" type="Node3D" parent="." unique_id=1892037887]
 transform = Transform3D(0.8480481, 0, 0.52991927, 0, 1, 0, -0.52991927, 0, 0.8480481, -8.345428, 14.25, -6.225)
 
@@ -1724,6 +2521,15 @@ transform = Transform3D(0.8480481, 0, 0.52991927, 0, 1, 0, -0.52991927, 0, 0.848
 transform = Transform3D(0.8480481, 0, -0.52991927, 0, 1, 0, 0.52991927, 0, 0.8480481, -6.7974286, 14.25, -6.225)
 
 [node name="_Area3D_866860" type="Area3D" parent="." unique_id=1532564054]
+=======
+[node name="_Node3D_866847" type="Node3D" parent="." unique_id=174501772]
+transform = Transform3D(0.8480481, 0, 0.52991927, 0, 1, 0, -0.52991927, 0, 0.8480481, -8.345428, 14.25, -6.225)
+
+[node name="_Node3D_866853" type="Node3D" parent="." unique_id=1959949152]
+transform = Transform3D(0.8480481, 0, -0.52991927, 0, 1, 0, 0.52991927, 0, 0.8480481, -6.7974286, 14.25, -6.225)
+
+[node name="_Area3D_866860" type="Area3D" parent="." unique_id=1932236648]
+>>>>>>> Stashed changes
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -7.571429, 14.25, -6.17)
 collision_layer = 0
 collision_mask = 0
@@ -1733,6 +2539,7 @@ metadata/protected_volume = true
 metadata/clearance_depth_m = 1.0
 metadata/clearance_rule = "No structural/decorative module may occupy this volume."
 
+<<<<<<< Updated upstream
 [node name="_Node3D_866866" type="Node3D" parent="." unique_id=1697117533]
 transform = Transform3D(0.8480481, 0, 0.52991927, 0, 1, 0, -0.52991927, 0, 0.8480481, -5.3168573, 14.25, -6.225)
 
@@ -1740,6 +2547,15 @@ transform = Transform3D(0.8480481, 0, 0.52991927, 0, 1, 0, -0.52991927, 0, 0.848
 transform = Transform3D(0.8480481, 0, -0.52991927, 0, 1, 0, 0.52991927, 0, 0.8480481, -3.7688572, 14.25, -6.225)
 
 [node name="_Area3D_866879" type="Area3D" parent="." unique_id=914852651]
+=======
+[node name="_Node3D_866866" type="Node3D" parent="." unique_id=2125549811]
+transform = Transform3D(0.8480481, 0, 0.52991927, 0, 1, 0, -0.52991927, 0, 0.8480481, -5.3168573, 14.25, -6.225)
+
+[node name="_Node3D_866872" type="Node3D" parent="." unique_id=1673924025]
+transform = Transform3D(0.8480481, 0, -0.52991927, 0, 1, 0, 0.52991927, 0, 0.8480481, -3.7688572, 14.25, -6.225)
+
+[node name="_Area3D_866879" type="Area3D" parent="." unique_id=1163121069]
+>>>>>>> Stashed changes
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -4.542857, 14.25, -6.17)
 collision_layer = 0
 collision_mask = 0
@@ -1749,6 +2565,7 @@ metadata/protected_volume = true
 metadata/clearance_depth_m = 1.0
 metadata/clearance_rule = "No structural/decorative module may occupy this volume."
 
+<<<<<<< Updated upstream
 [node name="_Node3D_866885" type="Node3D" parent="." unique_id=1550249381]
 transform = Transform3D(0.8480481, 0, 0.52991927, 0, 1, 0, -0.52991927, 0, 0.8480481, -2.2882857, 14.25, -6.225)
 
@@ -1756,6 +2573,15 @@ transform = Transform3D(0.8480481, 0, 0.52991927, 0, 1, 0, -0.52991927, 0, 0.848
 transform = Transform3D(0.8480481, 0, -0.52991927, 0, 1, 0, 0.52991927, 0, 0.8480481, -0.7402857, 14.25, -6.225)
 
 [node name="_Area3D_866898" type="Area3D" parent="." unique_id=477933356]
+=======
+[node name="_Node3D_866885" type="Node3D" parent="." unique_id=237235849]
+transform = Transform3D(0.8480481, 0, 0.52991927, 0, 1, 0, -0.52991927, 0, 0.8480481, -2.2882857, 14.25, -6.225)
+
+[node name="_Node3D_866891" type="Node3D" parent="." unique_id=715076557]
+transform = Transform3D(0.8480481, 0, -0.52991927, 0, 1, 0, 0.52991927, 0, 0.8480481, -0.7402857, 14.25, -6.225)
+
+[node name="_Area3D_866898" type="Area3D" parent="." unique_id=689053313]
+>>>>>>> Stashed changes
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -1.5142857, 14.25, -6.17)
 collision_layer = 0
 collision_mask = 0
@@ -1765,6 +2591,7 @@ metadata/protected_volume = true
 metadata/clearance_depth_m = 1.0
 metadata/clearance_rule = "No structural/decorative module may occupy this volume."
 
+<<<<<<< Updated upstream
 [node name="_Node3D_866904" type="Node3D" parent="." unique_id=1022854043]
 transform = Transform3D(0.8480481, 0, 0.52991927, 0, 1, 0, -0.52991927, 0, 0.8480481, 0.7402857, 14.25, -6.225)
 
@@ -1772,6 +2599,15 @@ transform = Transform3D(0.8480481, 0, 0.52991927, 0, 1, 0, -0.52991927, 0, 0.848
 transform = Transform3D(0.8480481, 0, -0.52991927, 0, 1, 0, 0.52991927, 0, 0.8480481, 2.2882857, 14.25, -6.225)
 
 [node name="_Area3D_866917" type="Area3D" parent="." unique_id=1389895260]
+=======
+[node name="_Node3D_866904" type="Node3D" parent="." unique_id=1850963511]
+transform = Transform3D(0.8480481, 0, 0.52991927, 0, 1, 0, -0.52991927, 0, 0.8480481, 0.7402857, 14.25, -6.225)
+
+[node name="_Node3D_866910" type="Node3D" parent="." unique_id=968066885]
+transform = Transform3D(0.8480481, 0, -0.52991927, 0, 1, 0, 0.52991927, 0, 0.8480481, 2.2882857, 14.25, -6.225)
+
+[node name="_Area3D_866917" type="Area3D" parent="." unique_id=1640624434]
+>>>>>>> Stashed changes
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 1.5142857, 14.25, -6.17)
 collision_layer = 0
 collision_mask = 0
@@ -1781,6 +2617,7 @@ metadata/protected_volume = true
 metadata/clearance_depth_m = 1.0
 metadata/clearance_rule = "No structural/decorative module may occupy this volume."
 
+<<<<<<< Updated upstream
 [node name="_Node3D_866923" type="Node3D" parent="." unique_id=1456865911]
 transform = Transform3D(0.8480481, 0, 0.52991927, 0, 1, 0, -0.52991927, 0, 0.8480481, 3.7688572, 14.25, -6.225)
 
@@ -1788,6 +2625,15 @@ transform = Transform3D(0.8480481, 0, 0.52991927, 0, 1, 0, -0.52991927, 0, 0.848
 transform = Transform3D(0.8480481, 0, -0.52991927, 0, 1, 0, 0.52991927, 0, 0.8480481, 5.3168573, 14.25, -6.225)
 
 [node name="_Area3D_866936" type="Area3D" parent="." unique_id=1257994210]
+=======
+[node name="_Node3D_866923" type="Node3D" parent="." unique_id=1595418394]
+transform = Transform3D(0.8480481, 0, 0.52991927, 0, 1, 0, -0.52991927, 0, 0.8480481, 3.7688572, 14.25, -6.225)
+
+[node name="_Node3D_866929" type="Node3D" parent="." unique_id=1829761557]
+transform = Transform3D(0.8480481, 0, -0.52991927, 0, 1, 0, 0.52991927, 0, 0.8480481, 5.3168573, 14.25, -6.225)
+
+[node name="_Area3D_866936" type="Area3D" parent="." unique_id=1718266672]
+>>>>>>> Stashed changes
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 4.542857, 14.25, -6.17)
 collision_layer = 0
 collision_mask = 0
@@ -1797,6 +2643,7 @@ metadata/protected_volume = true
 metadata/clearance_depth_m = 1.0
 metadata/clearance_rule = "No structural/decorative module may occupy this volume."
 
+<<<<<<< Updated upstream
 [node name="_Node3D_866942" type="Node3D" parent="." unique_id=1778748501]
 transform = Transform3D(0.8480481, 0, 0.52991927, 0, 1, 0, -0.52991927, 0, 0.8480481, 6.7974286, 14.25, -6.225)
 
@@ -1804,6 +2651,15 @@ transform = Transform3D(0.8480481, 0, 0.52991927, 0, 1, 0, -0.52991927, 0, 0.848
 transform = Transform3D(0.8480481, 0, -0.52991927, 0, 1, 0, 0.52991927, 0, 0.8480481, 8.345428, 14.25, -6.225)
 
 [node name="_Area3D_866955" type="Area3D" parent="." unique_id=42310479]
+=======
+[node name="_Node3D_866942" type="Node3D" parent="." unique_id=724128212]
+transform = Transform3D(0.8480481, 0, 0.52991927, 0, 1, 0, -0.52991927, 0, 0.8480481, 6.7974286, 14.25, -6.225)
+
+[node name="_Node3D_866948" type="Node3D" parent="." unique_id=577078824]
+transform = Transform3D(0.8480481, 0, -0.52991927, 0, 1, 0, 0.52991927, 0, 0.8480481, 8.345428, 14.25, -6.225)
+
+[node name="_Area3D_866955" type="Area3D" parent="." unique_id=1922820659]
+>>>>>>> Stashed changes
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 7.571429, 14.25, -6.17)
 collision_layer = 0
 collision_mask = 0
@@ -1813,6 +2669,7 @@ metadata/protected_volume = true
 metadata/clearance_depth_m = 1.0
 metadata/clearance_rule = "No structural/decorative module may occupy this volume."
 
+<<<<<<< Updated upstream
 [node name="_Node3D_866961" type="Node3D" parent="." unique_id=245440419]
 transform = Transform3D(0.8480481, 0, 0.52991927, 0, 1, 0, -0.52991927, 0, 0.8480481, 9.826, 14.25, -6.225)
 
@@ -1820,6 +2677,15 @@ transform = Transform3D(0.8480481, 0, 0.52991927, 0, 1, 0, -0.52991927, 0, 0.848
 transform = Transform3D(0.8480481, 0, -0.52991927, 0, 1, 0, 0.52991927, 0, 0.8480481, 11.374001, 14.25, -6.225)
 
 [node name="_Area3D_866974" type="Area3D" parent="." unique_id=183477245]
+=======
+[node name="_Node3D_866961" type="Node3D" parent="." unique_id=1888133757]
+transform = Transform3D(0.8480481, 0, 0.52991927, 0, 1, 0, -0.52991927, 0, 0.8480481, 9.826, 14.25, -6.225)
+
+[node name="_Node3D_866967" type="Node3D" parent="." unique_id=1326823867]
+transform = Transform3D(0.8480481, 0, -0.52991927, 0, 1, 0, 0.52991927, 0, 0.8480481, 11.374001, 14.25, -6.225)
+
+[node name="_Area3D_866974" type="Area3D" parent="." unique_id=151771534]
+>>>>>>> Stashed changes
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 10.6, 14.25, -6.17)
 collision_layer = 0
 collision_mask = 0
@@ -1829,6 +2695,7 @@ metadata/protected_volume = true
 metadata/clearance_depth_m = 1.0
 metadata/clearance_rule = "No structural/decorative module may occupy this volume."
 
+<<<<<<< Updated upstream
 [node name="_Node3D_866980" type="Node3D" parent="." unique_id=968326818]
 transform = Transform3D(0.8480481, 0, 0.52991927, 0, 1, 0, -0.52991927, 0, 0.8480481, -10.17, 14.23, 6.115)
 
@@ -1836,6 +2703,15 @@ transform = Transform3D(0.8480481, 0, 0.52991927, 0, 1, 0, -0.52991927, 0, 0.848
 transform = Transform3D(0.8480481, 0, -0.52991927, 0, 1, 0, 0.52991927, 0, 0.8480481, -8.73, 14.23, 6.115)
 
 [node name="_Area3D_866993" type="Area3D" parent="." unique_id=1606551544]
+=======
+[node name="_Node3D_866980" type="Node3D" parent="." unique_id=1858042008]
+transform = Transform3D(0.8480481, 0, 0.52991927, 0, 1, 0, -0.52991927, 0, 0.8480481, -10.17, 14.23, 6.115)
+
+[node name="_Node3D_866986" type="Node3D" parent="." unique_id=719642533]
+transform = Transform3D(0.8480481, 0, -0.52991927, 0, 1, 0, 0.52991927, 0, 0.8480481, -8.73, 14.23, 6.115)
+
+[node name="_Area3D_866993" type="Area3D" parent="." unique_id=1472688913]
+>>>>>>> Stashed changes
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -9.45, 14.23, 6.17)
 collision_layer = 0
 collision_mask = 0
@@ -1845,6 +2721,7 @@ metadata/protected_volume = true
 metadata/clearance_depth_m = 1.0
 metadata/clearance_rule = "No structural/decorative module may occupy this volume."
 
+<<<<<<< Updated upstream
 [node name="_Node3D_866999" type="Node3D" parent="." unique_id=1694888570]
 transform = Transform3D(0.8480481, 0, 0.52991927, 0, 1, 0, -0.52991927, 0, 0.8480481, -7.02, 14.23, 6.115)
 
@@ -1852,6 +2729,15 @@ transform = Transform3D(0.8480481, 0, 0.52991927, 0, 1, 0, -0.52991927, 0, 0.848
 transform = Transform3D(0.8480481, 0, -0.52991927, 0, 1, 0, 0.52991927, 0, 0.8480481, -5.5800004, 14.23, 6.115)
 
 [node name="_Area3D_867012" type="Area3D" parent="." unique_id=425025516]
+=======
+[node name="_Node3D_866999" type="Node3D" parent="." unique_id=807175756]
+transform = Transform3D(0.8480481, 0, 0.52991927, 0, 1, 0, -0.52991927, 0, 0.8480481, -7.02, 14.23, 6.115)
+
+[node name="_Node3D_867005" type="Node3D" parent="." unique_id=1115152257]
+transform = Transform3D(0.8480481, 0, -0.52991927, 0, 1, 0, 0.52991927, 0, 0.8480481, -5.5800004, 14.23, 6.115)
+
+[node name="_Area3D_867012" type="Area3D" parent="." unique_id=1715816951]
+>>>>>>> Stashed changes
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -6.3, 14.23, 6.17)
 collision_layer = 0
 collision_mask = 0
@@ -1861,6 +2747,7 @@ metadata/protected_volume = true
 metadata/clearance_depth_m = 1.0
 metadata/clearance_rule = "No structural/decorative module may occupy this volume."
 
+<<<<<<< Updated upstream
 [node name="_Node3D_867018" type="Node3D" parent="." unique_id=760200748]
 transform = Transform3D(0.8480481, 0, 0.52991927, 0, 1, 0, -0.52991927, 0, 0.8480481, -3.8700001, 14.23, 6.115)
 
@@ -1868,6 +2755,15 @@ transform = Transform3D(0.8480481, 0, 0.52991927, 0, 1, 0, -0.52991927, 0, 0.848
 transform = Transform3D(0.8480481, 0, -0.52991927, 0, 1, 0, 0.52991927, 0, 0.8480481, -2.43, 14.23, 6.115)
 
 [node name="_Area3D_867031" type="Area3D" parent="." unique_id=1814762485]
+=======
+[node name="_Node3D_867018" type="Node3D" parent="." unique_id=1913322953]
+transform = Transform3D(0.8480481, 0, 0.52991927, 0, 1, 0, -0.52991927, 0, 0.8480481, -3.8700001, 14.23, 6.115)
+
+[node name="_Node3D_867024" type="Node3D" parent="." unique_id=1391771730]
+transform = Transform3D(0.8480481, 0, -0.52991927, 0, 1, 0, 0.52991927, 0, 0.8480481, -2.43, 14.23, 6.115)
+
+[node name="_Area3D_867031" type="Area3D" parent="." unique_id=1651818723]
+>>>>>>> Stashed changes
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -3.15, 14.23, 6.17)
 collision_layer = 0
 collision_mask = 0
@@ -1877,6 +2773,7 @@ metadata/protected_volume = true
 metadata/clearance_depth_m = 1.0
 metadata/clearance_rule = "No structural/decorative module may occupy this volume."
 
+<<<<<<< Updated upstream
 [node name="_Node3D_867037" type="Node3D" parent="." unique_id=341104304]
 transform = Transform3D(0.8480481, 0, 0.52991927, 0, 1, 0, -0.52991927, 0, 0.8480481, -0.72, 14.23, 6.115)
 
@@ -1884,6 +2781,15 @@ transform = Transform3D(0.8480481, 0, 0.52991927, 0, 1, 0, -0.52991927, 0, 0.848
 transform = Transform3D(0.8480481, 0, -0.52991927, 0, 1, 0, 0.52991927, 0, 0.8480481, 0.72, 14.23, 6.115)
 
 [node name="_Area3D_867050" type="Area3D" parent="." unique_id=423365558]
+=======
+[node name="_Node3D_867037" type="Node3D" parent="." unique_id=414982069]
+transform = Transform3D(0.8480481, 0, 0.52991927, 0, 1, 0, -0.52991927, 0, 0.8480481, -0.72, 14.23, 6.115)
+
+[node name="_Node3D_867043" type="Node3D" parent="." unique_id=1793541415]
+transform = Transform3D(0.8480481, 0, -0.52991927, 0, 1, 0, 0.52991927, 0, 0.8480481, 0.72, 14.23, 6.115)
+
+[node name="_Area3D_867050" type="Area3D" parent="." unique_id=1804483177]
+>>>>>>> Stashed changes
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 14.23, 6.17)
 collision_layer = 0
 collision_mask = 0
@@ -1893,6 +2799,7 @@ metadata/protected_volume = true
 metadata/clearance_depth_m = 1.0
 metadata/clearance_rule = "No structural/decorative module may occupy this volume."
 
+<<<<<<< Updated upstream
 [node name="_Node3D_867056" type="Node3D" parent="." unique_id=702314981]
 transform = Transform3D(0.8480481, 0, 0.52991927, 0, 1, 0, -0.52991927, 0, 0.8480481, 2.43, 14.23, 6.115)
 
@@ -1900,6 +2807,15 @@ transform = Transform3D(0.8480481, 0, 0.52991927, 0, 1, 0, -0.52991927, 0, 0.848
 transform = Transform3D(0.8480481, 0, -0.52991927, 0, 1, 0, 0.52991927, 0, 0.8480481, 3.8700001, 14.23, 6.115)
 
 [node name="_Area3D_867069" type="Area3D" parent="." unique_id=1682078528]
+=======
+[node name="_Node3D_867056" type="Node3D" parent="." unique_id=1413143771]
+transform = Transform3D(0.8480481, 0, 0.52991927, 0, 1, 0, -0.52991927, 0, 0.8480481, 2.43, 14.23, 6.115)
+
+[node name="_Node3D_867062" type="Node3D" parent="." unique_id=492597145]
+transform = Transform3D(0.8480481, 0, -0.52991927, 0, 1, 0, 0.52991927, 0, 0.8480481, 3.8700001, 14.23, 6.115)
+
+[node name="_Area3D_867069" type="Area3D" parent="." unique_id=710655497]
+>>>>>>> Stashed changes
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 3.15, 14.23, 6.17)
 collision_layer = 0
 collision_mask = 0
@@ -1909,6 +2825,7 @@ metadata/protected_volume = true
 metadata/clearance_depth_m = 1.0
 metadata/clearance_rule = "No structural/decorative module may occupy this volume."
 
+<<<<<<< Updated upstream
 [node name="_Node3D_867075" type="Node3D" parent="." unique_id=296362304]
 transform = Transform3D(0.8480481, 0, 0.52991927, 0, 1, 0, -0.52991927, 0, 0.8480481, 5.5800004, 14.23, 6.115)
 
@@ -1916,6 +2833,15 @@ transform = Transform3D(0.8480481, 0, 0.52991927, 0, 1, 0, -0.52991927, 0, 0.848
 transform = Transform3D(0.8480481, 0, -0.52991927, 0, 1, 0, 0.52991927, 0, 0.8480481, 7.02, 14.23, 6.115)
 
 [node name="_Area3D_867088" type="Area3D" parent="." unique_id=377183774]
+=======
+[node name="_Node3D_867075" type="Node3D" parent="." unique_id=838298421]
+transform = Transform3D(0.8480481, 0, 0.52991927, 0, 1, 0, -0.52991927, 0, 0.8480481, 5.5800004, 14.23, 6.115)
+
+[node name="_Node3D_867081" type="Node3D" parent="." unique_id=1065507649]
+transform = Transform3D(0.8480481, 0, -0.52991927, 0, 1, 0, 0.52991927, 0, 0.8480481, 7.02, 14.23, 6.115)
+
+[node name="_Area3D_867088" type="Area3D" parent="." unique_id=217852041]
+>>>>>>> Stashed changes
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 6.3, 14.23, 6.17)
 collision_layer = 0
 collision_mask = 0
@@ -1925,6 +2851,7 @@ metadata/protected_volume = true
 metadata/clearance_depth_m = 1.0
 metadata/clearance_rule = "No structural/decorative module may occupy this volume."
 
+<<<<<<< Updated upstream
 [node name="_Node3D_867094" type="Node3D" parent="." unique_id=245025514]
 transform = Transform3D(0.8480481, 0, 0.52991927, 0, 1, 0, -0.52991927, 0, 0.8480481, 8.73, 14.23, 6.115)
 
@@ -1932,6 +2859,15 @@ transform = Transform3D(0.8480481, 0, 0.52991927, 0, 1, 0, -0.52991927, 0, 0.848
 transform = Transform3D(0.8480481, 0, -0.52991927, 0, 1, 0, 0.52991927, 0, 0.8480481, 10.17, 14.23, 6.115)
 
 [node name="_Area3D_867107" type="Area3D" parent="." unique_id=1268393024]
+=======
+[node name="_Node3D_867094" type="Node3D" parent="." unique_id=1236786706]
+transform = Transform3D(0.8480481, 0, 0.52991927, 0, 1, 0, -0.52991927, 0, 0.8480481, 8.73, 14.23, 6.115)
+
+[node name="_Node3D_867100" type="Node3D" parent="." unique_id=1371455568]
+transform = Transform3D(0.8480481, 0, -0.52991927, 0, 1, 0, 0.52991927, 0, 0.8480481, 10.17, 14.23, 6.115)
+
+[node name="_Area3D_867107" type="Area3D" parent="." unique_id=1507826170]
+>>>>>>> Stashed changes
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 9.45, 14.23, 6.17)
 collision_layer = 0
 collision_mask = 0
@@ -1941,6 +2877,7 @@ metadata/protected_volume = true
 metadata/clearance_depth_m = 1.0
 metadata/clearance_rule = "No structural/decorative module may occupy this volume."
 
+<<<<<<< Updated upstream
 [node name="_Node3D_867112" type="Node3D" parent="." unique_id=17913037]
 transform = Transform3D(0.8660254, 0, -0.5, 0, 1, 0, 0.5, 0, 0.8660254, -14.09, 14.22, -4.884)
 
@@ -1948,6 +2885,15 @@ transform = Transform3D(0.8660254, 0, -0.5, 0, 1, 0, 0.5, 0, 0.8660254, -14.09, 
 transform = Transform3D(0.8660254, 0, 0.5, 0, 1, 0, -0.5, 0, 0.8660254, -14.09, 14.22, -3.5159998)
 
 [node name="_Area3D_867117" type="Area3D" parent="." unique_id=1319378746]
+=======
+[node name="_Node3D_867112" type="Node3D" parent="." unique_id=1300684505]
+transform = Transform3D(0.8660254, 0, -0.5, 0, 1, 0, 0.5, 0, 0.8660254, -14.09, 14.22, -4.884)
+
+[node name="_Node3D_867114" type="Node3D" parent="." unique_id=1114430259]
+transform = Transform3D(0.8660254, 0, 0.5, 0, 1, 0, -0.5, 0, 0.8660254, -14.09, 14.22, -3.5159998)
+
+[node name="_Area3D_867117" type="Area3D" parent="." unique_id=398897081]
+>>>>>>> Stashed changes
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -14.17, 14.22, -4.2)
 collision_layer = 0
 collision_mask = 0
@@ -1957,6 +2903,7 @@ metadata/protected_volume = true
 metadata/clearance_depth_m = 1.0
 metadata/clearance_rule = "No structural/decorative module may occupy this volume."
 
+<<<<<<< Updated upstream
 [node name="_Node3D_867122" type="Node3D" parent="." unique_id=1518372175]
 transform = Transform3D(0.8660254, 0, 0.5, 0, 1, 0, -0.5, 0, 0.8660254, 14.09, 14.22, -4.884)
 
@@ -1964,6 +2911,15 @@ transform = Transform3D(0.8660254, 0, 0.5, 0, 1, 0, -0.5, 0, 0.8660254, 14.09, 1
 transform = Transform3D(0.8660254, 0, -0.5, 0, 1, 0, 0.5, 0, 0.8660254, 14.09, 14.22, -3.5159998)
 
 [node name="_Area3D_867127" type="Area3D" parent="." unique_id=1134305227]
+=======
+[node name="_Node3D_867122" type="Node3D" parent="." unique_id=1027757954]
+transform = Transform3D(0.8660254, 0, 0.5, 0, 1, 0, -0.5, 0, 0.8660254, 14.09, 14.22, -4.884)
+
+[node name="_Node3D_867124" type="Node3D" parent="." unique_id=24730179]
+transform = Transform3D(0.8660254, 0, -0.5, 0, 1, 0, 0.5, 0, 0.8660254, 14.09, 14.22, -3.5159998)
+
+[node name="_Area3D_867127" type="Area3D" parent="." unique_id=686721504]
+>>>>>>> Stashed changes
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 14.17, 14.22, -4.2)
 collision_layer = 0
 collision_mask = 0
@@ -1973,6 +2929,7 @@ metadata/protected_volume = true
 metadata/clearance_depth_m = 1.0
 metadata/clearance_rule = "No structural/decorative module may occupy this volume."
 
+<<<<<<< Updated upstream
 [node name="_Node3D_867132" type="Node3D" parent="." unique_id=2033686056]
 transform = Transform3D(0.8660254, 0, -0.5, 0, 1, 0, 0.5, 0, 0.8660254, -14.09, 14.22, -0.684)
 
@@ -1980,6 +2937,15 @@ transform = Transform3D(0.8660254, 0, -0.5, 0, 1, 0, 0.5, 0, 0.8660254, -14.09, 
 transform = Transform3D(0.8660254, 0, 0.5, 0, 1, 0, -0.5, 0, 0.8660254, -14.09, 14.22, 0.684)
 
 [node name="_Area3D_867137" type="Area3D" parent="." unique_id=1022193817]
+=======
+[node name="_Node3D_867132" type="Node3D" parent="." unique_id=1445863597]
+transform = Transform3D(0.8660254, 0, -0.5, 0, 1, 0, 0.5, 0, 0.8660254, -14.09, 14.22, -0.684)
+
+[node name="_Node3D_867134" type="Node3D" parent="." unique_id=1771124257]
+transform = Transform3D(0.8660254, 0, 0.5, 0, 1, 0, -0.5, 0, 0.8660254, -14.09, 14.22, 0.684)
+
+[node name="_Area3D_867137" type="Area3D" parent="." unique_id=897450899]
+>>>>>>> Stashed changes
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -14.17, 14.22, 0)
 collision_layer = 0
 collision_mask = 0
@@ -1989,6 +2955,7 @@ metadata/protected_volume = true
 metadata/clearance_depth_m = 1.0
 metadata/clearance_rule = "No structural/decorative module may occupy this volume."
 
+<<<<<<< Updated upstream
 [node name="_Node3D_867142" type="Node3D" parent="." unique_id=1503669181]
 transform = Transform3D(0.8660254, 0, 0.5, 0, 1, 0, -0.5, 0, 0.8660254, 14.09, 14.22, -0.684)
 
@@ -1996,6 +2963,15 @@ transform = Transform3D(0.8660254, 0, 0.5, 0, 1, 0, -0.5, 0, 0.8660254, 14.09, 1
 transform = Transform3D(0.8660254, 0, -0.5, 0, 1, 0, 0.5, 0, 0.8660254, 14.09, 14.22, 0.684)
 
 [node name="_Area3D_867147" type="Area3D" parent="." unique_id=320504104]
+=======
+[node name="_Node3D_867142" type="Node3D" parent="." unique_id=2139192510]
+transform = Transform3D(0.8660254, 0, 0.5, 0, 1, 0, -0.5, 0, 0.8660254, 14.09, 14.22, -0.684)
+
+[node name="_Node3D_867144" type="Node3D" parent="." unique_id=1139858056]
+transform = Transform3D(0.8660254, 0, -0.5, 0, 1, 0, 0.5, 0, 0.8660254, 14.09, 14.22, 0.684)
+
+[node name="_Area3D_867147" type="Area3D" parent="." unique_id=1451888686]
+>>>>>>> Stashed changes
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 14.17, 14.22, 0)
 collision_layer = 0
 collision_mask = 0
@@ -2005,6 +2981,7 @@ metadata/protected_volume = true
 metadata/clearance_depth_m = 1.0
 metadata/clearance_rule = "No structural/decorative module may occupy this volume."
 
+<<<<<<< Updated upstream
 [node name="_Node3D_867152" type="Node3D" parent="." unique_id=185518916]
 transform = Transform3D(0.8660254, 0, -0.5, 0, 1, 0, 0.5, 0, 0.8660254, -14.09, 14.22, 3.5159998)
 
@@ -2012,6 +2989,15 @@ transform = Transform3D(0.8660254, 0, -0.5, 0, 1, 0, 0.5, 0, 0.8660254, -14.09, 
 transform = Transform3D(0.8660254, 0, 0.5, 0, 1, 0, -0.5, 0, 0.8660254, -14.09, 14.22, 4.884)
 
 [node name="_Area3D_867157" type="Area3D" parent="." unique_id=146861025]
+=======
+[node name="_Node3D_867152" type="Node3D" parent="." unique_id=1938641340]
+transform = Transform3D(0.8660254, 0, -0.5, 0, 1, 0, 0.5, 0, 0.8660254, -14.09, 14.22, 3.5159998)
+
+[node name="_Node3D_867154" type="Node3D" parent="." unique_id=952184950]
+transform = Transform3D(0.8660254, 0, 0.5, 0, 1, 0, -0.5, 0, 0.8660254, -14.09, 14.22, 4.884)
+
+[node name="_Area3D_867157" type="Area3D" parent="." unique_id=1609437331]
+>>>>>>> Stashed changes
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -14.17, 14.22, 4.2)
 collision_layer = 0
 collision_mask = 0
@@ -2021,6 +3007,7 @@ metadata/protected_volume = true
 metadata/clearance_depth_m = 1.0
 metadata/clearance_rule = "No structural/decorative module may occupy this volume."
 
+<<<<<<< Updated upstream
 [node name="_Node3D_867162" type="Node3D" parent="." unique_id=597651918]
 transform = Transform3D(0.8660254, 0, 0.5, 0, 1, 0, -0.5, 0, 0.8660254, 14.09, 14.22, 3.5159998)
 
@@ -2028,6 +3015,15 @@ transform = Transform3D(0.8660254, 0, 0.5, 0, 1, 0, -0.5, 0, 0.8660254, 14.09, 1
 transform = Transform3D(0.8660254, 0, -0.5, 0, 1, 0, 0.5, 0, 0.8660254, 14.09, 14.22, 4.884)
 
 [node name="_Area3D_867167" type="Area3D" parent="." unique_id=642130992]
+=======
+[node name="_Node3D_867162" type="Node3D" parent="." unique_id=1909419875]
+transform = Transform3D(0.8660254, 0, 0.5, 0, 1, 0, -0.5, 0, 0.8660254, 14.09, 14.22, 3.5159998)
+
+[node name="_Node3D_867164" type="Node3D" parent="." unique_id=1233082698]
+transform = Transform3D(0.8660254, 0, -0.5, 0, 1, 0, 0.5, 0, 0.8660254, 14.09, 14.22, 4.884)
+
+[node name="_Area3D_867167" type="Area3D" parent="." unique_id=1865597723]
+>>>>>>> Stashed changes
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 14.17, 14.22, 4.2)
 collision_layer = 0
 collision_mask = 0
@@ -2037,12 +3033,20 @@ metadata/protected_volume = true
 metadata/clearance_depth_m = 1.0
 metadata/clearance_rule = "No structural/decorative module may occupy this volume."
 
+<<<<<<< Updated upstream
 [node name="DoorAnchor_INTERACTION_READY" type="Node3D" parent="." unique_id=395517]
+=======
+[node name="DoorAnchor_INTERACTION_READY" type="Node3D" parent="." unique_id=1402647074]
+>>>>>>> Stashed changes
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, -6.2)
 metadata/interaction = "APRI_CHIUDI"
 metadata/future_animation = true
 
+<<<<<<< Updated upstream
 [node name="PROTECTED_VOLUME_DOOR" type="Area3D" parent="." unique_id=206780575]
+=======
+[node name="PROTECTED_VOLUME_DOOR" type="Area3D" parent="." unique_id=2130985999]
+>>>>>>> Stashed changes
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.175, -6)
 collision_layer = 0
 collision_mask = 0
@@ -2052,18 +3056,32 @@ metadata/protected_volume = true
 metadata/clearance_depth_m = 1.0
 metadata/clearance_rule = "No structural/decorative module may occupy this volume."
 
+<<<<<<< Updated upstream
 [node name="FRONT_OPENINGS_CLEAR_AUDIT" type="Node3D" parent="." unique_id=1906517058]
+=======
+[node name="FRONT_OPENINGS_CLEAR_AUDIT" type="Node3D" parent="." unique_id=557149034]
+>>>>>>> Stashed changes
 metadata/checked_floors = 5
 metadata/front_openings = 1
 metadata/rule = "No decorative projection may occupy the opening envelope."
 
+<<<<<<< Updated upstream
 [node name="MobileMergedMesh" type="MeshInstance3D" parent="." unique_id=2113514216]
+=======
+[node name="MobileMergedMesh" type="MeshInstance3D" parent="." unique_id=1317992497]
+>>>>>>> Stashed changes
 mesh = SubResource("ArrayMesh_lvo5a")
 metadata/mobile_merged = true
 metadata/mobile_surface_roles = Array[String](["facade", "other", "other", "other", "other", "other", "other", "other", "other", "other", "other", "other", "other", "other", "other", "other", "other", "other", "other", "other", "other", "other", "other", "other", "roof"])
 
+<<<<<<< Updated upstream
 [node name="Collision" type="StaticBody3D" parent="." unique_id=1044008434]
 
 [node name="BoxCollision" type="CollisionShape3D" parent="Collision" unique_id=1216532025]
+=======
+[node name="Collision" type="StaticBody3D" parent="." unique_id=999352216]
+
+[node name="BoxCollision" type="CollisionShape3D" parent="Collision" unique_id=540797166]
+>>>>>>> Stashed changes
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 8, 0)
 shape = SubResource("BoxShape3D_7xjyu")
