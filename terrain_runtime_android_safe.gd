@@ -24,7 +24,7 @@ func _setup() -> void:
 	# Reload assets without reusing a potentially stale cached resource.
 	# Terrain3D builds texture arrays at runtime, so log the actual source textures.
 	var roman_assets: Resource = ResourceLoader.load(
-		"res://terrain_materials/terrain_assets_polyhaven_zones.tres",
+		"res://terrain_materials/terrain_assets_roman_natural.tres",
 		"",
 		ResourceLoader.CACHE_MODE_IGNORE
 	)
@@ -45,8 +45,8 @@ func _setup() -> void:
 	# Android compatibility: this project has 25 saved regions; keep the
 	# Terrain3D region uniform array small for mobile GPU/driver limits.
 	terrain.material.set("max_regions", 64)
-	terrain.material.auto_shader = true
-	print("ANDROID TERRAIN MATERIAL: shader_override=false max_regions=64 auto_shader=true")
+	terrain.material.auto_shader = false
+	print("ANDROID TERRAIN MATERIAL: Roman Natural slots (0=grass, 1=soil, 2=rock); shader_override=false max_regions=64 auto_shader=false")
 	terrain.material.set_shader_param("macro_variation1", Vector3(0.985, 1.00, 0.96))
 	terrain.material.set_shader_param("macro_variation2", Vector3(1.015, 1.00, 0.985))
 
