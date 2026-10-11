@@ -47,7 +47,7 @@ def request(url: str, data: bytes | None = None, timeout: int = 90):
 def fetch_osm():
     south, west, north, east = bounds()
     query = f"""[out:json][timeout:60];
-    way[highway~"^(motorway|trunk|primary|secondary|tertiary|unclassified|residential|living_street|service|pedestrian|footway|path|cycleway|steps)$"]({south},{west},{north},{east});
+    way[highway~"^(motorway|motorway_link|trunk|trunk_link|primary|primary_link|secondary|secondary_link|tertiary|tertiary_link|unclassified|residential|living_street|service|road|track|pedestrian|footway|path|cycleway|steps)$"]({south},{west},{north},{east});
     out geom;"""
     last_error = None
     for endpoint in OVERPASS:
@@ -78,6 +78,9 @@ def fetch_osm():
                         "oneway": tags.get("oneway", ""),
                         "bridge": tags.get("bridge", ""),
                         "tunnel": tags.get("tunnel", ""),
+                        "junction": tags.get("junction", ""),
+                        "sidewalk": tags.get("sidewalk", ""),
+                        "maxspeed": tags.get("maxspeed", ""),
                     },
                     "geometry": {"type": "LineString", "coordinates": coords},
                 })
