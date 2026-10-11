@@ -193,6 +193,7 @@ func _load_placement(i: int) -> void:
     stage_start_usec = Time.get_ticks_usec()
 
     _city_root.add_child(root)
+    _add_terrain_foundation_and_garden(root, i)
     _record_city_load_stage(i, "add_child", stage_start_usec, slow_stages)
     stage_start_usec = Time.get_ticks_usec()
 
@@ -461,3 +462,81 @@ func _find_player() -> Node3D:
 func _yield_frames(n: int) -> void:
     for _i in range(n):
         await get_tree().process_frame
+
+
+# Roman streetscape grounding: a visible plinth hides small terrain/building gaps,
+# while sparse planted entrance beds break up the repetitive bare asphalt lots.
+static var _foundation_material: StandardMaterial3D
+static var _planter_material: StandardMaterial3D
+static var _soil_material: StandardMaterial3D
+static var _flower_materials: Array[StandardMaterial3D] = []
+
+func _ensure_streetscape_materials() -> void:
+    if _foundation_material != null:
+        return
+    _foundation_material = StandardMaterial3D.new()
+    _foundation_material.albedo_color = Color("#B9AD98")
+    _foundation_material.roughness = 0.94
+    _planter_material = StandardMaterial3D.new()
+    _planter_material.albedo_color = Color("#9B8A73")
+    _planter_material.roughness = 0.92
+    _soil_material = StandardMaterial3D.new()
+    _soil_material.albedo_color = Color("#403529")
+    _soil_material.roughness = 1.0
+    for color in [Color("#D95D82"), Color("#F2C94C"), Color("#F3E9D2")]:
+        var flower := StandardMaterial3D.new()
+        flower.albedo_color = color
+        flower.roughness = 0.78
+        _flower_materials.append(flower)
+
+func _add_terrain_foundation_and_garden(root: Node3D, placement_index: int) -> void:
+    _ensure_streetscape_materials()
+    var bounds := _node_world_aabb(root)
+    if bounds.size.x < 2.0 or bounds.size.z < 2.0:
+        return
+
+    # Shared-material 30 cm concrete/travertine plinth, wider than the footprint.
+    var local_center := root.to_local(bounds.get_center())
+    var foundation_mesh := BoxMesh.new()
+    foundation_mesh.size = Vector3(bounds.size.x + 0.42, 0.30, bounds.size.z + 0.42)
+    var foundation := MeshInstance3D.new()
+    foundation.name = "Roman_Concrete_Foundation"
+    foundation.mesh = foundation_mesh
+    foundation.material_override = _foundation_material
+    foundation.position = Vector3(local_center.x, -0.12, local_center.z)
+    root.add_child(foundation)
+
+    # One in four buildings gets a pair of planted entrance beds; no physics bodies.
+    if posmod(placement_index, 4) != 0 or bounds.size.x < 7.0:
+        return
+    var half_width := bounds.size.x * 0.28
+    var front_z := -bounds.size.z * 0.5 - 0.52
+    for side_sign in [-1.0, 1.0]:
+        var planter := MeshInstance3D.new()
+        planter.name = "Entrance_Planter"
+        var planter_mesh := BoxMesh.new()
+        planter_mesh.size = Vector3(0.92, 0.42, 0.52)
+        planter.mesh = planter_mesh
+        planter.material_override = _planter_material
+        planter.position = Vector3(side_sign * half_width, 0.21, front_z)
+        root.add_child(planter)
+
+        var soil := MeshInstance3D.new()
+        soil.name = "Planter_Soil"
+        var soil_mesh := BoxMesh.new()
+        soil_mesh.size = Vector3(0.78, 0.045, 0.38)
+        soil.mesh = soil_mesh
+        soil.material_override = _soil_material
+        soil.position = Vector3(side_sign * half_width, 0.435, front_z)
+        root.add_child(soil)
+
+        for flower_index in range(3):
+            var bloom := MeshInstance3D.new()
+            bloom.name = "Garden_Flower"
+            var flower_mesh := SphereMesh.new()
+            flower_mesh.radius = 0.105
+            flower_mesh.height = 0.21
+            bloom.mesh = flower_mesh
+            bloom.material_override = _flower_materials[posmod(placement_index + flower_index, _flower_materials.size())]
+            bloom.position = Vector3(side_sign * half_width + (float(flower_index) - 1.0) * 0.22, 0.57, front_z + (0.06 if flower_index == 1 else -0.04))
+            root.add_child(bloom)
