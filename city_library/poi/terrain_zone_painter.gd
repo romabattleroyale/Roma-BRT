@@ -47,6 +47,8 @@ func _paint_or_load_cache(terrain: Node) -> void:
         push_warning("TERRAIN ZONES: impossibile caricare il set texture Poly Haven.")
         return
 
+    # Apply the matching five-slot asset list even when the baked control map is cached.
+    terrain.assets = assets
     var signature := JSON.stringify(pois)
     var old_signature := ""
     if FileAccess.file_exists(CACHE_SIGNATURE):
@@ -55,7 +57,6 @@ func _paint_or_load_cache(terrain: Node) -> void:
         print("TERRAIN ZONES: cache presente e layout invariato; nessuna ripittura.")
         return
 
-    terrain.assets = assets
     _painting = true
     print("TERRAIN ZONES: inizio pittura basata su ", pois.size(), " POI risolti; step=", BLEND_RESOLUTION, "m")
     var visited := 0
