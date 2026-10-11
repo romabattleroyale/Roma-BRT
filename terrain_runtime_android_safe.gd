@@ -120,8 +120,8 @@ func _build_manual_control_map(values: PackedFloat32Array, width: int, height: i
 	bytes.resize(width * height * 4)
 	var spacing := MAP_SIZE_M / float(width - 1)
 	var radius := 12
-	var slope_start := 9.0
-	var slope_full := 18.0
+	var slope_start := 28.0
+	var slope_full := 42.0
 
 	var bank := Image.load_from_file("res://terrain_materials/river_mask.png")
 	var bank_flags := PackedByteArray()
@@ -174,7 +174,7 @@ func _build_manual_control_map(values: PackedFloat32Array, width: int, height: i
 			var slope_deg := rad_to_deg(atan(sqrt(dx * dx + dz * dz)))
 			var soil_weight := smoothstep(slope_start, slope_full, slope_deg)
 			if bank_dilated[z * width + x] != 0:
-				soil_weight = maxf(soil_weight, 0.42)
+				soil_weight = maxf(soil_weight, 0.24)
 			var blend := clampi(int(round(soil_weight * 255.0)), 0, 255)
 			var packed: int = ((1 & 0x1F) << 22) | ((blend & 0xFF) << 14)
 			bytes.encode_u32((z * width + x) * 4, packed)
