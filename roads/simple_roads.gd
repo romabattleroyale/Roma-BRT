@@ -34,6 +34,7 @@ const StreetSign = preload("res://props/street_sign.gd")
 const StreetTree = preload("res://props/street_tree.gd")
 
 var _terrain_data: Object
+var _map_generator: Node3D
 var _built := false
 var _asphalt: StandardMaterial3D
 var _asphalt_dark: StandardMaterial3D
@@ -99,8 +100,24 @@ func _procedural_sampietrini() -> StandardMaterial3D:
     return mat
 
 func _wait_for_terrain() -> void:
+    # MapGen is the active terrain system in main.tscn. Keep Terrain3D as a
+    # compatibility fallback for older scenes.
     for _i in range(RETRY_FRAMES):
-        var terrain: Node = get_tree().current_scene.find_child("Terrain3D_HEIGHTMAP_2000x2000", true, false)
+        var scene := get_tree().current_scene
+        if scene == null:
+            await get_tree().process_frame
+            continue
+        var map_node: Node = scene.find_child("MapGenerator", true, false)
+        if map_node != null and map_node.has_method("sample_height"):
+            var hf: Variant = map_node.get("heightfield")
+            if hf != null:
+                _map_generator = map_node as Node3D
+                print("ROMA ROADS V2: MapGen terrain ready")
+                await _wait_for_buildings()
+                _collect_building_bounds()
+                _build_network()
+                return
+        var terrain: Node = scene.find_child("Terrain3D_HEIGHTMAP_2000x2000", true, false)
         if terrain != null:
             _terrain_data = terrain.get("data") as Object
             if _terrain_data != null:
@@ -109,13 +126,13 @@ func _wait_for_terrain() -> void:
                 if range_variant is Vector2:
                     height_range = range_variant
                 if height_range.y - height_range.x > 0.5:
-                    print("ROMA ROADS V2: terrain ready range=", height_range)
+                    print("ROMA ROADS V2: Terrain3D ready range=", height_range)
                     await _wait_for_buildings()
                     _collect_building_bounds()
                     _build_network()
                     return
         await get_tree().process_frame
-    push_error("ROMA ROADS V2: timeout waiting for Terrain3D height data")
+    push_error("ROMA ROADS V2: timeout waiting for MapGen/Terrain3D height data")
 
 func _wait_for_buildings() -> void:
     for _i in range(1200):
@@ -139,10 +156,14 @@ func _collect_building_bounds() -> void:
     print("ROMA ROADS V2: collision guard buildings=", _building_bounds.size(), " spatial_cells=", _building_spatial_index.size())
 
 func _terrain_y(x: float, z: float) -> float:
+    if _map_generator != null and is_instance_valid(_map_generator):
+        var sampled: Variant = _map_generator.call("sample_height", x, z)
+        if (sampled is float or sampled is int) and is_finite(float(sampled)):
+            return float(sampled)
     if _terrain_data == null:
         return 0.0
     var h: float = float(_terrain_data.call("get_height", Vector3(x, 0.0, z)))
-    if is_nan(h) or is_inf(h):
+    if not is_finite(h):
         return 0.0
     return h
 
