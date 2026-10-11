@@ -1,12 +1,11 @@
 name: Import Rome Terrain Geodata
 on:
   workflow_dispatch:
-    inputs:
-      include_elevation:
-        description: "Download real DEM elevation samples as well as roads"
-        required: true
-        type: boolean
-        default: true
+  push:
+    branches: [main]
+    paths:
+      - "tools/import_rome_geodata.py"
+      - ".github/workflows/IMPORT_ROME_TERRAIN_GEODATA.yml"
 permissions:
   contents: write
 jobs:
@@ -24,10 +23,7 @@ jobs:
         with:
           python-version: "3.12"
       - name: Download real OpenStreetMap roads and elevation
-        env:
-          INCLUDE_ELEVATION: ${{ inputs.include_elevation }}
-        run: |
-          python tools/import_rome_geodata.py
+        run: python tools/import_rome_geodata.py
       - name: Validate imported dataset
         run: |
           python - <<'PY'
@@ -39,11 +35,10 @@ jobs:
           assert len(d.get("features", [])) >= 20, f"Too few road ways: {len(d.get('features', []))}"
           print(f"Validated {len(d['features'])} OSM ways; file size={p.stat().st_size} bytes")
           e = Path("data/rome_geodata/elevation.json")
-          if e.exists():
-              dem = json.loads(e.read_text())
-              assert dem["width"] == dem["height"] == 21
-              assert len(dem["elevation_metres_north_to_south"]) == 21
-              print("Validated 21x21 real elevation samples")
+          dem = json.loads(e.read_text())
+          assert dem["width"] == dem["height"] == 21
+          assert len(dem["elevation_metres_north_to_south"]) == 21
+          print("Validated 21x21 real elevation samples")
           PY
       - name: Commit imported source data
         run: |
