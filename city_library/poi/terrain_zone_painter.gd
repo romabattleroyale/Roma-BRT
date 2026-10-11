@@ -21,16 +21,16 @@ func _ready() -> void:
 func _run_when_ready() -> void:
     # This legacy painter only edits Terrain3D control maps. MapGen owns the active terrain;
     # never wait 120 frames for a removed Terrain3D node or emit a misleading warning.
-    var root := get_tree().current_scene
-    if root and root.find_child("MapGenerator", true, false) != null:
+    var active_scene := get_tree().current_scene
+    if active_scene and active_scene.find_child("MapGenerator", true, false) != null:
         print("TERRAIN ZONES: skipped legacy Terrain3D painter; active terrain is MapGen.")
         return
     # TerrainBootstrap and its Terrain3D data are initialized asynchronously.
     for attempt in range(120):
         await get_tree().process_frame
-        var root := get_tree().current_scene
-        if root:
-            var bootstrap := root.get_node_or_null("TerrainBootstrap")
+        var scene_root := get_tree().current_scene
+        if scene_root:
+            var bootstrap := scene_root.get_node_or_null("TerrainBootstrap")
             if bootstrap and bootstrap.get("terrain") != null:
                 var terrain = bootstrap.get("terrain")
                 if terrain and terrain.data != null:
