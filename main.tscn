@@ -27,6 +27,10 @@ panorama = ExtResource("20_sky_hdri")
 energy_multiplier = 1.0
 filtering = 1
 
+[sub_resource type="CapsuleShape3D" id="ViewerCapsule"]
+radius = 0.35
+height = 1.8
+
 [sub_resource type="Sky" id="SunsetSky"]
 radiance_size = 2
 sky_material = SubResource("SunsetSkyMaterial")
@@ -132,7 +136,12 @@ script = ExtResource("4_mobile")
 
 [node name="Viewer" type="CharacterBody3D" parent="."]
 position = Vector3(1050, 120, 1550)
+floor_snap_length = 0.3
 script = ExtResource("2_viewer")
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="Viewer"]
+position = Vector3(0, -0.8, 0)
+shape = SubResource("ViewerCapsule")
 
 [node name="CharacterVisual" type="Node3D" parent="Viewer"]
 script = ExtResource("12_character_visual")
