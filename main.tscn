@@ -1,241 +1,81 @@
-[gd_scene load_steps=26 format=3]
+[gd_scene load_steps=12 format=3]
 
-[ext_resource type="Script" path="res://viewer.gd" id="2_viewer"]
-[ext_resource type="Script" path="res://hud.gd" id="3_hud"]
-[ext_resource type="Script" path="res://mobile_controls.gd" id="4_mobile"]
-[ext_resource type="Script" path="res://v37_integration/v37_world.gd" id="5_v37"]
-[ext_resource type="Script" path="res://debug_topdown_camera.gd" id="6_debugcam"]
-[ext_resource type="Script" path="res://urban_grid.gd" id="7_grid"]
-[ext_resource type="Script" path="res://v37_integration/v11_building_bridge.gd" id="8_v11bridge"]
-[ext_resource type="Script" path="res://tools/mobile_memory_watch.gd" id="9_memwatch"]
-[ext_resource type="Script" path="res://roads/simple_roads.gd" id="10_roads"]
-[ext_resource type="Script" path="res://city_library/poi/poi_manager.gd" id="11_poi"]
-[ext_resource type="Script" path="res://character_visual_loader.gd" id="12_character_visual"]
-[ext_resource type="Script" path="res://player_camera.gd" id="13_camera"]
-[ext_resource type="Script" path="res://player_controller.gd" id="14_controller"]
-[ext_resource type="Script" path="res://virtual_joystick.gd" id="15_joystick"]
-[ext_resource type="Script" path="res://touch_look_area.gd" id="16_look"]
-[ext_resource type="Script" path="res://touch_buttons.gd" id="17_buttons"]
-[ext_resource type="Script" path="res://platform_detector.gd" id="18_platform"]
-[ext_resource type="Script" path="res://performance_monitor.gd" id="19_perf"]
-[ext_resource type="Texture2D" path="res://assets/Sky/belfast_sunset_puresky_2k.hdr" id="20_sky_hdri"]
-[ext_resource type="Script" path="res://addons/mapgen/map_generator.gd" id="21_mapgen"]
-[ext_resource type="Resource" path="res://addons/mapgen/roma_brt_settings.tres" id="22_mapgen_settings"]
+[ext_resource type="Script" path="res://addons/mapgen/map_generator.gd" id="1_map"]
+[ext_resource type="Resource" path="res://addons/mapgen/roma_brt_settings.tres" id="2_settings"]
+[ext_resource type="Script" path="res://viewer.gd" id="3_player"]
+[ext_resource type="Script" path="res://player_camera.gd" id="4_camera"]
+[ext_resource type="Texture2D" path="res://assets/Sky/belfast_sunset_puresky_2k.hdr" id="5_hdr"]
+[ext_resource type="Script" path="res://storm_circle.gd" id="6_storm"]
+[ext_resource type="Script" path="res://city_library/poi/poi_manager.gd" id="7_poi"]
 
-[sub_resource type="PanoramaSkyMaterial" id="SunsetSkyMaterial"]
-panorama = ExtResource("20_sky_hdri")
-energy_multiplier = 1.0
-filtering = 1
+[sub_resource type="PanoramaSkyMaterial" id="SkyMat"]
+panorama = ExtResource("5_hdr")
+energy_multiplier = 0.8
 
-[sub_resource type="CapsuleShape3D" id="ViewerCapsule"]
-radius = 0.35
-height = 1.8
+[sub_resource type="Sky" id="Sky"]
+sky_material = SubResource("SkyMat")
 
-[sub_resource type="Sky" id="SunsetSky"]
-radiance_size = 2
-sky_material = SubResource("SunsetSkyMaterial")
-
-[sub_resource type="Environment" id="Env"]
+[sub_resource type="Environment" id="Environment"]
 background_mode = 2
-background_color = Color(0.43, 0.58, 0.68, 1)
-sky = SubResource("SunsetSky")
+sky = SubResource("Sky")
 ambient_light_source = 3
-ambient_light_color = Color(0.68, 0.7, 0.72, 1)
-ambient_light_sky_contribution = 1.0
+ambient_light_color = Color(0.7, 0.73, 0.78, 1)
 ambient_light_energy = 0.65
 tonemap_mode = 2
 tonemap_exposure = 0.95
-tonemap_white = 8.0
 fog_enabled = true
 fog_light_color = Color(0.72, 0.75, 0.79, 1)
-fog_light_energy = 0.32
 fog_density = 0.0001
-fog_aerial_perspective = 0.15
-fog_sky_affect = 0.1
 glow_enabled = false
-glow_intensity = 0.15
-glow_strength = 0.75
-glow_bloom = 0.02
-glow_blend_mode = 0
-glow_hdr_threshold = 1.5
 
-[node name="RomaHeightmapBeta" type="Node3D"]
+[sub_resource type="CapsuleShape3D" id="PlayerCapsule"]
+radius = 0.35
+height = 1.8
+
+[node name="RomaBRT" type="Node3D"]
 
 [node name="MapGenerator" type="Node3D" parent="."]
 position = Vector3(1000, 0, 1000)
-script = ExtResource("21_mapgen")
-settings = ExtResource("22_mapgen_settings")
+script = ExtResource("1_map")
+settings = ExtResource("2_settings")
 generate_on_ready = true
 
 [node name="WorldEnvironment" type="WorldEnvironment" parent="."]
-environment = SubResource("Env")
+environment = SubResource("Environment")
 
 [node name="Sun" type="DirectionalLight3D" parent="."]
-rotation_degrees = Vector3(-35, 45, 0)
-light_color = Color(1.0, 0.93, 0.82, 1)
-light_energy = 1.25
+rotation_degrees = Vector3(-42, 35, 0)
+light_color = Color(1, 0.94, 0.84, 1)
+light_energy = 1.2
 shadow_enabled = true
-directional_shadow_max_distance = 300.0
-directional_shadow_fade_start = 0.8
-shadow_blur = 1.5
-shadow_bias = 0.05
+directional_shadow_max_distance = 250.0
 
-[node name="TerrainFillLight" type="DirectionalLight3D" parent="."]
-rotation_degrees = Vector3(30, -135, 0)
-light_color = Color(0.75, 0.75, 0.85, 1)
-light_energy = 0.8
-shadow_enabled = false
-
-[node name="GroundBounceLight" type="DirectionalLight3D" parent="."]
-rotation_degrees = Vector3(-90, 0, 0)
-light_color = Color(0.62, 0.64, 0.66, 1)
-light_energy = 0.3
-shadow_enabled = false
-
-[node name="V37Integration" type="Node3D" parent="."]
-script = ExtResource("5_v37")
-enable_buildings = false
-enable_pois = false
-enable_foliage = false
-enable_fire = true
-enable_roads = false
-enable_technical_camera = false
-
-[node name="Urban_Grid" type="Node3D" parent="."]
-script = ExtResource("7_grid")
-
-; OLD GridMap road_world.gd intentionally disabled.
-; The active road system is the connected box-segment network below.
-[node name="SimpleRoads" type="Node3D" parent="."]
-script = ExtResource("10_roads")
-
-[node name="V11BuildingBridge" type="Node3D" parent="."]
-script = ExtResource("8_v11bridge")
+[node name="StormCircle" type="Node3D" parent="."]
+script = ExtResource("6_storm")
 
 [node name="POIManager" type="Node3D" parent="."]
-script = ExtResource("11_poi")
-show_reservation_markers = false
+script = ExtResource("7_poi")
+show_reservation_markers = true
 instantiate_existing_modules = true
 
-[node name="MobileV11MemoryWatch" type="Node" parent="."]
-script = ExtResource("9_memwatch")
-
-[node name="DebugTopDownCamera" type="Node3D" parent="."]
-script = ExtResource("6_debugcam")
-
-[node name="MobileControls" type="Control" parent="."]
-layout_mode = 3
-anchors_preset = 15
-anchor_right = 1.0
-anchor_bottom = 1.0
-grow_horizontal = 2
-grow_vertical = 2
-mouse_filter = 2
-z_index = 100
-script = ExtResource("4_mobile")
-
-[node name="Viewer" type="CharacterBody3D" parent="."]
-position = Vector3(1050, 120, 1550)
+[node name="Player" type="CharacterBody3D" parent="."]
+position = Vector3(1000, 100, 1000)
 floor_snap_length = 0.3
-script = ExtResource("2_viewer")
+script = ExtResource("3_player")
 
-[node name="CollisionShape3D" type="CollisionShape3D" parent="Viewer"]
+[node name="CollisionShape3D" type="CollisionShape3D" parent="Player"]
 position = Vector3(0, -0.8, 0)
-shape = SubResource("ViewerCapsule")
+shape = SubResource("PlayerCapsule")
 
-[node name="CharacterVisual" type="Node3D" parent="Viewer"]
-script = ExtResource("12_character_visual")
+[node name="CameraPivot" type="Node3D" parent="Player"]
+script = ExtResource("4_camera")
 
-[node name="CameraPivot" type="Node3D" parent="Viewer"]
-script = ExtResource("13_camera")
-
-[node name="SpringArm3D" type="SpringArm3D" parent="Viewer/CameraPivot"]
-spring_length = 4.5
+[node name="SpringArm3D" type="SpringArm3D" parent="Player/CameraPivot"]
+spring_length = 6.0
 margin = 0.2
 
-[node name="Camera3D" type="Camera3D" parent="Viewer/CameraPivot/SpringArm3D"]
-position = Vector3(0.0, 0.0, 0.0)
-current = false
+[node name="Camera3D" type="Camera3D" parent="Player/CameraPivot/SpringArm3D"]
+current = true
 fov = 80.0
 near = 0.05
-far = 4000.0
-
-[node name="PlayerController" type="Node" parent="."]
-script = ExtResource("14_controller")
-
-[node name="PlatformDetector" type="Node" parent="."]
-script = ExtResource("18_platform")
-
-[node name="HUD" type="CanvasLayer" parent="."]
-script = ExtResource("3_hud")
-
-[node name="TouchHUD" type="Control" parent="HUD"]
-layout_mode = 3
-anchors_preset = 15
-anchor_right = 1.0
-anchor_bottom = 1.0
-grow_horizontal = 2
-grow_vertical = 2
-mouse_filter = 2
-
-[node name="VirtualJoystick" type="Control" parent="HUD/TouchHUD"]
-layout_mode = 0
-offset_left = 35.0
-offset_top = 485.0
-offset_right = 235.0
-offset_bottom = 685.0
-script = ExtResource("15_joystick")
-
-[node name="TouchLookArea" type="Control" parent="HUD/TouchHUD"]
-layout_mode = 0
-offset_left = 512.0
-offset_top = 0.0
-offset_right = 1280.0
-offset_bottom = 720.0
-script = ExtResource("16_look")
-
-[node name="TouchButtons" type="Control" parent="HUD/TouchHUD"]
-layout_mode = 1
-anchors_preset = 15
-anchor_right = 1.0
-anchor_bottom = 1.0
-grow_horizontal = 2
-grow_vertical = 2
-script = ExtResource("17_buttons")
-
-[node name="Panel" type="PanelContainer" parent="HUD"]
-offset_left = 18.0
-offset_top = 18.0
-offset_right = 500.0
-offset_bottom = 205.0
-
-[node name="Label" type="Label" parent="HUD/Panel"]
-text = "ROMA HEIGHTMAP BETA — DEBUG TOP-DOWN\n\nRAW 1081×1081 • 16-bit BIG-ENDIAN\nWORLD 2000×2000 m • spacing 1.85185 m\nHEIGHT SCALE 48 m\n\nANDROID + CONTROLLER:\nStick sinistro = sposta mappa • touch meta destra = zoom/pitch • pinch = zoom"
-theme_override_font_sizes/font_size = 15
-
-[node name="Status" type="Label" parent="."]
-offset_left = 18.0
-offset_top = 215.0
-offset_right = 950.0
-offset_bottom = 250.0
-text = "MapGen attivo • attendo generazione terreno"
-theme_override_font_sizes/font_size = 14
-
-[node name="PerformanceMonitor" type="CanvasLayer" parent="."]
-layer = 120
-script = ExtResource("19_perf")
-
-[node name="Panel" type="PanelContainer" parent="PerformanceMonitor"]
-anchors_preset = 1
-anchor_left = 1.0
-anchor_right = 1.0
-offset_left = -360.0
-offset_top = 18.0
-offset_right = -18.0
-offset_bottom = 350.0
-mouse_filter = 2
-
-[node name="Label" type="Label" parent="PerformanceMonitor/Panel"]
-layout_mode = 2
-theme_override_font_sizes/font_size = 13
-text = "Performance Monitor: avvio..."
+far = 3000.0
