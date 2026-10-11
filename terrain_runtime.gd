@@ -242,15 +242,19 @@ func _build_manual_control_map(values: PackedFloat32Array, width: int, height: i
             var dx := 0.0 if dx_dist <= 0.0 else ((values[z * width + x1] - values[z * width + x0]) * HEIGHT_SCALE_M / dx_dist)
             var dz := 0.0 if dz_dist <= 0.0 else ((values[z1 * width + x] - values[z0 * width + x]) * HEIGHT_SCALE_M / dz_dist)
             var slope_deg := rad_to_deg(atan(sqrt(dx * dx + dz * dz)))
-            var soil_weight := 0.0 # Flat terrain stays grass; no square soil patches from heightmap noise.
-
-            # Narrow Roman riverbank: at most ~4 m from the supplied centerline mask.
+            # Grass is the base biome. Expose the rock layer on sustained slopes,
+            # and reserve soil for the authored Tiber bank mask to avoid square noise patches.
+            var slope_t := clampf((slope_deg - 12.0) / (24.0 - 12.0), 0.0, 1.0)
+            slope_t = slope_t * slope_t * (3.0 - 2.0 * slope_t)
+            var overlay_id := 2 if slope_t > 0.01 else 1
+            var overlay_weight := slope_t
+            # Riverbank soil has priority over rock and fades softly at its edge.
             if bank_dilated[z * width + x] != 0:
-                soil_weight = maxf(soil_weight, 0.24)
-
-            var blend := clampi(int(round(soil_weight * 255.0)), 0, 255)
-            # Terrain3D control-map bits: base 0, overlay 1, blend 0..255, autoshader=0.
-            var packed: int = ((1 & 0x1F) << 22) | ((blend & 0xFF) << 14)
+                overlay_id = 1
+                overlay_weight = maxf(overlay_weight, 0.28)
+            var blend := clampi(int(round(overlay_weight * 255.0)), 0, 255)
+            # Terrain3D control-map bits: base grass=0, overlay ID, blend 0..255.
+            var packed: int = ((overlay_id & 0x1F) << 22) | ((blend & 0xFF) << 14)
             bytes.encode_u32((z * width + x) * 4, packed)
 
     return Image.create_from_data(width, height, false, Image.FORMAT_RF, bytes)
