@@ -62,6 +62,7 @@ glow_hdr_threshold = 1.5
 position = Vector3(1000, 0, 1000)
 script = ExtResource("21_mapgen")
 settings = ExtResource("22_mapgen_settings")
+generate_on_ready = true
 
 [node name="WorldEnvironment" type="WorldEnvironment" parent="."]
 environment = SubResource("Env")
@@ -89,6 +90,7 @@ light_energy = 0.3
 shadow_enabled = false
 
 [node name="TerrainBootstrap" type="Node3D" parent="."]
+visible = false
 script = ExtResource("1_rt")
 
 [node name="V37Integration" type="Node3D" parent="."]
