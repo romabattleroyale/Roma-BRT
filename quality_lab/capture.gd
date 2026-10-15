@@ -31,8 +31,8 @@ func _capture_scene() -> void:
 	if not _save_view(output_dir.path_join("colosseo_exterior.png")):
 		quit(4)
 		return
-	camera.global_position = Vector3(0, 12, 34)
-	camera.look_at(Vector3(0, 5, 0), Vector3.UP)
+	camera.global_position = Vector3(0, 11, 8)
+	camera.look_at(Vector3(0, 4, -10), Vector3.UP)
 	await RenderingServer.frame_post_draw
 	if not _save_view(output_dir.path_join("colosseo_interior.png")):
 		quit(5)
