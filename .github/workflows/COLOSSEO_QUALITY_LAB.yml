@@ -19,7 +19,7 @@ jobs:
       - name: Install runtime
         run: |
           sudo apt-get update
-          sudo apt-get install -y xvfb unzip
+          sudo apt-get install -y xvfb unzip libgl1-mesa-dri
           curl -L --fail -o /tmp/godot.zip https://github.com/godotengine/godot/releases/download/4.7.2-stable/Godot_v4.7.2-stable_linux.x86_64.zip
           unzip -q /tmp/godot.zip -d /tmp/godot
           chmod +x /tmp/godot/Godot_v4.7.2-stable_linux.x86_64
@@ -29,3 +29,14 @@ jobs:
       - name: Launch runtime smoke test
         run: |
           timeout 25s /tmp/godot/Godot_v4.7.2-stable_linux.x86_64 --headless --path quality_lab --quit-after 4
+      - name: Render real preview screenshot
+        run: |
+          mkdir -p artifacts
+          timeout 90s xvfb-run -a -s "-screen 0 1600x900x24" /tmp/godot/Godot_v4.7.2-stable_linux.x86_64 --path quality_lab --script res://capture.gd
+          test -s artifacts/colosseo_preview.png
+      - name: Upload rendered preview
+        uses: actions/upload-artifact@v4
+        with:
+          name: colosseo-quality-lab-preview
+          path: artifacts/colosseo_preview.png
+          if-no-files-found: error
