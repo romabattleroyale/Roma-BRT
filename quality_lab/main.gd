@@ -268,7 +268,7 @@ func _make_colosseum() -> void:
 			for stone_idx in range(7):
 				var theta := PI - PI * float(stone_idx) / 6.0
 				var arc_pos := Vector3(cos(mid_a) * rx, y + 3.0 + sin(theta) * 1.35, sin(mid_a) * rz) + tangent_arch * (cos(theta) * 1.35)
-				var voussoir := _box(col, Vector3(1.42, 0.42, 0.55), arc_pos, trim)
+				var voussoir := _box(col, Vector3(0.58, 0.42, 1.42), arc_pos, trim)
 				voussoir.look_at(arc_pos + tangent_arch, Vector3.UP)
 				voussoir.rotate_object_local(Vector3(0, 0, 1), theta - PI * 0.5)
 		_elliptical_ring(col, rx + 0.35, rz + 0.35, 0.45, y + 4.65, trim)
