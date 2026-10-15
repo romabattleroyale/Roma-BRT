@@ -541,6 +541,16 @@ func _make_neighbourhood() -> void:
 			if (row * 7 + col) % 3 == 0:
 				var chimney := _box(building, Vector3(0.62, 1.05, 0.62), Vector3(w * 0.28, h + 1.05, -d * 0.22), terracotta)
 				_box(building, Vector3(0.82, 0.14, 0.82), Vector3(w * 0.28, h + 1.62, -d * 0.22), trim)
+			# Roofline variation: parapet piers, terracotta pots and small rooftop pergola beams.
+			if (row + col) % 2 == 1:
+				for roof_x in [-w * 0.42, w * 0.42]:
+					_box(building, Vector3(0.28, 0.95, 0.28), Vector3(roof_x, h + 0.75, d * 0.34), trim)
+				_box(building, Vector3(w * 0.9, 0.14, 0.22), Vector3(0, h + 1.12, d * 0.34), trim)
+			if (row * 3 + col) % 4 == 0:
+				var roof_pot := _cylinder(building, 0.42, 0.72, Vector3(-w * 0.28, h + 0.42, d * 0.18), terracotta, 10)
+				_cylinder(building, 0.49, 0.12, Vector3(-w * 0.28, h + 0.83, d * 0.18), trim, 10)
+				var roof_plant := _make_tree_crown(Vector3(-w * 0.28, h + 1.18, d * 0.18), 0.68, 1.1, _mat(Color("#526947"), 0.95))
+				building.add_child(roof_plant)
 			var floors := int(h / 2.8)
 			for f in range(floors):
 				var yy := 1.5 + f * 2.8
