@@ -48,9 +48,18 @@ jobs:
           test -s artifacts/colosseo_exterior.png
           test -s artifacts/colosseo_interior.png
           test -s artifacts/roma_district_overview.png
+      - name: Package standalone Godot project
+        run: |
+          zip -qr artifacts/roma_brt_quality_lab_project.zip quality_lab
       - name: Upload rendered preview
         uses: actions/upload-artifact@v4
         with:
           name: colosseo-quality-lab-preview
           path: artifacts/*.png
+          if-no-files-found: error
+      - name: Upload standalone Godot project
+        uses: actions/upload-artifact@v4
+        with:
+          name: roma-brt-quality-lab-project
+          path: artifacts/roma_brt_quality_lab_project.zip
           if-no-files-found: error
