@@ -256,7 +256,7 @@ func _make_colosseum() -> void:
 	for x in [-10.0, -5.0, 0.0, 5.0, 10.0]:
 		for z in [-5.0, 0.0, 5.0]:
 			_cylinder(col, 0.13, 2.4, Vector3(x, 1.05, z), timber, 8)
-		_box(col, Vector3(4.8, 0.12, 0.65), Vector3(x, 2.1, z), timber)
+			_box(col, Vector3(4.8, 0.12, 0.65), Vector3(x, 2.1, z), timber)
 	for z in [-6.0, 6.0]:
 		_box(col, Vector3(27.0, 0.14, 0.24), Vector3(0, 2.25, z), timber)
 	# stairwell handrails and posts for interior circulation
@@ -264,7 +264,7 @@ func _make_colosseum() -> void:
 		for step in range(10):
 			var p := Vector3(side * (22.0 + step * 0.78), 2.0 + step * 0.28, -8.0 + step * 1.25)
 			_cylinder(col, 0.055, 0.9, p, trim, 8)
-		_box(col, Vector3(0.08, 0.08, 13.0), Vector3(side * 25.2, 3.1, -2.4), shadow_stone)
+			_box(col, Vector3(0.08, 0.08, 13.0), Vector3(side * 25.2, 3.1, -2.4), shadow_stone)
 	# arena floor and hypogeum lanes
 	_box(col, Vector3(29, 0.22, 19), Vector3(0, 1.55, 0), _mat(Color("#b99a70")))
 	for x in range(-12, 13, 4):
@@ -339,7 +339,7 @@ func _make_neighbourhood() -> void:
 					_box(building, Vector3(0.12, 1.25, 0.08), Vector3(wx - 0.49, yy + 0.6, side * (d * 0.5 + 0.17)), terracotta)
 					_box(building, Vector3(0.12, 1.25, 0.08), Vector3(wx + 0.49, yy + 0.6, side * (d * 0.5 + 0.17)), terracotta)
 					_box(building, Vector3(1.12, 0.12, 0.20), Vector3(wx, yy - 0.08, side * (d * 0.5 + 0.17)), trim)
-	# ground-level shopfronts, awnings and balconies
+			# ground-level shopfronts, awnings and balconies
 			_box(building, Vector3(w * 0.72, 2.1, 0.16), Vector3(0, 1.2, d * 0.5 + 0.1), shadow_stone)
 			_box(building, Vector3(w * 0.8, 0.24, 1.1), Vector3(0, 2.45, d * 0.5 + 0.55), terracotta)
 			for bx in [-w * 0.28, w * 0.28]:
