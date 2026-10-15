@@ -43,7 +43,7 @@ func _unhandled_input(event: InputEvent) -> void:
 
 func _physics_process(delta: float) -> void:
 	var axis := Input.get_vector("move_left", "move_right", "move_forward", "move_back")
-	axis += Vector2(touch_move.x, -touch_move.y)
+	axis += touch_move
 	axis = axis.limit_length(1.0)
 	var speed := run_speed if Input.is_key_pressed(KEY_SHIFT) else walk_speed
 	var direction := (transform.basis * Vector3(axis.x, 0, axis.y)).normalized()
