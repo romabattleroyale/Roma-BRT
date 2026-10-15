@@ -340,6 +340,30 @@ func _make_colosseum() -> void:
 		if attic_idx % 4 == 0:
 			_box(col, Vector3(0.78, 0.18, 0.92), attic_pos + Vector3(0, 1.05, 0), stone)
 	_elliptical_ring(col, RX - 1.35, RZ - 0.92, 0.38, 25.20, trim)
+	# Monumental ceremonial entrance on the south-facing approach: layered portal, flanking pilasters and broad travertine steps.
+	var portal_stone := _mat(Color("#e6d1aa"), 0.86)
+	var portal_shadow := _mat(Color("#4f4033"), 0.96)
+	for step in range(5):
+		_box(col, Vector3(10.8 - step * 0.55, 0.28, 3.6 - step * 0.42),
+			Vector3(0, 0.14 + step * 0.28, RZ + 2.9 + step * 0.22), trim, true)
+	_box(col, Vector3(8.6, 6.8, 0.72), Vector3(0, 5.1, RZ + 0.1), portal_shadow)
+	_box(col, Vector3(7.4, 6.1, 0.32), Vector3(0, 5.0, RZ + 0.52), stone)
+	_box(col, Vector3(5.8, 5.1, 0.20), Vector3(0, 4.65, RZ + 0.72), portal_shadow)
+	_box(col, Vector3(8.8, 0.55, 1.05), Vector3(0, 8.15, RZ + 0.48), trim)
+	_box(col, Vector3(9.3, 0.22, 1.25), Vector3(0, 8.52, RZ + 0.48), portal_stone)
+	for side in [-1.0, 1.0]:
+		_box(col, Vector3(0.62, 6.9, 0.82), Vector3(side * 4.0, 4.9, RZ + 0.48), portal_stone, true)
+		_box(col, Vector3(1.0, 0.34, 1.12), Vector3(side * 4.0, 8.48, RZ + 0.48), trim)
+		_box(col, Vector3(0.82, 0.32, 1.05), Vector3(side * 4.0, 1.45, RZ + 0.48), trim)
+	var inscription := Label3D.new()
+	inscription.text = "AMPHITHEATRVM FLAVIVM"
+	inscription.font_size = 48
+	inscription.pixel_size = 0.012
+	inscription.modulate = Color("#35291e")
+	inscription.position = Vector3(0, 8.55, RZ + 1.14)
+	inscription.rotation.y = PI
+	inscription.double_sided = true
+	col.add_child(inscription)
 	# Small pale-stone statuary on the main ledges breaks up the repeated arcade rhythm.
 	var statue_stone := _mat(Color("#e1d1b0"), 0.82)
 	for tier in [1, 2]:
