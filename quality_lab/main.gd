@@ -303,24 +303,23 @@ func _make_colosseum() -> void:
 				win.rotation.y = a + PI * 0.5
 				var lintel := _box(col, Vector3(0.2, 0.16, 1.15), p + Vector3(0, 0.98, 0), trim)
 				lintel.rotation.y = a + PI * 0.5
-		# five voussoirs over each opening form a readable Roman arcade rhythm
+		# Semicircular arch voussoirs: keep the opening clear and build the curve from discrete stone blocks.
 		for bay in range(SEGMENTS):
 			var a0 := TAU * float(bay) / SEGMENTS
 			var a1 := TAU * float(bay + 1) / SEGMENTS
 			var mid_a := (a0 + a1) * 0.5
 			var tangent_arch := Vector3(-sin(mid_a), 0, cos(mid_a))
-			for stone_idx in range(7):
-				var theta := PI - PI * float(stone_idx) / 6.0
-				var arc_pos := Vector3(cos(mid_a) * rx, y + 2.55 + sin(theta) * 1.30, sin(mid_a) * rz) + tangent_arch * (cos(theta) * 1.30)
-				var voussoir := _box(col, Vector3(0.58, 0.42, 1.42), arc_pos, trim)
+			for stone_idx in range(9):
+				var theta := PI * float(stone_idx) / 8.0
+				var arc_pos := Vector3(cos(mid_a) * rx, y + 3.20 + sin(theta) * 0.92, sin(mid_a) * rz) + tangent_arch * (cos(theta) * 0.92)
+				var voussoir := _box(col, Vector3(0.52, 0.40, 1.38), arc_pos, trim)
 				voussoir.rotation.y = mid_a + PI * 0.5
-				voussoir.rotate_object_local(Vector3(1, 0, 0), theta - PI * 0.5)
-			# Projecting keystone and fine inner archivolt give each arch a stronger silhouette.
-			var crown_pos := Vector3(cos(mid_a) * rx, y + 3.88, sin(mid_a) * rz)
-			var keystone := _box(col, Vector3(0.72, 0.68, 1.54), crown_pos, trim)
+			# A single projecting keystone crowns the arch without closing its aperture.
+			var crown_pos := Vector3(cos(mid_a) * rx, y + 4.14, sin(mid_a) * rz)
+			var keystone := _box(col, Vector3(0.64, 0.48, 1.48), crown_pos, trim)
 			keystone.rotation.y = mid_a + PI * 0.5
-			var inner_crown := Vector3(cos(mid_a) * (rx - 0.10), y + 3.76, sin(mid_a) * (rz - 0.10))
-			var crown_shadow := _box(col, Vector3(0.16, 0.20, 1.22), inner_crown, shadow_stone)
+			var inner_crown := Vector3(cos(mid_a) * (rx - 0.12), y + 3.98, sin(mid_a) * (rz - 0.12))
+			var crown_shadow := _box(col, Vector3(0.14, 0.18, 1.16), inner_crown, shadow_stone)
 			crown_shadow.rotation.y = mid_a + PI * 0.5
 		# Continuous projecting stringcourse with small dentils below each tier.
 		_elliptical_ring(col, rx + 0.55, rz + 0.55, 0.22, y + 4.42, stone)
