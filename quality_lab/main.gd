@@ -10,6 +10,9 @@ var trim: StandardMaterial3D
 var shadow_stone: StandardMaterial3D
 var terracotta: StandardMaterial3D
 var asphalt: StandardMaterial3D
+var _box_mesh_cache: Dictionary = {}
+var _box_shape_cache: Dictionary = {}
+var _cylinder_mesh_cache: Dictionary = {}
 
 func _ready() -> void:
 	_make_materials()
@@ -94,33 +97,41 @@ func _procedural_brick_texture() -> Texture2D:
 	return ImageTexture.create_from_image(img)
 
 func _box(parent: Node3D, size: Vector3, pos: Vector3, material: Material, bevel := false) -> MeshInstance3D:
+	var mesh_key := str(size.x, "_", size.y, "_", size.z)
+	if not _box_mesh_cache.has(mesh_key):
+		var box_mesh := BoxMesh.new()
+		box_mesh.size = size
+		_box_mesh_cache[mesh_key] = box_mesh
 	var n := MeshInstance3D.new()
-	var m := BoxMesh.new()
-	m.size = size
-	n.mesh = m
+	n.mesh = _box_mesh_cache[mesh_key] as BoxMesh
 	n.position = pos
 	n.material_override = material
 	parent.add_child(n)
 	if bevel:
+		if not _box_shape_cache.has(mesh_key):
+			var box_shape := BoxShape3D.new()
+			box_shape.size = size
+			_box_shape_cache[mesh_key] = box_shape
 		var body := StaticBody3D.new()
 		body.position = pos
 		var shape := CollisionShape3D.new()
-		var b := BoxShape3D.new()
-		b.size = size
-		shape.shape = b
+		shape.shape = _box_shape_cache[mesh_key] as BoxShape3D
 		body.add_child(shape)
 		parent.add_child(body)
 	return n
 
 func _cylinder(parent: Node3D, radius: float, height: float, pos: Vector3, material: Material, radial := 12) -> MeshInstance3D:
+	var mesh_key := str(radius, "_", height, "_", radial)
+	if not _cylinder_mesh_cache.has(mesh_key):
+		var cylinder_mesh := CylinderMesh.new()
+		cylinder_mesh.top_radius = radius
+		cylinder_mesh.bottom_radius = radius
+		cylinder_mesh.height = height
+		cylinder_mesh.radial_segments = radial
+		cylinder_mesh.rings = 1
+		_cylinder_mesh_cache[mesh_key] = cylinder_mesh
 	var n := MeshInstance3D.new()
-	var m := CylinderMesh.new()
-	m.top_radius = radius
-	m.bottom_radius = radius
-	m.height = height
-	m.radial_segments = radial
-	m.rings = 1
-	n.mesh = m
+	n.mesh = _cylinder_mesh_cache[mesh_key] as CylinderMesh
 	n.position = pos
 	n.material_override = material
 	parent.add_child(n)
