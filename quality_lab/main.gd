@@ -503,6 +503,11 @@ func _elliptical_ring(parent: Node3D, rx: float, rz: float, thickness: float, y:
 		n.rotation.y = -atan2(q.z - p.z, q.x - p.x)
 
 func _make_neighbourhood() -> void:
+	# A coherent historic-centre palette: warm plaster, weathered travertine and terracotta roofs.
+	var ochre := _mat(Color("#c69a68"), 0.92)
+	var faded_cream := _mat(Color("#e0c79b"), 0.9)
+	var dark_wood := _mat(Color("#59382b"), 0.95)
+	var greenery := _mat(Color("#5d7042"), 0.96)
 	# Local Roman street grid between insulae, with raised travertine sidewalks.
 	for street_z in [-69.5, -44.5, 55.5]:
 		_box(self, Vector3(240, 0.14, 6.2), Vector3(0, -0.035, street_z), asphalt)
@@ -528,10 +533,10 @@ func _make_neighbourhood() -> void:
 			var building := Node3D.new()
 			building.position = Vector3(x, 0, z)
 			add_child(building)
-			var facade := terracotta if (row + col) % 3 == 0 else stone
+			var facade: Material = [ochre, faded_cream, stone, terracotta][(row * 3 + col * 5) % 4]
 			_box(building, Vector3(w, h, d), Vector3(0, h * 0.5, 0), facade, true)
 			_box(building, Vector3(w + 0.7, 0.32, d + 0.7), Vector3(0, h + 0.1, 0), trim)
-			_box(building, Vector3(w + 0.9, 0.45, d + 0.9), Vector3(0, h + 0.42, 0), _mat(Color("#713b2a")))
+			_box(building, Vector3(w + 0.9, 0.45, d + 0.9), Vector3(0, h + 0.42, 0), dark_wood)
 			if (row + col) % 2 == 0:
 				var roof_left := _box(building, Vector3(w + 0.5, 0.20, d * 0.56), Vector3(0, h + 0.78, -d * 0.22), terracotta)
 				roof_left.rotation.x = -0.28
@@ -556,7 +561,7 @@ func _make_neighbourhood() -> void:
 					leaf_mesh.height = 0.72
 					roof_leaf.mesh = leaf_mesh
 					roof_leaf.position = Vector3(-w * 0.28 + float(leaf_idx - 1) * 0.28, h + 1.18, d * 0.18)
-					roof_leaf.material_override = _mat(Color("#526947"), 0.95)
+					roof_leaf.material_override = greenery
 					building.add_child(roof_leaf)
 			var floors := int(h / 2.8)
 			for f in range(floors):
