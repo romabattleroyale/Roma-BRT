@@ -1,7 +1,7 @@
 extends Node3D
 
 # Isolated Colosseo quality lab. Procedural architectural study, not a replacement for the main map.
-const SEGMENTS := 96
+const SEGMENTS := 56
 const FLOORS := 4
 const RX := 32.0
 const RZ := 24.0
@@ -165,7 +165,7 @@ func _make_colosseum() -> void:
 			var tangent := Vector3(-sin(a), 0, cos(a))
 			var radial := Vector3(cos(a), 0, sin(a)).normalized()
 			var pier := _box(col, Vector3(0.92, 4.5, 1.35), p, trim, true)
-			if i % 3 == 0:
+			if i % 2 == 0:
 				_cylinder(col, 0.24, 4.1, p + radial * 0.78, trim, 12)
 				_cylinder(col, 0.38, 0.22, p + radial * 0.78 + Vector3(0, 2.08, 0), stone, 12)
 				_cylinder(col, 0.36, 0.20, p + radial * 0.78 - Vector3(0, 2.08, 0), stone, 12)
@@ -272,7 +272,7 @@ func _make_colosseum() -> void:
 	for x in range(-8, 9, 4):
 		_box(col, Vector3(2.2, 1.0, 12), Vector3(x, 0.55, 0), shadow_stone)
 	# upper attic story: alternating solid panels, pilasters and small square openings
-	var attic_y := 1.15 + FLOORS * 5.25 + 4.65
+	var attic_y := 1.15 + (FLOORS - 1) * 5.25 + 4.65
 	for i in range(SEGMENTS):
 		var a := TAU * float(i) / SEGMENTS
 		var radial := Vector3(cos(a), 0, sin(a)).normalized()
@@ -485,6 +485,6 @@ func _make_hud() -> void:
 	var label := Label.new()
 	label.text = "ROMA BATTLE ROYALE  •  COLOSSEO DISTRICT\nWASD / Frecce: movimento  •  SHIFT: corsa  •  Mouse: visuale\nTouch: joystick sinistro per muoverti, trascina a destra per ruotare"
 	label.position = Vector2(24, 18)
-	label.add_theme_font_size_override("font_size", 18)
+	label.add_theme_font_size_override("font_size", 14)
 	label.add_theme_color_override("font_color", Color("#fff0d3"))
 	layer.add_child(label)
