@@ -549,8 +549,15 @@ func _make_neighbourhood() -> void:
 			if (row * 3 + col) % 4 == 0:
 				var roof_pot := _cylinder(building, 0.42, 0.72, Vector3(-w * 0.28, h + 0.42, d * 0.18), terracotta, 10)
 				_cylinder(building, 0.49, 0.12, Vector3(-w * 0.28, h + 0.83, d * 0.18), trim, 10)
-				var roof_plant := _make_tree_crown(Vector3(-w * 0.28, h + 1.18, d * 0.18), 0.68, 1.1, _mat(Color("#526947"), 0.95))
-				building.add_child(roof_plant)
+				for leaf_idx in range(3):
+					var roof_leaf := MeshInstance3D.new()
+					var leaf_mesh := SphereMesh.new()
+					leaf_mesh.radius = 0.34
+					leaf_mesh.height = 0.72
+					roof_leaf.mesh = leaf_mesh
+					roof_leaf.position = Vector3(-w * 0.28 + float(leaf_idx - 1) * 0.28, h + 1.18, d * 0.18)
+					roof_leaf.material_override = _mat(Color("#526947"), 0.95)
+					building.add_child(roof_leaf)
 			var floors := int(h / 2.8)
 			for f in range(floors):
 				var yy := 1.5 + f * 2.8
