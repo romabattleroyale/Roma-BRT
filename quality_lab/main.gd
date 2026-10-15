@@ -190,6 +190,11 @@ func _make_environment() -> void:
 	env.adjustment_enabled = true
 	env.adjustment_contrast = 1.08
 	env.adjustment_saturation = 1.06
+	env.fog_enabled = true
+	env.fog_light_color = Color("#d8a07b")
+	env.fog_light_energy = 0.72
+	env.fog_density = 0.006
+	env.fog_sky_affect = 0.38
 	world.environment = env
 	add_child(world)
 	var sun := DirectionalLight3D.new()
