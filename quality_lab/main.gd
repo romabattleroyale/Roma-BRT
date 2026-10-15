@@ -45,18 +45,22 @@ func _make_materials() -> void:
 	trim.albedo_texture = _procedural_stone_texture(Color("#ead0a0"), 83)
 	shadow_stone.albedo_texture = _procedural_stone_texture(Color("#80664b"), 117)
 	terracotta.albedo_texture = _procedural_brick_texture()
+	# World-space triplanar mapping avoids each tiny architectural block stretching the same UV patch.
+	for masonry in [stone, trim, shadow_stone, terracotta]:
+		masonry.uv1_triplanar = true
+		masonry.uv1_scale = Vector3(0.22, 0.22, 0.22)
 	stone.normal_enabled = true
 	stone.normal_texture = _procedural_surface_normal(41, false)
-	stone.normal_scale = 0.055
+	stone.normal_scale = 0.085
 	trim.normal_enabled = true
 	trim.normal_texture = _procedural_surface_normal(83, false)
-	trim.normal_scale = 0.045
+	trim.normal_scale = 0.065
 	shadow_stone.normal_enabled = true
 	shadow_stone.normal_texture = _procedural_surface_normal(117, false)
-	shadow_stone.normal_scale = 0.05
+	shadow_stone.normal_scale = 0.075
 	terracotta.normal_enabled = true
 	terracotta.normal_texture = _procedural_surface_normal(2026, true)
-	terracotta.normal_scale = 0.055
+	terracotta.normal_scale = 0.08
 	asphalt.albedo_texture = _procedural_asphalt_texture()
 	asphalt.uv1_scale = Vector3(40, 40, 1)
 
