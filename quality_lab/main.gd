@@ -267,10 +267,10 @@ func _make_colosseum() -> void:
 			var tangent_arch := Vector3(-sin(mid_a), 0, cos(mid_a))
 			for stone_idx in range(7):
 				var theta := PI - PI * float(stone_idx) / 6.0
-				var arc_pos := Vector3(cos(mid_a) * rx, y + 3.0 + sin(theta) * 1.35, sin(mid_a) * rz) + tangent_arch * (cos(theta) * 1.35)
+				var arc_pos := Vector3(cos(mid_a) * rx, y + 2.55 + sin(theta) * 1.30, sin(mid_a) * rz) + tangent_arch * (cos(theta) * 1.30)
 				var voussoir := _box(col, Vector3(0.58, 0.42, 1.42), arc_pos, trim)
 				voussoir.look_at(arc_pos + tangent_arch, Vector3.UP)
-				voussoir.rotate_object_local(Vector3(0, 0, 1), theta - PI * 0.5)
+				voussoir.rotate_object_local(Vector3(1, 0, 0), theta - PI * 0.5)
 		_elliptical_ring(col, rx + 0.35, rz + 0.35, 0.45, y + 4.65, trim)
 	# Upper attic course: solid travertine parapet with regularly spaced small openings.
 	# This is distinct from the four lower arcades and breaks the repetitive silhouette.
