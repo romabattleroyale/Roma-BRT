@@ -18,6 +18,7 @@ func _ready() -> void:
 	_make_materials()
 	_make_environment()
 	_make_ground()
+	_make_plaza_paving()
 	_make_colosseum()
 	_make_neighbourhood()
 	_make_street_furniture()
@@ -219,6 +220,23 @@ func _make_ground() -> void:
 	for x in range(-110, 111, 14):
 		_box(self, Vector3(5, 0.025, 0.18), Vector3(x, -0.11, -48), trim)
 		_box(self, Vector3(5, 0.025, 0.18), Vector3(x, -0.11, 48), trim)
+
+func _make_plaza_paving() -> void:
+	# Travertine slab paving in the approach plaza, with narrow joints and subtle color variation.
+	var rng := RandomNumberGenerator.new()
+	rng.seed = 1407
+	var slabs: Array[Material] = [
+		_mat(Color("#c9b18a"), 0.92),
+		_mat(Color("#d5bf9b"), 0.92),
+		_mat(Color("#bda47c"), 0.92),
+		_mat(Color("#c4ad85"), 0.92)
+	]
+	for row in range(9):
+		for col in range(25):
+			var x := -36.0 + col * 3.0 + (1.5 if row % 2 else 0.0)
+			var z := 29.0 + row * 1.75
+			var slab_size := Vector3(rng.randf_range(2.55, 2.82), 0.045, rng.randf_range(1.45, 1.62))
+			_box(self, slab_size, Vector3(x, 0.105, z), slabs[rng.randi_range(0, slabs.size() - 1)])
 
 func _make_colosseum() -> void:
 	var col := Node3D.new()
