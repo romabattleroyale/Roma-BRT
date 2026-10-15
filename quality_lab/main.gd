@@ -274,6 +274,26 @@ func _make_colosseum() -> void:
 				voussoir.look_at(arc_pos + tangent_arch, Vector3.UP)
 				voussoir.rotate_object_local(Vector3(0, 0, 1), theta - PI * 0.5)
 		_elliptical_ring(col, rx + 0.35, rz + 0.35, 0.45, y + 4.65, trim)
+	# Upper attic course: solid travertine parapet with regularly spaced small openings.
+	# This is distinct from the four lower arcades and breaks the repetitive silhouette.
+	for i in range(SEGMENTS):
+		var a := TAU * float(i) / SEGMENTS
+		var tangent := Vector3(-sin(a), 0, cos(a))
+		var radial := Vector3(cos(a), 0, sin(a)).normalized()
+		var rx_attic := RX - 2.0
+		var rz_attic := RZ - 1.55
+		var center := Vector3(cos(a) * rx_attic, 22.0, sin(a) * rz_attic)
+		var attic_panel := _box(col, Vector3(0.55, 2.3, 2.15), center, stone)
+		attic_panel.look_at(center + tangent, Vector3.UP)
+		if i % 2 == 0:
+			var opening := _box(col, Vector3(0.10, 0.85, 0.62), center + radial * 0.31 + Vector3(0, 0.12, 0), shadow_stone)
+			opening.look_at(center + tangent, Vector3.UP)
+			var sill := _box(col, Vector3(0.18, 0.12, 0.82), center + radial * 0.36 + Vector3(0, -0.38, 0), trim)
+			sill.look_at(center + tangent, Vector3.UP)
+		var pilaster := _box(col, Vector3(0.68, 2.45, 0.20), center + radial * 0.34, trim)
+		pilaster.look_at(center + tangent, Vector3.UP)
+	_elliptical_ring(col, RX - 1.35, RZ - 1.0, 0.65, 23.25, trim, true)
+	_elliptical_ring(col, RX - 1.15, RZ - 0.8, 0.32, 24.0, shadow_stone, true)
 	# ceremonial SPQR standards and monumental approach stairs
 	var banner_mat := _mat(Color("#7e2524"))
 	var gold_mat := _mat(Color("#d7ad62"), 0.72, 0.08)
