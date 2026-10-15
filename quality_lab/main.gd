@@ -582,7 +582,6 @@ func _make_showcase_figures() -> void:
 	for idx in range(2):
 		var person := Node3D.new()
 		person.position = Vector3(-3.0 + idx * 6.0, 0.0, 39.5)
-		person.rotation.y = PI
 		add_child(person)
 		var tunic := _box(person, Vector3(0.78, 1.18, 0.42), Vector3(0, 1.18, 0), tunic_a if idx == 0 else tunic_b)
 		var head := _cylinder(person, 0.22, 0.34, Vector3(0, 2.02, 0), skin, 12)
