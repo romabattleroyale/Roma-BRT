@@ -481,6 +481,7 @@ func _make_street_furniture() -> void:
 		sign_text.font_size = 48
 		sign_text.pixel_size = 0.012
 		sign_text.modulate = Color("#292b2a")
+		sign_text.rotation.y = PI
 		add_child(sign_text)
 	# painted zebra crossings and Roman paving insets
 	for stripe in range(9):
