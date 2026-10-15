@@ -236,7 +236,7 @@ func _make_plaza_paving() -> void:
 		for col in range(25):
 			var x := -36.0 + col * 3.0 + (1.5 if row % 2 else 0.0)
 			var z := 29.0 + row * 1.75
-			var slab_size := Vector3(rng.randf_range(2.55, 2.82), 0.045, rng.randf_range(1.45, 1.62))
+			var slab_size := Vector3(rng.randf_range(2.88, 2.96), 0.035, rng.randf_range(1.66, 1.72))
 			_box(self, slab_size, Vector3(x, 0.105, z), slabs[rng.randi_range(0, slabs.size() - 1)])
 
 func _make_colosseum() -> void:
