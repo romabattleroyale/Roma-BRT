@@ -1,0 +1,55 @@
+name: Colosseo Quality Lab
+
+on:
+  push:
+    branches:
+      - colosseo-quality-lab
+    paths:
+      - "quality_lab/**"
+      - ".github/workflows/colosseo-quality-lab.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: colosseo-quality-lab-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  validate-and-render:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Checkout project
+        uses: actions/checkout@v4
+
+      - name: Install Godot
+        uses: chickensoft-games/setup-godot@v2
+        with:
+          version: 4.7.2
+          use-dotnet: false
+
+      - name: Validate project import
+        run: godot --headless --path quality_lab --editor --quit
+
+      - name: Render preview images
+        env:
+          GODOT_SILENCE_ROOT_WARNING: "1"
+          GITHUB_WORKSPACE: ${{ github.workspace }}
+        run: godot --headless --path quality_lab --script res://capture.gd
+
+      - name: Package runnable Godot project
+        run: |
+          cd quality_lab
+          zip -r ../Roma-BRT-Colosseo-Quality-Lab.zip . -x ".godot/*"
+
+      - name: Upload project and rendered previews
+        uses: actions/upload-artifact@v4
+        with:
+          name: roma-brt-colosseo-quality-lab
+          path: |
+            Roma-BRT-Colosseo-Quality-Lab.zip
+            artifacts/*.png
+          if-no-files-found: error
+          retention-days: 14
