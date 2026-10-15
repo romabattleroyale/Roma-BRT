@@ -542,11 +542,29 @@ func _make_hud() -> void:
 		layer.add_child(move_ring)
 		var look_ring := TextureRect.new()
 		look_ring.texture = ring_texture
-		look_ring.position = Vector2(screen_size.x - 152, screen_size.y - 154)
+		look_ring.position = Vector2(screen_size.x - 152, screen_size.y - 390)
 		look_ring.size = Vector2(124, 124)
 		look_ring.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
 		look_ring.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		layer.add_child(look_ring)
+		for action in ["RUN", "JUMP"]:
+			var action_ring := TextureRect.new()
+			action_ring.texture = ring_texture
+			action_ring.size = Vector2(86, 86)
+			action_ring.position = Vector2(screen_size.x - 116, screen_size.y - (130 if action == "JUMP" else 250))
+			action_ring.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+			action_ring.mouse_filter = Control.MOUSE_FILTER_IGNORE
+			layer.add_child(action_ring)
+			var action_label := Label.new()
+			action_label.text = action
+			action_label.position = action_ring.position
+			action_label.size = action_ring.size
+			action_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+			action_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+			action_label.add_theme_font_size_override("font_size", 12)
+			action_label.add_theme_color_override("font_color", Color("#fff0d3"))
+			action_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
+			layer.add_child(action_label)
 
 func _touch_ring_texture() -> Texture2D:
 	var img := Image.create(128, 128, false, Image.FORMAT_RGBA8)
