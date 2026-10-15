@@ -183,6 +183,16 @@ func _make_colosseum() -> void:
 				var lintel := _box(col, Vector3(0.2, 0.16, 1.15), p + Vector3(0, 0.98, 0), trim)
 				lintel.look_at(p + tangent, Vector3.UP)
 		_elliptical_ring(col, rx + 0.35, rz + 0.35, 0.45, y + 4.65, trim)
+	# ceremonial SPQR standards and monumental approach stairs
+	var banner_mat := _mat(Color("#7e2524"))
+	var gold_mat := _mat(Color("#d7ad62"), 0.72, 0.08)
+	for bx in [-18.0, -6.0, 6.0, 18.0]:
+		_box(col, Vector3(0.18, 5.2, 0.18), Vector3(bx, 14.4, -25.2), gold_mat)
+		_box(col, Vector3(1.75, 3.8, 0.14), Vector3(bx + 0.95, 13.3, -25.15), banner_mat)
+		_box(col, Vector3(1.45, 0.12, 0.17), Vector3(bx + 0.95, 15.1, -25.04), gold_mat)
+		_box(col, Vector3(1.25, 0.12, 0.17), Vector3(bx + 0.95, 11.45, -25.04), gold_mat)
+	for step in range(8):
+		_box(col, Vector3(18.0, 0.28, 1.1), Vector3(0, 0.14 + step * 0.28, -35.0 + step * 1.1), trim, true)
 	# arena, inner walls, tiered seating and hypogeum corridors
 	_elliptical_ring(col, 19.5, 13.7, 0.35, 1.25, shadow_stone)
 	_elliptical_ring(col, 18.4, 12.8, 0.3, 1.45, trim)
