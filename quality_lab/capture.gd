@@ -13,11 +13,10 @@ func _capture_scene() -> void:
 	root.add_child(scene)
 	for frame in range(3):
 		await process_frame
-	var camera := scene.find_child("Camera3D", true, false) as Camera3D
-	if camera == null:
-		push_error("Player camera not found")
-		quit(3)
-		return
+	var camera := Camera3D.new()
+	camera.name = "PreviewCamera"
+	scene.add_child(camera)
+	camera.current = true
 	var workspace := OS.get_environment("GITHUB_WORKSPACE")
 	var output_dir := workspace.path_join("artifacts")
 	DirAccess.make_dir_recursive_absolute(output_dir)
