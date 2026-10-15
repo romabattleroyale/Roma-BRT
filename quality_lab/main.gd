@@ -47,40 +47,52 @@ func _make_materials() -> void:
 	terracotta.albedo_texture = _procedural_brick_texture()
 	stone.normal_enabled = true
 	stone.normal_texture = _procedural_surface_normal(41, false)
-	stone.normal_scale = 0.18
+	stone.normal_scale = 0.055
 	trim.normal_enabled = true
 	trim.normal_texture = _procedural_surface_normal(83, false)
-	trim.normal_scale = 0.14
+	trim.normal_scale = 0.045
 	shadow_stone.normal_enabled = true
 	shadow_stone.normal_texture = _procedural_surface_normal(117, false)
-	shadow_stone.normal_scale = 0.16
+	shadow_stone.normal_scale = 0.05
 	terracotta.normal_enabled = true
 	terracotta.normal_texture = _procedural_surface_normal(2026, true)
-	terracotta.normal_scale = 0.18
+	terracotta.normal_scale = 0.055
 	asphalt.albedo_texture = _procedural_asphalt_texture()
 	asphalt.uv1_scale = Vector3(40, 40, 1)
 
 func _procedural_stone_texture(base: Color, seed_value: int) -> Texture2D:
+	# Broad, subtle stone variation rather than per-pixel noise: readable masonry at game distance.
 	var img := Image.create(256, 256, false, Image.FORMAT_RGBA8)
 	var rng := RandomNumberGenerator.new()
 	rng.seed = seed_value
+	var block_tones: Array[Color] = []
+	for block_y in range(8):
+		for block_x in range(4):
+			var variation := rng.randf_range(-0.025, 0.025)
+			block_tones.append(Color(
+				clampf(base.r + variation, 0.0, 1.0),
+				clampf(base.g + variation, 0.0, 1.0),
+				clampf(base.b + variation, 0.0, 1.0), 1.0))
 	for y in range(256):
 		for x in range(256):
 			var cell_x := x % 64
 			var cell_y := y % 32
 			var mortar := cell_x < 2 or cell_y < 2
-			var variation := rng.randf_range(-0.055, 0.055)
-			var c := base.darkened(0.34) if mortar else Color(
-				clampf(base.r + variation, 0.0, 1.0),
-				clampf(base.g + variation, 0.0, 1.0),
-				clampf(base.b + variation, 0.0, 1.0), 1.0)
+			var tile_x := int(x / 64)
+			var tile_y := int(y / 32)
+			var c := base.darkened(0.22) if mortar else block_tones[tile_y * 4 + tile_x]
 			img.set_pixel(x, y, c)
 	return ImageTexture.create_from_image(img)
 
 func _procedural_surface_normal(seed_value: int, brick: bool) -> Texture2D:
+	# Large-scale relief keeps the masonry tactile without the noisy, glittering surface of pixel noise.
 	var img := Image.create(256, 256, false, Image.FORMAT_RGBA8)
 	var rng := RandomNumberGenerator.new()
 	rng.seed = seed_value
+	var heights: Array[float] = []
+	for block_y in range(16):
+		for block_x in range(8):
+			heights.append(rng.randf_range(0.47, 0.53))
 	for y in range(256):
 		for x in range(256):
 			var mortar: bool
@@ -90,9 +102,11 @@ func _procedural_surface_normal(seed_value: int, brick: bool) -> Texture2D:
 				mortar = ((x + offset) % 64) < 3 or (y % 32) < 3
 			else:
 				mortar = (x % 64) < 2 or (y % 32) < 2
-			var height_value := 0.22 if mortar else rng.randf_range(0.48, 0.62)
+			var tile_x := int(x / 32)
+			var tile_y := int(y / 16)
+			var height_value: float = 0.30 if mortar else heights[tile_y * 8 + tile_x]
 			img.set_pixel(x, y, Color(height_value, height_value, height_value, 1.0))
-	img.bump_map_to_normal_map(1.2)
+	img.bump_map_to_normal_map(0.55)
 	return ImageTexture.create_from_image(img)
 
 func _procedural_asphalt_texture() -> Texture2D:
