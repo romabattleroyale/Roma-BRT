@@ -362,6 +362,11 @@ func _make_neighbourhood() -> void:
 						_box(building, Vector3(0.12, 1.25, 0.08), Vector3(wx - 0.49, yy + 0.6, side * (d * 0.5 + 0.17)), terracotta)
 						_box(building, Vector3(0.12, 1.25, 0.08), Vector3(wx + 0.49, yy + 0.6, side * (d * 0.5 + 0.17)), terracotta)
 						_box(building, Vector3(1.12, 0.12, 0.20), Vector3(wx, yy - 0.08, side * (d * 0.5 + 0.17)), trim)
+						if win % 2 == 0 and side > 0:
+							_box(building, Vector3(1.7, 0.10, 0.78), Vector3(wx, yy + 0.04, d * 0.5 + 0.48), trim)
+							_box(building, Vector3(1.7, 0.09, 0.08), Vector3(wx, yy + 0.52, d * 0.5 + 0.86), shadow_stone)
+							for rail_x in [-0.68, -0.34, 0.0, 0.34, 0.68]:
+								_box(building, Vector3(0.055, 0.42, 0.055), Vector3(wx + rail_x, yy + 0.30, d * 0.5 + 0.86), trim)
 			# ground-level shopfronts, awnings and balconies
 			_box(building, Vector3(w * 0.72, 2.1, 0.16), Vector3(0, 1.2, d * 0.5 + 0.1), shadow_stone)
 			_box(building, Vector3(w * 0.8, 0.24, 1.1), Vector3(0, 2.45, d * 0.5 + 0.55), terracotta)
