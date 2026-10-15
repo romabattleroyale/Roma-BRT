@@ -201,6 +201,23 @@ func _make_colosseum() -> void:
 	_elliptical_ring(col, 18.4, 12.8, 0.3, 1.45, trim)
 	for row in range(14):
 		_elliptical_ring(col, 21.0 + row * 0.72, 14.6 + row * 0.52, 0.34, 1.55 + row * 0.31, trim if row % 3 else stone)
+	# inner ambulatory: radial vault supports, continuous galleries and door openings
+	for level in range(3):
+		var yy := 4.2 + level * 4.0
+		for i in range(48):
+			var a := TAU * float(i) / 48
+			var radial := Vector3(cos(a), 0, sin(a))
+			var pos := Vector3(radial.x * (20.5 + level * 0.65), yy, radial.z * (14.8 + level * 0.45))
+			var support := _box(col, Vector3(0.72, 3.5, 0.9), pos, trim, true)
+			support.look_at(pos + Vector3(-radial.z, 0, radial.x), Vector3.UP)
+			_box(col, Vector3(1.0, 0.18, 1.15), pos + Vector3(0, 1.8, 0), stone)
+		# gallery floor bands visually separate the circulation levels
+		_elliptical_ring(col, 21.0 + level * 0.7, 15.2 + level * 0.45, 0.26, yy + 1.95, trim)
+	# radial service corridors beneath the arena and timber beam rhythm
+	for x in range(-12, 13, 3):
+		_box(col, Vector3(0.22, 1.7, 12.0), Vector3(x, 0.72, 0), trim)
+		for z in range(-5, 6, 2):
+			_box(col, Vector3(2.7, 0.16, 0.16), Vector3(x, 1.58, z), shadow_stone)
 	# arena floor and hypogeum lanes
 	_box(col, Vector3(29, 0.22, 19), Vector3(0, 1.55, 0), _mat(Color("#b99a70")))
 	for x in range(-12, 13, 4):
