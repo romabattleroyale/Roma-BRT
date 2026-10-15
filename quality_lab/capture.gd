@@ -17,6 +17,7 @@ func _capture_scene() -> void:
 	camera.name = "PreviewCamera"
 	scene.add_child(camera)
 	camera.current = true
+	camera.fov = 56.0
 	for child in scene.get_children():
 		if child is CanvasLayer:
 			child.visible = false
