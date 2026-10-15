@@ -394,6 +394,27 @@ func _make_player() -> void:
 func _make_hud() -> void:
 	var layer := CanvasLayer.new()
 	add_child(layer)
+	# unobtrusive mobile touch zones and center reticle
+	var reticle := Label.new()
+	reticle.text = "+"
+	reticle.position = Vector2(0, 0)
+	reticle.set_anchors_and_offsets_preset(Control.PRESET_CENTER)
+	reticle.add_theme_font_size_override("font_size", 22)
+	reticle.add_theme_color_override("font_color", Color("#fff0d3"))
+	layer.add_child(reticle)
+	var move_hint := Label.new()
+	move_hint.text = "MOVE"
+	move_hint.position = Vector2(24, 150)
+	move_hint.add_theme_font_size_override("font_size", 12)
+	move_hint.add_theme_color_override("font_color", Color("#e6d2b0"))
+	layer.add_child(move_hint)
+	var look_hint := Label.new()
+	look_hint.text = "LOOK"
+	look_hint.set_anchors_and_offsets_preset(Control.PRESET_TOP_RIGHT)
+	look_hint.position = Vector2(-90, 120)
+	look_hint.add_theme_font_size_override("font_size", 12)
+	look_hint.add_theme_color_override("font_color", Color("#e6d2b0"))
+	layer.add_child(look_hint)
 	var label := Label.new()
 	label.text = "ROMA BATTLE ROYALE  •  COLOSSEO DISTRICT\nWASD / Frecce: movimento  •  SHIFT: corsa  •  Mouse: visuale\nTouch: joystick sinistro per muoverti, trascina a destra per ruotare"
 	label.position = Vector2(24, 18)
