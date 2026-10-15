@@ -163,10 +163,10 @@ func _make_colosseum() -> void:
 			var a := TAU * float(i) / SEGMENTS
 			var p := Vector3(cos(a) * rx, y + 2.25, sin(a) * rz)
 			var tangent := Vector3(-sin(a), 0, cos(a))
-			var pier := _box(col, Vector3(0.92, 4.5, 1.35), p, trim)
+			var pier := _box(col, Vector3(0.92, 4.5, 1.35), p, trim, true)
 			pier.look_at(p + tangent, Vector3.UP)
-			_box(col, Vector3(1.25, 0.35, 1.65), p + Vector3(0, 2.2, 0), stone)
-			_box(col, Vector3(1.18, 0.28, 1.58), p + Vector3(0, -2.18, 0), stone)
+			_box(col, Vector3(1.25, 0.35, 1.65), p + Vector3(0, 2.2, 0), stone, true)
+			_box(col, Vector3(1.18, 0.28, 1.58), p + Vector3(0, -2.18, 0), stone, true)
 			# deep shadowed bay behind each opening
 			var inner := Vector3(cos(a) * (rx - 0.42), y + 2.35, sin(a) * (rz - 0.42))
 			var bay := _box(col, Vector3(0.24, 3.25, 0.24), inner, shadow_stone)
