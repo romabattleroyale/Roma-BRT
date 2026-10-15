@@ -349,6 +349,20 @@ func _make_street_furniture() -> void:
 	for x in [-38.0, 38.0]:
 		for z in range(-24, 25, 12):
 			_box(self, Vector3(0.7, 1.1, 0.7), Vector3(x, 0.55, z), trim, true)
+	# archaeological perimeter, low bollards and sculpted travertine curb
+	for x in range(-42, 43, 3):
+		for z in [-34.0, 34.0]:
+			_cylinder(self, 0.22, 0.82, Vector3(x, 0.41, z), trim, 12)
+	for z in range(-32, 33, 3):
+		for x in [-42.0, 42.0]:
+			_cylinder(self, 0.22, 0.82, Vector3(x, 0.41, z), trim, 12)
+	# ornamental bronze plaques on approach plinths
+	var bronze := _mat(Color("#76532e"), 0.48, 0.62)
+	for x in [-24.0, 24.0]:
+		_box(self, Vector3(2.0, 1.3, 0.16), Vector3(x, 1.1, -32.8), shadow_stone, true)
+		_box(self, Vector3(1.45, 0.78, 0.08), Vector3(x, 1.12, -32.68), bronze)
+		for yy in [0.82, 1.42]:
+			_box(self, Vector3(1.1, 0.045, 0.035), Vector3(x, yy, -32.61), trim)
 	# painted zebra crossings and Roman paving insets
 	for stripe in range(9):
 		_box(self, Vector3(0.7, 0.035, 7.0), Vector3(-3.2 + stripe * 0.8, 0.08, -48.0), trim)
