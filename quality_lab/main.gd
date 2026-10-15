@@ -522,6 +522,14 @@ func _make_neighbourhood() -> void:
 						var wx: float = -w * 0.5 + 1.5 + win * (w - 3.0) / max(1, int(w / 2.7) - 1)
 						_box(building, Vector3(0.82, 1.25, 0.12), Vector3(wx, yy + 0.6, side * (d * 0.5 + 0.08)), shadow_stone)
 						_box(building, Vector3(1.04, 0.12, 0.18), Vector3(wx, yy + 1.28, side * (d * 0.5 + 0.12)), trim)
+				# Side elevations also receive aligned openings and terracotta shutters.
+				for side_x in [-1.0, 1.0]:
+					for win_z in range(max(2, int(d / 2.8))):
+						var wz: float = -d * 0.5 + 1.5 + win_z * (d - 3.0) / max(1, int(d / 2.8) - 1)
+						_box(building, Vector3(0.12, 1.25, 0.82), Vector3(side_x * (w * 0.5 + 0.08), yy + 0.6, wz), shadow_stone)
+						_box(building, Vector3(0.18, 0.12, 1.04), Vector3(side_x * (w * 0.5 + 0.12), yy + 1.28, wz), trim)
+						for shutter_side in [-1.0, 1.0]:
+							_box(building, Vector3(0.08, 1.25, 0.12), Vector3(side_x * (w * 0.5 + 0.17), yy + 0.6, wz + shutter_side * 0.49), terracotta)
 				# window shutters, sills and lintels on the street-facing facade
 				for win in range(max(2, int(w / 2.7))):
 					var wx: float = -w * 0.5 + 1.5 + win * (w - 3.0) / max(1, int(w / 2.7) - 1)
