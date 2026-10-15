@@ -340,28 +340,34 @@ func _make_colosseum() -> void:
 		if attic_idx % 4 == 0:
 			_box(col, Vector3(0.78, 0.18, 0.92), attic_pos + Vector3(0, 1.05, 0), stone)
 	_elliptical_ring(col, RX - 1.35, RZ - 0.92, 0.38, 25.20, trim)
-	# Monumental ceremonial entrance on the south-facing approach: layered portal, flanking pilasters and broad travertine steps.
+	# South entrance: a readable open arch, not a solid rectangular block over the facade.
 	var portal_stone := _mat(Color("#e6d1aa"), 0.86)
 	var portal_shadow := _mat(Color("#4f4033"), 0.96)
-	for step in range(5):
-		_box(col, Vector3(10.8 - step * 0.55, 0.28, 3.6 - step * 0.42),
-			Vector3(0, 0.14 + step * 0.28, RZ + 2.9 + step * 0.22), trim, true)
-	_box(col, Vector3(8.6, 6.8, 0.72), Vector3(0, 5.1, RZ + 0.1), portal_shadow)
-	_box(col, Vector3(7.4, 6.1, 0.32), Vector3(0, 5.0, RZ + 0.52), stone)
-	_box(col, Vector3(5.8, 5.1, 0.20), Vector3(0, 4.65, RZ + 0.72), portal_shadow)
-	_box(col, Vector3(8.8, 0.55, 1.05), Vector3(0, 8.15, RZ + 0.48), trim)
-	_box(col, Vector3(9.3, 0.22, 1.25), Vector3(0, 8.52, RZ + 0.48), portal_stone)
+	for step in range(6):
+		_box(col, Vector3(10.0 - step * 0.48, 0.22, 3.8 - step * 0.38),
+			Vector3(0, 0.11 + step * 0.22, RZ + 2.8 + step * 0.18), trim, true)
+	# Dark recessed doorway and two substantial piers leave the centre visibly open.
+	_box(col, Vector3(5.2, 5.4, 0.12), Vector3(0, 3.7, RZ + 0.52), portal_shadow)
+	_box(col, Vector3(0.82, 6.0, 1.0), Vector3(-3.25, 3.45, RZ + 0.72), portal_stone, true)
+	_box(col, Vector3(0.82, 6.0, 1.0), Vector3(3.25, 3.45, RZ + 0.72), portal_stone, true)
 	for side in [-1.0, 1.0]:
-		_box(col, Vector3(0.62, 6.9, 0.82), Vector3(side * 4.0, 4.9, RZ + 0.48), portal_stone, true)
-		_box(col, Vector3(1.0, 0.34, 1.12), Vector3(side * 4.0, 8.48, RZ + 0.48), trim)
-		_box(col, Vector3(0.82, 0.32, 1.05), Vector3(side * 4.0, 1.45, RZ + 0.48), trim)
+		_box(col, Vector3(1.18, 0.30, 1.22), Vector3(side * 3.25, 6.55, RZ + 0.72), trim)
+		_box(col, Vector3(1.12, 0.28, 1.18), Vector3(side * 3.25, 0.55, RZ + 0.72), trim)
+	# Wedge-like voussoirs follow the arch curve; the centre remains an actual opening.
+	for idx in range(13):
+		var theta := PI - PI * float(idx) / 12.0
+		var arch_pos := Vector3(cos(theta) * 2.85, 5.95 + sin(theta) * 2.25, RZ + 0.74)
+		var voussoir := _box(col, Vector3(0.78, 0.72, 0.92), arch_pos, trim, true)
+		voussoir.rotation.z = -theta + PI * 0.5
+	_box(col, Vector3(7.8, 0.42, 1.25), Vector3(0, 8.38, RZ + 0.72), portal_stone)
+	_box(col, Vector3(8.4, 0.18, 1.38), Vector3(0, 8.68, RZ + 0.72), trim)
 	var inscription := Label3D.new()
 	inscription.text = "AMPHITHEATRVM FLAVIVM"
-	inscription.font_size = 48
-	inscription.pixel_size = 0.012
+	inscription.font_size = 42
+	inscription.pixel_size = 0.010
 	inscription.modulate = Color("#35291e")
-	inscription.position = Vector3(0, 8.55, RZ + 1.14)
-	inscription.rotation.y = PI
+	inscription.position = Vector3(0, 8.72, RZ + 1.45)
+	inscription.rotation.y = 0.0
 	inscription.double_sided = true
 	col.add_child(inscription)
 	# Small pale-stone statuary on the main ledges breaks up the repeated arcade rhythm.
@@ -506,9 +512,19 @@ func _make_colosseum() -> void:
 			_cylinder(col, 0.055, 0.9, p, trim, 8)
 			_box(col, Vector3(0.08, 0.08, 13.0), Vector3(side * 25.2, 3.1, -2.4), shadow_stone)
 	# arena floor and hypogeum lanes
-	_box(col, Vector3(29, 0.22, 19), Vector3(0, 1.55, 0), _mat(Color("#b99a70")))
-	for x in range(-12, 13, 4):
-		_box(col, Vector3(0.24, 0.08, 15), Vector3(x, 1.69, 0), shadow_stone)
+	var arena_sand := _mat(Color("#b99a70"), 0.98)
+	var arena_floor := _cylinder(col, 1.0, 0.22, Vector3(0, 1.55, 0), arena_sand, 64)
+	arena_floor.scale = Vector3(19.0, 1.0, 13.0)
+	# Distinct oval timber hatch covers and dark seams reveal the hypogeum beneath the sand.
+	var arena_wood := _mat(Color("#78573b"), 0.93)
+	var arena_wood_light := _mat(Color("#98744e"), 0.93)
+	for plank in range(23):
+		var x := -10.8 + float(plank) * 0.98
+		var half_depth := 12.6 * sqrt(max(0.0, 1.0 - (x * x) / (19.0 * 19.0)))
+		if half_depth > 1.0:
+			_box(col, Vector3(0.075, 0.025, half_depth * 1.85), Vector3(x, 1.68, 0), arena_wood if plank % 3 == 0 else arena_wood_light)
+	for x in range(-8, 9, 4):
+		_box(col, Vector3(2.2, 1.0, 12), Vector3(x, 0.55, 0), shadow_stone)
 	for x in range(-8, 9, 4):
 		_box(col, Vector3(2.2, 1.0, 12), Vector3(x, 0.55, 0), shadow_stone)
 	# upper attic story: alternating solid panels, pilasters and small square openings
