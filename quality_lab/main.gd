@@ -43,7 +43,7 @@ func _make_materials() -> void:
 	shadow_stone.albedo_texture = _procedural_stone_texture(Color("#80664b"), 117)
 	terracotta.albedo_texture = _procedural_brick_texture()
 	asphalt.albedo_texture = _procedural_asphalt_texture()
-	asphalt.uv1_scale = Vector3(22, 22, 1)
+	asphalt.uv1_scale = Vector3(40, 40, 1)
 
 func _procedural_stone_texture(base: Color, seed_value: int) -> Texture2D:
 	var img := Image.create(256, 256, false, Image.FORMAT_RGBA8)
@@ -68,10 +68,10 @@ func _procedural_asphalt_texture() -> Texture2D:
 	rng.seed = 4481
 	for y in range(256):
 		for x in range(256):
-			var variation := rng.randf_range(-0.045, 0.045)
+			var variation := rng.randf_range(-0.025, 0.025)
 			if rng.randf() < 0.035:
-				variation += rng.randf_range(-0.035, 0.035)
-			var base := Color("#35302c")
+				variation += rng.randf_range(-0.02, 0.02)
+			var base := Color("#3a3b3b")
 			img.set_pixel(x, y, Color(
 				clampf(base.r + variation, 0.0, 1.0),
 				clampf(base.g + variation, 0.0, 1.0),
