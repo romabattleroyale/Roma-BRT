@@ -292,6 +292,28 @@ func _make_colosseum() -> void:
 				voussoir.look_at(arc_pos + tangent_arch, Vector3.UP)
 				voussoir.rotate_object_local(Vector3(1, 0, 0), theta - PI * 0.5)
 		_elliptical_ring(col, rx + 0.35, rz + 0.35, 0.45, y + 4.65, trim)
+	# Small pale-stone statuary on the main ledges breaks up the repeated arcade rhythm.
+	var statue_stone := _mat(Color("#e1d1b0"), 0.82)
+	for tier in [1, 2]:
+		var y_statue := 1.15 + tier * 5.25 + 4.72
+		var rx_statue := RX - tier * 0.65 + 0.48
+		var rz_statue := RZ - tier * 0.5 + 0.48
+		for idx in range(12):
+			var a := PI * 0.10 + float(idx) * PI * 0.80 / 11.0
+			var radial := Vector3(cos(a), 0, sin(a)).normalized()
+			var tangent := Vector3(-sin(a), 0, cos(a))
+			var base := Vector3(cos(a) * rx_statue, y_statue, sin(a) * rz_statue)
+			var statue := Node3D.new()
+			statue.position = base
+			statue.look_at(base + tangent, Vector3.UP)
+			col.add_child(statue)
+			_box(statue, Vector3(0.42, 0.28, 0.42), Vector3(0, 0.14, 0), trim)
+			_box(statue, Vector3(0.24, 0.78, 0.24), Vector3(0, 0.66, 0), statue_stone)
+			_cylinder(statue, 0.14, 0.25, Vector3(0, 1.18, 0), statue_stone, 10)
+			for side in [-1.0, 1.0]:
+				var arm := _cylinder(statue, 0.055, 0.48, Vector3(side * 0.19, 0.78, 0), statue_stone, 7)
+				arm.rotation.z = -side * 0.18
+
 	# Upper attic course: solid travertine parapet with regularly spaced small openings.
 	# This is distinct from the four lower arcades and breaks the repetitive silhouette.
 	for i in range(SEGMENTS):
