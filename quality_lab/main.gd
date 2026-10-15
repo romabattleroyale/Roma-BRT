@@ -525,7 +525,7 @@ func _make_hud() -> void:
 	look_hint.add_theme_color_override("font_color", Color("#e6d2b0"))
 	layer.add_child(look_hint)
 	var label := Label.new()
-	label.text = "ROMA BATTLE ROYALE  •  COLOSSEO DISTRICT\nWASD / Frecce: movimento  •  SHIFT: corsa  •  Mouse: visuale\nTouch: joystick sinistro per muoverti, trascina a destra per ruotare"
+	label.text = "ROMA BATTLE ROYALE  •  COLOSSEO DISTRICT\nWASD / Frecce: movimento  •  SHIFT: corsa  •  Mouse: visuale\nTouch: sinistra muovi • destra ruota • RUN/JUMP in basso a destra"
 	label.position = Vector2(24, 18)
 	label.add_theme_font_size_override("font_size", 14)
 	label.add_theme_color_override("font_color", Color("#fff0d3"))
