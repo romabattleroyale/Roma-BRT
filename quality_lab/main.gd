@@ -241,6 +241,13 @@ func _make_colosseum() -> void:
 			var inner := Vector3(cos(a) * (rx - 0.42), y + 2.35, sin(a) * (rz - 0.42))
 			var bay := _box(col, Vector3(0.24, 3.25, 0.24), inner, shadow_stone)
 			bay.look_at(inner + tangent, Vector3.UP)
+			# Recessed masonry spandrels behind the arcade: keep the arches readable,
+			# but give the facade the substantial travertine mass of the real monument.
+			var spandrel_pos := Vector3(cos(a) * (rx - 0.62), y + 2.30, sin(a) * (rz - 0.62))
+			var spandrel := _box(col, Vector3(0.34, 3.72, 2.05), spandrel_pos, stone)
+			spandrel.look_at(spandrel_pos + tangent, Vector3.UP)
+			var recess := _box(col, Vector3(0.12, 2.25, 1.10), spandrel_pos + radial * 0.20 + Vector3(0, 0.05, 0), shadow_stone)
+			recess.look_at(spandrel_pos + tangent, Vector3.UP)
 			# upper-floor window recesses and lintel detail
 			if tier > 0 and i % 2 == 0:
 				var win := _box(col, Vector3(0.12, 1.5, 0.9), p + Vector3(0, 0.15, 0), shadow_stone)
