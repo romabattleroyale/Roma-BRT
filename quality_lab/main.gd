@@ -224,6 +224,20 @@ func _make_colosseum() -> void:
 		_box(col, Vector3(0.24, 0.08, 15), Vector3(x, 1.69, 0), shadow_stone)
 	for x in range(-8, 9, 4):
 		_box(col, Vector3(2.2, 1.0, 12), Vector3(x, 0.55, 0), shadow_stone)
+	# upper attic story: alternating solid panels, pilasters and small square openings
+	var attic_y := 1.15 + FLOORS * 5.25 + 4.65
+	for i in range(SEGMENTS):
+		var a := TAU * float(i) / SEGMENTS
+		var radial := Vector3(cos(a), 0, sin(a)).normalized()
+		var tangent := Vector3(-sin(a), 0, cos(a))
+		var p := Vector3(cos(a) * (RX - 2.1), attic_y + 1.45, sin(a) * (RZ - 1.7))
+		var attic_pier := _box(col, Vector3(0.8, 2.9, 1.05), p, trim, true)
+		attic_pier.look_at(p + tangent, Vector3.UP)
+		if i % 2 == 0:
+			var opening := _box(col, Vector3(0.14, 0.72, 0.48), p - radial * 0.28 + Vector3(0, 0.05, 0), shadow_stone)
+			opening.look_at(p + tangent, Vector3.UP)
+		_box(col, Vector3(1.12, 0.18, 1.38), p + Vector3(0, 1.5, 0), stone)
+	_elliptical_ring(col, RX - 1.65, RZ - 1.25, 0.55, attic_y + 3.0, trim)
 	# monumental entrance portals, travertine stairs and sculptural plinths
 	for side in [-1.0, 1.0]:
 		for x in [-8.0, -4.0, 0.0, 4.0, 8.0]:
