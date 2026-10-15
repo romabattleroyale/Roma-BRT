@@ -185,6 +185,17 @@ func _make_colosseum() -> void:
 				win.look_at(p + tangent, Vector3.UP)
 				var lintel := _box(col, Vector3(0.2, 0.16, 1.15), p + Vector3(0, 0.98, 0), trim)
 				lintel.look_at(p + tangent, Vector3.UP)
+		# five voussoirs over each opening form a readable Roman arcade rhythm
+		for bay in range(SEGMENTS):
+			var a0 := TAU * float(bay) / SEGMENTS
+			var a1 := TAU * float(bay + 1) / SEGMENTS
+			var mid_a := (a0 + a1) * 0.5
+			var tangent_arch := Vector3(-sin(mid_a), 0, cos(mid_a))
+			for stone_idx in range(5):
+				var theta := PI - PI * float(stone_idx) / 4.0
+				var arc_pos := Vector3(cos(mid_a) * rx, y + 3.05 + sin(theta) * 1.05, sin(mid_a) * rz) + tangent_arch * (cos(theta) * 1.12)
+				var voussoir := _box(col, Vector3(1.42, 0.42, 0.48), arc_pos, trim)
+				voussoir.look_at(arc_pos + tangent_arch, Vector3.UP)
 		_elliptical_ring(col, rx + 0.35, rz + 0.35, 0.45, y + 4.65, trim)
 	# ceremonial SPQR standards and monumental approach stairs
 	var banner_mat := _mat(Color("#7e2524"))
