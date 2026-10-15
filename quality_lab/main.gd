@@ -429,6 +429,9 @@ func _make_neighbourhood() -> void:
 				var roof_right := _box(building, Vector3(w + 0.5, 0.20, d * 0.56), Vector3(0, h + 0.78, d * 0.22), terracotta)
 				roof_right.rotation.x = 0.28
 				_box(building, Vector3(w + 0.6, 0.22, 0.28), Vector3(0, h + 1.02, 0), shadow_stone)
+			if (row * 7 + col) % 3 == 0:
+				var chimney := _box(building, Vector3(0.62, 1.05, 0.62), Vector3(w * 0.28, h + 1.05, -d * 0.22), terracotta)
+				_box(building, Vector3(0.82, 0.14, 0.82), Vector3(w * 0.28, h + 1.62, -d * 0.22), trim)
 			var floors := int(h / 2.8)
 			for f in range(floors):
 				var yy := 1.5 + f * 2.8
