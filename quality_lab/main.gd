@@ -163,7 +163,12 @@ func _make_colosseum() -> void:
 			var a := TAU * float(i) / SEGMENTS
 			var p := Vector3(cos(a) * rx, y + 2.25, sin(a) * rz)
 			var tangent := Vector3(-sin(a), 0, cos(a))
+			var radial := Vector3(cos(a), 0, sin(a)).normalized()
 			var pier := _box(col, Vector3(0.92, 4.5, 1.35), p, trim, true)
+			if i % 3 == 0:
+				_cylinder(col, 0.24, 4.1, p + radial * 0.78, trim, 12)
+				_cylinder(col, 0.38, 0.22, p + radial * 0.78 + Vector3(0, 2.08, 0), stone, 12)
+				_cylinder(col, 0.36, 0.20, p + radial * 0.78 - Vector3(0, 2.08, 0), stone, 12)
 			pier.look_at(p + tangent, Vector3.UP)
 			_box(col, Vector3(1.25, 0.35, 1.65), p + Vector3(0, 2.2, 0), stone, true)
 			_box(col, Vector3(1.18, 0.28, 1.58), p + Vector3(0, -2.18, 0), stone, true)
