@@ -305,6 +305,13 @@ func _make_colosseum() -> void:
 				var voussoir := _box(col, Vector3(0.58, 0.42, 1.42), arc_pos, trim)
 				voussoir.look_at(arc_pos + tangent_arch, Vector3.UP)
 				voussoir.rotate_object_local(Vector3(1, 0, 0), theta - PI * 0.5)
+			# Projecting keystone and fine inner archivolt give each arch a stronger silhouette.
+			var crown_pos := Vector3(cos(mid_a) * rx, y + 3.88, sin(mid_a) * rz)
+			var keystone := _box(col, Vector3(0.72, 0.68, 1.54), crown_pos, trim)
+			keystone.look_at(crown_pos + tangent_arch, Vector3.UP)
+			var inner_crown := Vector3(cos(mid_a) * (rx - 0.10), y + 3.76, sin(mid_a) * (rz - 0.10))
+			var crown_shadow := _box(col, Vector3(0.16, 0.20, 1.22), inner_crown, shadow_stone)
+			crown_shadow.look_at(inner_crown + tangent_arch, Vector3.UP)
 		# Continuous projecting stringcourse with small dentils below each tier.
 		_elliptical_ring(col, rx + 0.55, rz + 0.55, 0.22, y + 4.42, stone)
 		for dentil_idx in range(SEGMENTS):
