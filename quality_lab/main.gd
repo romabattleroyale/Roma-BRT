@@ -257,6 +257,15 @@ func _make_neighbourhood() -> void:
 			for bx in [-w * 0.28, w * 0.28]:
 				_box(building, Vector3(0.12, 1.0, 0.12), Vector3(bx, 2.0, d * 0.5 + 0.85), trim)
 				_box(building, Vector3(1.7, 0.1, 1.0), Vector3(bx, 1.5, d * 0.5 + 0.85), trim)
+				_box(building, Vector3(1.7, 0.10, 0.10), Vector3(bx, 1.95, d * 0.5 + 1.28), shadow_stone)
+				for rail_x in [-0.68, -0.34, 0.0, 0.34, 0.68]:
+					_box(building, Vector3(0.055, 0.42, 0.055), Vector3(bx + rail_x, 1.76, d * 0.5 + 1.28), trim)
+			# roof parapet, terracotta coping and corner quoins
+			for corner_x in [-1.0, 1.0]:
+				for corner_z in [-1.0, 1.0]:
+					_box(building, Vector3(0.38, h, 0.38), Vector3(corner_x * (w * 0.5 - 0.2), h * 0.5, corner_z * (d * 0.5 - 0.2)), trim)
+			_box(building, Vector3(w + 0.4, 0.22, 0.42), Vector3(0, h + 0.62, -d * 0.5 + 0.2), terracotta)
+			_box(building, Vector3(w + 0.4, 0.22, 0.42), Vector3(0, h + 0.62, d * 0.5 - 0.2), terracotta)
 
 func _make_street_furniture() -> void:
 	for x in range(-100, 101, 20):
