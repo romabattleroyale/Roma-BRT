@@ -444,10 +444,16 @@ func _make_tree_crown(origin: Vector3, radius: float, height: float, material: M
 	tree.position = origin
 	add_child(tree)
 	_cylinder(tree, 0.23, 2.2, Vector3(0, -0.3, 0), _mat(Color("#6a432d")), 9)
-	for i in range(5):
-		var lobe := _cylinder(tree, radius * (1.0 - i * 0.09), height * (0.58 + i * 0.06), Vector3(0, i * 0.38, 0), material, 9)
-		lobe.rotation.z = 0.08 if i % 2 == 0 else -0.08
-		lobe.rotation.x = -0.06 if i % 2 == 0 else 0.06
+	for i in range(3):
+		var canopy := MeshInstance3D.new()
+		var sphere := SphereMesh.new()
+		sphere.radius = radius * (1.0 - i * 0.08)
+		sphere.height = radius * 0.95
+		canopy.mesh = sphere
+		canopy.scale = Vector3(1.0, 0.62, 1.0)
+		canopy.position = Vector3(0, 0.9 + i * 0.38, 0)
+		canopy.material_override = material
+		tree.add_child(canopy)
 	return tree
 
 func _make_player() -> void:
