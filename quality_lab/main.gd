@@ -282,10 +282,38 @@ func _make_street_furniture() -> void:
 		var a := TAU * float(i) / 24
 		var x := cos(a) * 45.0
 		var z := sin(a) * 37.0
-		_box(self, Vector3(2.4, 0.8, 2.4), Vector3(x, 0.4, z), stone)
+		_box(self, Vector3(2.4, 0.8, 2.4), Vector3(x, 0.4, z), stone, true)
 		_cylinder(self, 0.42, 1.2, Vector3(x, 1.3, z), shadow_stone, 10)
-		var crown := _cylinder(self, 1.1, 1.8, Vector3(x, 2.7, z), _mat(Color("#596c3b")), 10)
-		crown.scale = Vector3(1.0, 1.15, 0.85)
+		var crown := _make_tree_crown(Vector3(x, 2.7, z), 1.1, 1.8, _mat(Color("#596c3b")))
+		crown.rotation.y = a * 1.7
+	# travertine benches, bollards and planter boxes along the main promenade
+	for x in range(-36, 37, 12):
+		_box(self, Vector3(4.4, 0.35, 1.15), Vector3(x, 0.48, -39.0), shadow_stone, true)
+		_box(self, Vector3(4.1, 0.18, 0.92), Vector3(x, 0.73, -39.0), trim, true)
+		for dx in [-1.65, 1.65]:
+			_box(self, Vector3(0.28, 0.55, 1.0), Vector3(x + dx, 0.28, -39.0), stone, true)
+	for x in [-38.0, 38.0]:
+		for z in range(-24, 25, 12):
+			_box(self, Vector3(0.7, 1.1, 0.7), Vector3(x, 0.55, z), trim, true)
+	# painted zebra crossings and Roman paving insets
+	for stripe in range(9):
+		_box(self, Vector3(0.7, 0.035, 7.0), Vector3(-3.2 + stripe * 0.8, 0.08, -48.0), trim)
+	# square paving seams, kept in shallow relief so the plaza reads at gameplay distance
+	for x in range(-38, 39, 4):
+		_box(self, Vector3(0.035, 0.012, 58.0), Vector3(x, 0.095, 0.0), _mat(Color("#a88b65")))
+	for z in range(-28, 29, 4):
+		_box(self, Vector3(78.0, 0.012, 0.035), Vector3(0.0, 0.095, z), _mat(Color("#a88b65")))
+
+func _make_tree_crown(origin: Vector3, radius: float, height: float, material: Material) -> Node3D:
+	var tree := Node3D.new()
+	tree.position = origin
+	add_child(tree)
+	_cylinder(tree, 0.23, 2.2, Vector3(0, -0.3, 0), _mat(Color("#6a432d")), 9)
+	for i in range(5):
+		var lobe := _cylinder(tree, radius * (1.0 - i * 0.09), height * (0.58 + i * 0.06), Vector3(0, i * 0.38, 0), material, 9)
+		lobe.rotation.z = (i % 2 == 0) ? 0.08 : -0.08
+		lobe.rotation.x = (i % 2 == 0) ? -0.06 : 0.06
+	return tree
 
 func _make_player() -> void:
 	var p := CharacterBody3D.new()
