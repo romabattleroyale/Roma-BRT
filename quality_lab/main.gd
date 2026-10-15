@@ -251,6 +251,20 @@ func _make_colosseum() -> void:
 		lamp.shadow_enabled = false
 		col.add_child(lamp)
 		_cylinder(col, 0.12, 0.34, lamp_pos, trim, 10)
+	# timber scaffolding, winches and maintenance platforms in the hypogeum
+	var timber := _mat(Color("#63452f"), 0.92)
+	for x in [-10.0, -5.0, 0.0, 5.0, 10.0]:
+		for z in [-5.0, 0.0, 5.0]:
+			_cylinder(col, 0.13, 2.4, Vector3(x, 1.05, z), timber, 8)
+		_box(col, Vector3(4.8, 0.12, 0.65), Vector3(x, 2.1, z), timber)
+	for z in [-6.0, 6.0]:
+		_box(col, Vector3(27.0, 0.14, 0.24), Vector3(0, 2.25, z), timber)
+	# stairwell handrails and posts for interior circulation
+	for side in [-1.0, 1.0]:
+		for step in range(10):
+			var p := Vector3(side * (22.0 + step * 0.78), 2.0 + step * 0.28, -8.0 + step * 1.25)
+			_cylinder(col, 0.055, 0.9, p, trim, 8)
+		_box(col, Vector3(0.08, 0.08, 13.0), Vector3(side * 25.2, 3.1, -2.4), shadow_stone)
 	# arena floor and hypogeum lanes
 	_box(col, Vector3(29, 0.22, 19), Vector3(0, 1.55, 0), _mat(Color("#b99a70")))
 	for x in range(-12, 13, 4):
