@@ -406,6 +406,16 @@ func _make_street_furniture() -> void:
 		_cylinder(self, 0.09, 3.2, Vector3(sx, 1.6, sz), iron, 10)
 		_box(self, Vector3(3.6, 0.9, 0.12), Vector3(sx, 2.65, sz), sign_stone, true)
 		_box(self, Vector3(3.25, 0.06, 0.05), Vector3(sx, 2.35, sz - 0.08), terracotta)
+		var sign_text := Label3D.new()
+		var destinations := ["COLOSSEO", "FORI IMPERIALI", "CENTRO STORICO", "ROMA ANTICA", "TERME", "TRASTEVERE"]
+		sign_text.text = destinations[idx]
+		sign_text.position = Vector3(sx, 2.65, sz - 0.075)
+		sign_text.font_size = 48
+		sign_text.pixel_size = 0.012
+		sign_text.modulate = Color("#292b2a")
+		if sz > 0.0:
+			sign_text.rotation.y = PI
+		add_child(sign_text)
 	# painted zebra crossings and Roman paving insets
 	for stripe in range(9):
 		_box(self, Vector3(0.7, 0.035, 7.0), Vector3(-3.2 + stripe * 0.8, 0.08, -48.0), trim)
