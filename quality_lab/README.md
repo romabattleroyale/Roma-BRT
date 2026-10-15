@@ -12,10 +12,10 @@ Isolated Godot 4.7.2 scene for iterating on the Colosseum district without chang
 - **Shift:** run
 - **Space:** jump
 - **Mouse:** rotate camera
-- **Touch:** drag on the left half to move; drag on the right half to rotate the camera
+- **Touch:** left joystick to move; drag on the right side to rotate; **RUN** and **JUMP** buttons at bottom-right
 
 ## Preview renders
-Every successful GitHub Actions run publishes three PNGs as the artifact `colosseo-quality-lab-preview`: exterior, interior and district overview. The preview is rendered by Godot itself in a virtual display, not a mock-up.
+Every successful GitHub Actions run publishes three PNGs as the artifact `colosseo-quality-lab-preview`: exterior, interior and district overview. The preview is rendered by Godot itself in a virtual display, not a mock-up. The same run also publishes a standalone project ZIP as `roma-brt-quality-lab-project`.
 
 ## Scope
 This is a separate iteration area. It does not overwrite or replace the official `ROMA_BRT_FONDAMENTA_RIBASSATE_V6.zip` base project.
