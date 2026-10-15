@@ -153,7 +153,7 @@ func _make_colosseum() -> void:
 	add_child(col)
 	# elliptical stepped podium
 	for layer in range(4):
-		_elliptical_ring(col, RX + 2.2 - layer * 0.48, RZ + 2.2 - layer * 0.48, 0.55, -0.1 + layer * 0.48, trim if layer % 2 == 0 else stone)
+		_elliptical_ring(col, RX + 2.2 - layer * 0.48, RZ + 2.2 - layer * 0.48, 0.55, -0.1 + layer * 0.48, trim if layer % 2 == 0 else stone, true)
 	# tiered facade with real open bays: piers, capitals, archivolts and horizontal entablatures
 	for tier in range(FLOORS):
 		var y := 1.15 + tier * 5.25
@@ -228,10 +228,10 @@ func _make_colosseum() -> void:
 		var lintel := _box(col, Vector3(0.42, 0.34, 2.5), pos + Vector3(0, 1.72, 0), stone)
 		lintel.look_at(pos + tangent, Vector3.UP)
 	# arena, inner walls, tiered seating and hypogeum corridors
-	_elliptical_ring(col, 19.5, 13.7, 0.35, 1.25, shadow_stone)
-	_elliptical_ring(col, 18.4, 12.8, 0.3, 1.45, trim)
+	_elliptical_ring(col, 19.5, 13.7, 0.35, 1.25, shadow_stone, true)
+	_elliptical_ring(col, 18.4, 12.8, 0.3, 1.45, trim, true)
 	for row in range(14):
-		_elliptical_ring(col, 21.0 + row * 0.72, 14.6 + row * 0.52, 0.34, 1.55 + row * 0.31, trim if row % 3 else stone)
+		_elliptical_ring(col, 21.0 + row * 0.72, 14.6 + row * 0.52, 0.34, 1.55 + row * 0.31, trim if row % 3 else stone, true)
 	# inner ambulatory: radial vault supports, continuous galleries and door openings
 	for level in range(3):
 		var yy := 4.2 + level * 4.0
@@ -243,7 +243,7 @@ func _make_colosseum() -> void:
 			support.look_at(pos + Vector3(-radial.z, 0, radial.x), Vector3.UP)
 			_box(col, Vector3(1.0, 0.18, 1.15), pos + Vector3(0, 1.8, 0), stone)
 		# gallery floor bands visually separate the circulation levels
-		_elliptical_ring(col, 21.0 + level * 0.7, 15.2 + level * 0.45, 0.26, yy + 1.95, trim)
+		_elliptical_ring(col, 21.0 + level * 0.7, 15.2 + level * 0.45, 0.26, yy + 1.95, trim, true)
 	# radial service corridors beneath the arena and timber beam rhythm
 	for x in range(-12, 13, 3):
 		_box(col, Vector3(0.22, 1.7, 12.0), Vector3(x, 0.72, 0), trim)
@@ -305,7 +305,7 @@ func _make_colosseum() -> void:
 			_box(col, Vector3(1.5, 3.0, 1.5), Vector3(x, 1.7, side * 25.4), trim)
 			_box(col, Vector3(2.1, 0.28, 2.1), Vector3(x, 3.25, side * 25.4), stone)
 
-func _elliptical_ring(parent: Node3D, rx: float, rz: float, thickness: float, y: float, material: Material) -> void:
+func _elliptical_ring(parent: Node3D, rx: float, rz: float, thickness: float, y: float, material: Material, collision := false) -> void:
 	var count := 128
 	for i in range(count):
 		var a := TAU * float(i) / count
@@ -314,7 +314,7 @@ func _elliptical_ring(parent: Node3D, rx: float, rz: float, thickness: float, y:
 		var q := Vector3(cos(b) * rx, y, sin(b) * rz)
 		var mid := (p + q) * 0.5
 		var length := p.distance_to(q) + 0.08
-		var n := _box(parent, Vector3(length, thickness, 0.65), mid, material)
+		var n := _box(parent, Vector3(length, thickness, 0.65), mid, material, collision)
 		n.rotation.y = -atan2(q.z - p.z, q.x - p.x)
 
 func _make_neighbourhood() -> void:
