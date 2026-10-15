@@ -27,6 +27,9 @@ func _capture_scene() -> void:
 	if not _save_view(output_dir.path_join("colosseo_exterior.png")):
 		quit(4)
 		return
+	var hud := scene.find_child("CanvasLayer", true, false) as CanvasLayer
+	if hud != null:
+		hud.visible = false
 	camera.global_position = Vector3(0, 8, 0)
 	camera.look_at(Vector3(0, 10, -18), Vector3.UP)
 	await RenderingServer.frame_post_draw
