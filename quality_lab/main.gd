@@ -311,8 +311,8 @@ func _make_tree_crown(origin: Vector3, radius: float, height: float, material: M
 	_cylinder(tree, 0.23, 2.2, Vector3(0, -0.3, 0), _mat(Color("#6a432d")), 9)
 	for i in range(5):
 		var lobe := _cylinder(tree, radius * (1.0 - i * 0.09), height * (0.58 + i * 0.06), Vector3(0, i * 0.38, 0), material, 9)
-		lobe.rotation.z = (i % 2 == 0) ? 0.08 : -0.08
-		lobe.rotation.x = (i % 2 == 0) ? -0.06 : 0.06
+		lobe.rotation.z = 0.08 if i % 2 == 0 else -0.08
+		lobe.rotation.x = -0.06 if i % 2 == 0 else 0.06
 	return tree
 
 func _make_player() -> void:
