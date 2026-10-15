@@ -223,10 +223,10 @@ func _make_colosseum() -> void:
 			var a1 := TAU * float(bay + 1) / SEGMENTS
 			var mid_a := (a0 + a1) * 0.5
 			var tangent_arch := Vector3(-sin(mid_a), 0, cos(mid_a))
-			for stone_idx in range(5):
-				var theta := PI - PI * float(stone_idx) / 4.0
-				var arc_pos := Vector3(cos(mid_a) * rx, y + 3.05 + sin(theta) * 1.05, sin(mid_a) * rz) + tangent_arch * (cos(theta) * 1.12)
-				var voussoir := _box(col, Vector3(1.42, 0.42, 0.48), arc_pos, trim)
+			for stone_idx in range(7):
+				var theta := PI - PI * float(stone_idx) / 6.0
+				var arc_pos := Vector3(cos(mid_a) * rx, y + 3.0 + sin(theta) * 1.35, sin(mid_a) * rz) + tangent_arch * (cos(theta) * 1.35)
+				var voussoir := _box(col, Vector3(1.42, 0.42, 0.55), arc_pos, trim)
 				voussoir.look_at(arc_pos + tangent_arch, Vector3.UP)
 				voussoir.rotate_object_local(Vector3(0, 0, 1), theta - PI * 0.5)
 		_elliptical_ring(col, rx + 0.35, rz + 0.35, 0.45, y + 4.65, trim)
