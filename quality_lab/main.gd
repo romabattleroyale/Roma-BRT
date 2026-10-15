@@ -308,10 +308,17 @@ func _make_colosseum() -> void:
 			statue.look_at(base + tangent, Vector3.UP)
 			col.add_child(statue)
 			_box(statue, Vector3(0.42, 0.28, 0.42), Vector3(0, 0.14, 0), trim)
-			_box(statue, Vector3(0.24, 0.78, 0.24), Vector3(0, 0.66, 0), statue_stone)
-			_cylinder(statue, 0.14, 0.25, Vector3(0, 1.18, 0), statue_stone, 10)
+			_box(statue, Vector3(0.38, 0.82, 0.30), Vector3(0, 0.68, 0), statue_stone)
+			var statue_head := MeshInstance3D.new()
+			var statue_head_mesh := SphereMesh.new()
+			statue_head_mesh.radius = 0.15
+			statue_head_mesh.height = 0.30
+			statue_head.mesh = statue_head_mesh
+			statue_head.position = Vector3(0, 1.22, 0)
+			statue_head.material_override = statue_stone
+			statue.add_child(statue_head)
 			for side in [-1.0, 1.0]:
-				var arm := _cylinder(statue, 0.055, 0.48, Vector3(side * 0.19, 0.78, 0), statue_stone, 7)
+				var arm := _cylinder(statue, 0.075, 0.46, Vector3(side * 0.24, 0.78, 0), statue_stone, 7)
 				arm.rotation.z = -side * 0.18
 
 	# Upper attic course: solid travertine parapet with regularly spaced small openings.
