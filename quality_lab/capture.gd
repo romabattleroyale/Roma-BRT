@@ -13,7 +13,7 @@ func _capture_scene() -> void:
 	root.add_child(scene)
 	for frame in range(3):
 		await process_frame
-	var camera := scene.get_node_or_null("Player/Node3D/Camera3D") as Camera3D
+	var camera := scene.find_child("Camera3D", true, false) as Camera3D
 	if camera == null:
 		push_error("Player camera not found")
 		quit(3)
