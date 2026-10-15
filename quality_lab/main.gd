@@ -268,6 +268,20 @@ func _make_colosseum() -> void:
 		_box(col, Vector3(1.75, 3.8, 0.14), Vector3(bx + 0.95, 13.3, -25.15), banner_mat)
 		_box(col, Vector3(1.45, 0.12, 0.17), Vector3(bx + 0.95, 15.1, -25.04), gold_mat)
 		_box(col, Vector3(1.25, 0.12, 0.17), Vector3(bx + 0.95, 11.45, -25.04), gold_mat)
+		_box(col, Vector3(0.18, 5.2, 0.18), Vector3(bx, 14.4, 25.2), gold_mat)
+		_box(col, Vector3(1.75, 3.8, 0.14), Vector3(bx + 0.95, 13.3, 25.15), banner_mat)
+		_box(col, Vector3(1.45, 0.12, 0.17), Vector3(bx + 0.95, 15.1, 25.04), gold_mat)
+		_box(col, Vector3(1.25, 0.12, 0.17), Vector3(bx + 0.95, 11.45, 25.04), gold_mat)
+		var standard_text := Label3D.new()
+		standard_text.text = "SPQR"
+		standard_text.position = Vector3(bx + 0.95, 13.3, 25.25)
+		standard_text.font_size = 48
+		standard_text.pixel_size = 0.014
+		standard_text.modulate = Color("#e4c078")
+		standard_text.rotation.y = PI
+		standard_text.double_sided = true
+		standard_text.no_depth_test = true
+		col.add_child(standard_text)
 	for step in range(8):
 		_box(col, Vector3(18.0, 0.28, 1.1), Vector3(0, 0.14 + step * 0.28, -35.0 + step * 1.1), trim, true)
 	# vomitoria stair aisles: radial stair flights between seating wedges
