@@ -321,6 +321,15 @@ func _elliptical_ring(parent: Node3D, rx: float, rz: float, thickness: float, y:
 		n.rotation.y = -atan2(q.z - p.z, q.x - p.x)
 
 func _make_neighbourhood() -> void:
+	# Local Roman street grid between insulae, with raised travertine sidewalks.
+	for street_z in [-69.5, -44.5, 55.5]:
+		_box(self, Vector3(240, 0.14, 6.2), Vector3(0, -0.035, street_z), asphalt)
+		for side in [-1.0, 1.0]:
+			_box(self, Vector3(240, 0.18, 1.35), Vector3(0, 0.02, street_z + side * 3.75), stone)
+	for street_x in [-69.5, -44.5, 55.5]:
+		_box(self, Vector3(6.2, 0.14, 240), Vector3(street_x, -0.035, 0), asphalt)
+		for side in [-1.0, 1.0]:
+			_box(self, Vector3(1.35, 0.18, 240), Vector3(street_x + side * 3.75, 0.02, 0), stone)
 	for row in range(5):
 		for col in range(7):
 			var x := -82.0 + col * 25.0
