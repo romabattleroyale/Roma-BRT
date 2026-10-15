@@ -499,3 +499,31 @@ func _make_hud() -> void:
 	label.add_theme_font_size_override("font_size", 14)
 	label.add_theme_color_override("font_color", Color("#fff0d3"))
 	layer.add_child(label)
+	if OS.has_feature("mobile"):
+		var screen_size := get_viewport().get_visible_rect().size
+		var ring_texture := _touch_ring_texture()
+		var move_ring := TextureRect.new()
+		move_ring.texture = ring_texture
+		move_ring.position = Vector2(28, screen_size.y - 154)
+		move_ring.size = Vector2(124, 124)
+		move_ring.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+		move_ring.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		layer.add_child(move_ring)
+		var look_ring := TextureRect.new()
+		look_ring.texture = ring_texture
+		look_ring.position = Vector2(screen_size.x - 152, screen_size.y - 154)
+		look_ring.size = Vector2(124, 124)
+		look_ring.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+		look_ring.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		layer.add_child(look_ring)
+
+func _touch_ring_texture() -> Texture2D:
+	var img := Image.create(128, 128, false, Image.FORMAT_RGBA8)
+	for y in range(128):
+		for x in range(128):
+			var distance := Vector2(x - 63.5, y - 63.5).length()
+			if distance >= 51.0 and distance <= 58.0:
+				img.set_pixel(x, y, Color(0.95, 0.82, 0.61, 0.72))
+			elif distance <= 18.0:
+				img.set_pixel(x, y, Color(0.95, 0.82, 0.61, 0.22))
+	return ImageTexture.create_from_image(img)
