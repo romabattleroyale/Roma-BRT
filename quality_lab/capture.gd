@@ -21,7 +21,7 @@ func _capture_scene() -> void:
 	var output_dir := workspace.path_join("artifacts")
 	DirAccess.make_dir_recursive_absolute(output_dir)
 	camera.current = true
-	camera.global_position = Vector3(0, 11, 59)
+	camera.global_position = Vector3(0, 10, 53)
 	camera.look_at(Vector3(0, 13, 0), Vector3.UP)
 	await RenderingServer.frame_post_draw
 	if not _save_view(output_dir.path_join("colosseo_exterior.png")):
@@ -36,7 +36,7 @@ func _capture_scene() -> void:
 	if not _save_view(output_dir.path_join("colosseo_interior.png")):
 		quit(5)
 		return
-	camera.global_position = Vector3(0, 78, 92)
+	camera.global_position = Vector3(0, 68, 82)
 	camera.look_at(Vector3(0, 0, 0), Vector3.UP)
 	await RenderingServer.frame_post_draw
 	if not _save_view(output_dir.path_join("roma_district_overview.png")):
