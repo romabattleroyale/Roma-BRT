@@ -552,6 +552,13 @@ func _make_neighbourhood() -> void:
 			# ground-level shopfronts, awnings and balconies
 			_box(building, Vector3(w * 0.72, 2.1, 0.16), Vector3(0, 1.2, d * 0.5 + 0.1), shadow_stone)
 			_box(building, Vector3(w * 0.8, 0.24, 1.1), Vector3(0, 2.45, d * 0.5 + 0.55), terracotta)
+			# Alternating canvas stripes and carved door jambs make the tabernae legible at street level.
+			for stripe in range(8):
+				var stripe_x: float = -w * 0.38 + float(stripe) * (w * 0.76 / 7.0)
+				_box(building, Vector3(0.12, 0.22, 1.08), Vector3(stripe_x, 2.45, d * 0.5 + 0.56), trim if stripe % 2 == 0 else terracotta)
+			for jamb_x in [-w * 0.37, w * 0.37]:
+				_box(building, Vector3(0.22, 2.45, 0.24), Vector3(jamb_x, 1.25, d * 0.5 + 0.19), trim)
+			_box(building, Vector3(w * 0.76, 0.18, 0.24), Vector3(0, 2.53, d * 0.5 + 0.19), trim)
 			for bx in [-w * 0.28, w * 0.28]:
 				_box(building, Vector3(0.12, 1.0, 0.12), Vector3(bx, 2.0, d * 0.5 + 0.85), trim)
 				_box(building, Vector3(1.7, 0.1, 1.0), Vector3(bx, 1.5, d * 0.5 + 0.85), trim)
