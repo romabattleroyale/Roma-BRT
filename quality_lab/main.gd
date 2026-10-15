@@ -309,7 +309,7 @@ func _make_colosseum() -> void:
 			_box(col, Vector3(2.1, 0.28, 2.1), Vector3(x, 3.25, side * 25.4), stone)
 
 func _elliptical_ring(parent: Node3D, rx: float, rz: float, thickness: float, y: float, material: Material, collision := false) -> void:
-	var count := 128
+	var count := 96
 	for i in range(count):
 		var a := TAU * float(i) / count
 		var b := TAU * float(i + 1) / count
