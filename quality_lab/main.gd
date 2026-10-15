@@ -329,16 +329,16 @@ func _make_neighbourhood() -> void:
 				_box(building, Vector3(w + 0.12, 0.16, d + 0.12), Vector3(0, yy, 0), trim)
 				for side in [-1.0, 1.0]:
 					for win in range(max(2, int(w / 2.7))):
-						var wx := -w * 0.5 + 1.5 + win * (w - 3.0) / max(1, int(w / 2.7) - 1)
+						var wx: float = -w * 0.5 + 1.5 + win * (w - 3.0) / max(1, int(w / 2.7) - 1)
 						_box(building, Vector3(0.82, 1.25, 0.12), Vector3(wx, yy + 0.6, side * (d * 0.5 + 0.08)), shadow_stone)
 						_box(building, Vector3(1.04, 0.12, 0.18), Vector3(wx, yy + 1.28, side * (d * 0.5 + 0.12)), trim)
-					# window shutters, sills and lintels on the street-facing facade
-			for win in range(max(2, int(w / 2.7))):
-				var wx := -w * 0.5 + 1.5 + win * (w - 3.0) / max(1, int(w / 2.7) - 1)
-				for side in [-1.0, 1.0]:
-					_box(building, Vector3(0.12, 1.25, 0.08), Vector3(wx - 0.49, yy + 0.6, side * (d * 0.5 + 0.17)), terracotta)
-					_box(building, Vector3(0.12, 1.25, 0.08), Vector3(wx + 0.49, yy + 0.6, side * (d * 0.5 + 0.17)), terracotta)
-					_box(building, Vector3(1.12, 0.12, 0.20), Vector3(wx, yy - 0.08, side * (d * 0.5 + 0.17)), trim)
+				# window shutters, sills and lintels on the street-facing facade
+				for win in range(max(2, int(w / 2.7))):
+					var wx: float = -w * 0.5 + 1.5 + win * (w - 3.0) / max(1, int(w / 2.7) - 1)
+					for side in [-1.0, 1.0]:
+						_box(building, Vector3(0.12, 1.25, 0.08), Vector3(wx - 0.49, yy + 0.6, side * (d * 0.5 + 0.17)), terracotta)
+						_box(building, Vector3(0.12, 1.25, 0.08), Vector3(wx + 0.49, yy + 0.6, side * (d * 0.5 + 0.17)), terracotta)
+						_box(building, Vector3(1.12, 0.12, 0.20), Vector3(wx, yy - 0.08, side * (d * 0.5 + 0.17)), trim)
 			# ground-level shopfronts, awnings and balconies
 			_box(building, Vector3(w * 0.72, 2.1, 0.16), Vector3(0, 1.2, d * 0.5 + 0.1), shadow_stone)
 			_box(building, Vector3(w * 0.8, 0.24, 1.1), Vector3(0, 2.45, d * 0.5 + 0.55), terracotta)
