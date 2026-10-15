@@ -17,6 +17,9 @@ func _capture_scene() -> void:
 	camera.name = "PreviewCamera"
 	scene.add_child(camera)
 	camera.current = true
+	for child in scene.get_children():
+		if child is CanvasLayer:
+			child.visible = false
 	var workspace := OS.get_environment("GITHUB_WORKSPACE")
 	var output_dir := workspace.path_join("artifacts")
 	DirAccess.make_dir_recursive_absolute(output_dir)
@@ -27,9 +30,6 @@ func _capture_scene() -> void:
 	if not _save_view(output_dir.path_join("colosseo_exterior.png")):
 		quit(4)
 		return
-	for child in scene.get_children():
-		if child is CanvasLayer:
-			child.visible = false
 	camera.global_position = Vector3(0, 8, 0)
 	camera.look_at(Vector3(0, 10, -18), Vector3.UP)
 	await RenderingServer.frame_post_draw
