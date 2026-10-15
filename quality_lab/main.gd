@@ -329,6 +329,17 @@ func _make_colosseum() -> void:
 		# Fine secondary course lines break up the broad travertine bands and catch sunset light.
 		_elliptical_ring(col, rx + 0.68, rz + 0.68, 0.09, y + 4.02, trim)
 		_elliptical_ring(col, rx + 0.72, rz + 0.72, 0.07, y + 4.30, shadow_stone)
+	# A broad attic story, pilaster rhythm and inset inscription band complete the upper silhouette.
+	_elliptical_ring(col, RX - 2.1, RZ - 1.55, 0.70, 22.85, stone)
+	_elliptical_ring(col, RX - 1.55, RZ - 1.10, 0.42, 23.30, trim)
+	for attic_idx in range(SEGMENTS):
+		var attic_a := TAU * float(attic_idx) / SEGMENTS
+		var attic_pos := Vector3(cos(attic_a) * (RX - 1.9), 24.05, sin(attic_a) * (RZ - 1.35))
+		var attic_pier := _box(col, Vector3(0.48, 2.0, 0.72), attic_pos, trim, true)
+		attic_pier.look_at(attic_pos + Vector3(-sin(attic_a), 0, cos(attic_a)), Vector3.UP)
+		if attic_idx % 4 == 0:
+			_box(col, Vector3(0.78, 0.18, 0.92), attic_pos + Vector3(0, 1.05, 0), stone)
+	_elliptical_ring(col, RX - 1.35, RZ - 0.92, 0.38, 25.20, trim)
 	# Small pale-stone statuary on the main ledges breaks up the repeated arcade rhythm.
 	var statue_stone := _mat(Color("#e1d1b0"), 0.82)
 	for tier in [1, 2]:
