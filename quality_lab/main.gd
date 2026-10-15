@@ -172,6 +172,9 @@ func _make_colosseum() -> void:
 			pier.look_at(p + tangent, Vector3.UP)
 			_box(col, Vector3(1.25, 0.35, 1.65), p + Vector3(0, 2.2, 0), stone, true)
 			_box(col, Vector3(1.18, 0.28, 1.58), p + Vector3(0, -2.18, 0), stone, true)
+			# carved cornice profiles and shadow reveals at each storey
+			_box(col, Vector3(1.48, 0.16, 1.78), p + Vector3(0, 2.38, 0), trim)
+			_box(col, Vector3(1.42, 0.12, 1.72), p + Vector3(0, -2.38, 0), shadow_stone)
 			# deep shadowed bay behind each opening
 			var inner := Vector3(cos(a) * (rx - 0.42), y + 2.35, sin(a) * (rz - 0.42))
 			var bay := _box(col, Vector3(0.24, 3.25, 0.24), inner, shadow_stone)
