@@ -42,6 +42,18 @@ func _make_materials() -> void:
 	trim.albedo_texture = _procedural_stone_texture(Color("#ead0a0"), 83)
 	shadow_stone.albedo_texture = _procedural_stone_texture(Color("#80664b"), 117)
 	terracotta.albedo_texture = _procedural_brick_texture()
+	stone.normal_enabled = true
+	stone.normal_texture = _procedural_surface_normal(41, false)
+	stone.normal_scale = 0.18
+	trim.normal_enabled = true
+	trim.normal_texture = _procedural_surface_normal(83, false)
+	trim.normal_scale = 0.14
+	shadow_stone.normal_enabled = true
+	shadow_stone.normal_texture = _procedural_surface_normal(117, false)
+	shadow_stone.normal_scale = 0.16
+	terracotta.normal_enabled = true
+	terracotta.normal_texture = _procedural_surface_normal(2026, true)
+	terracotta.normal_scale = 0.18
 	asphalt.albedo_texture = _procedural_asphalt_texture()
 	asphalt.uv1_scale = Vector3(40, 40, 1)
 
@@ -60,6 +72,24 @@ func _procedural_stone_texture(base: Color, seed_value: int) -> Texture2D:
 				clampf(base.g + variation, 0.0, 1.0),
 				clampf(base.b + variation, 0.0, 1.0), 1.0)
 			img.set_pixel(x, y, c)
+	return ImageTexture.create_from_image(img)
+
+func _procedural_surface_normal(seed_value: int, brick: bool) -> Texture2D:
+	var img := Image.create(256, 256, false, Image.FORMAT_RGBA8)
+	var rng := RandomNumberGenerator.new()
+	rng.seed = seed_value
+	for y in range(256):
+		for x in range(256):
+			var mortar: bool
+			if brick:
+				var row := int(y / 32)
+				var offset := 32 if row % 2 else 0
+				mortar = ((x + offset) % 64) < 3 or (y % 32) < 3
+			else:
+				mortar = (x % 64) < 2 or (y % 32) < 2
+			var height_value := 0.22 if mortar else rng.randf_range(0.48, 0.62)
+			img.set_pixel(x, y, Color(height_value, height_value, height_value, 1.0))
+	img.bump_map_to_normal_map(1.2)
 	return ImageTexture.create_from_image(img)
 
 func _procedural_asphalt_texture() -> Texture2D:
