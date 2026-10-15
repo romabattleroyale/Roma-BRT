@@ -616,14 +616,21 @@ func _make_tree_crown(origin: Vector3, radius: float, height: float, material: M
 	tree.position = origin
 	add_child(tree)
 	_cylinder(tree, 0.23, 2.2, Vector3(0, -0.3, 0), _mat(Color("#6a432d")), 9)
-	for i in range(2):
+	var cluster_positions := [
+		Vector3(0, 1.05, 0),
+		Vector3(radius * 0.48, 1.18, radius * 0.10),
+		Vector3(-radius * 0.42, 1.12, -radius * 0.18),
+		Vector3(radius * 0.10, 1.30, -radius * 0.45),
+		Vector3(-radius * 0.12, 1.26, radius * 0.42)
+	]
+	for i in range(cluster_positions.size()):
 		var canopy := MeshInstance3D.new()
 		var sphere := SphereMesh.new()
-		sphere.radius = radius * (1.0 if i == 0 else 0.72)
-		sphere.height = height * (0.78 if i == 0 else 0.72)
+		sphere.radius = radius * (0.68 if i == 0 else 0.46)
+		sphere.height = sphere.radius * 2.0
 		canopy.mesh = sphere
-		canopy.scale = Vector3(1.18 if i == 0 else 1.0, 0.55 if i == 0 else 0.68, 1.18 if i == 0 else 1.0)
-		canopy.position = Vector3(0, 1.0 if i == 0 else 1.38, 0)
+		canopy.position = cluster_positions[i]
+		canopy.scale = Vector3(1.0, height / maxf(radius * 2.0, 0.1), 1.0)
 		canopy.material_override = material
 		tree.add_child(canopy)
 	return tree
