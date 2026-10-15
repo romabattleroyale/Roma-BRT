@@ -291,6 +291,13 @@ func _make_colosseum() -> void:
 				var voussoir := _box(col, Vector3(0.58, 0.42, 1.42), arc_pos, trim)
 				voussoir.look_at(arc_pos + tangent_arch, Vector3.UP)
 				voussoir.rotate_object_local(Vector3(1, 0, 0), theta - PI * 0.5)
+		# Continuous projecting stringcourse with small dentils below each tier.
+		_elliptical_ring(col, rx + 0.55, rz + 0.55, 0.22, y + 4.42, stone)
+		for dentil_idx in range(SEGMENTS):
+			var dentil_a := TAU * float(dentil_idx) / SEGMENTS
+			var dentil_pos := Vector3(cos(dentil_a) * (rx + 0.62), y + 4.18, sin(dentil_a) * (rz + 0.62))
+			var dentil := _box(col, Vector3(0.20, 0.22, 0.24), dentil_pos, trim)
+			dentil.look_at(dentil_pos + Vector3(-sin(dentil_a), 0, cos(dentil_a)), Vector3.UP)
 		_elliptical_ring(col, rx + 0.35, rz + 0.35, 0.45, y + 4.65, trim)
 	# Small pale-stone statuary on the main ledges breaks up the repeated arcade rhythm.
 	var statue_stone := _mat(Color("#e1d1b0"), 0.82)
