@@ -295,9 +295,9 @@ func _make_colosseum() -> void:
 	# Small pale-stone statuary on the main ledges breaks up the repeated arcade rhythm.
 	var statue_stone := _mat(Color("#e1d1b0"), 0.82)
 	for tier in [1, 2]:
-		var y_statue := 1.15 + tier * 5.25 + 4.72
-		var rx_statue := RX - tier * 0.65 + 0.48
-		var rz_statue := RZ - tier * 0.5 + 0.48
+		var y_statue: float = 1.15 + float(tier) * 5.25 + 4.72
+		var rx_statue: float = RX - float(tier) * 0.65 + 0.48
+		var rz_statue: float = RZ - float(tier) * 0.5 + 0.48
 		for idx in range(12):
 			var a := PI * 0.10 + float(idx) * PI * 0.80 / 11.0
 			var radial := Vector3(cos(a), 0, sin(a)).normalized()
