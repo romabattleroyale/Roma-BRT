@@ -10,7 +10,7 @@ func _capture_scene() -> void:
 		quit(2)
 		return
 	root.add_child(packed.instantiate())
-	for frame in range(12):
+	for frame in range(3):
 		await process_frame
 	var image := root.get_viewport().get_texture().get_image()
 	if image.is_empty():
