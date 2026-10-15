@@ -21,6 +21,7 @@ func _ready() -> void:
 	_make_plaza_paving()
 	_make_colosseum()
 	_make_neighbourhood()
+	_make_roman_skyline()
 	_make_street_furniture()
 	_make_vehicles()
 	_make_showcase_figures()
@@ -519,6 +520,27 @@ func _make_neighbourhood() -> void:
 					_box(building, Vector3(0.38, h, 0.38), Vector3(corner_x * (w * 0.5 - 0.2), h * 0.5, corner_z * (d * 0.5 - 0.2)), trim)
 			_box(building, Vector3(w + 0.4, 0.22, 0.42), Vector3(0, h + 0.62, -d * 0.5 + 0.2), terracotta)
 			_box(building, Vector3(w + 0.4, 0.22, 0.42), Vector3(0, h + 0.62, d * 0.5 - 0.2), terracotta)
+
+func _make_roman_skyline() -> void:
+	# Distant campanili and rooflines frame the monument without competing with it.
+	var masonry := _mat(Color("#b89a72"), 0.9)
+	var pale_stone := _mat(Color("#d6bc91"), 0.88)
+	var roof := _mat(Color("#98452f"), 0.9)
+	for side in [-1.0, 1.0]:
+		var tower := Node3D.new()
+		tower.position = Vector3(side * 43.0, 0, -58.0)
+		add_child(tower)
+		_box(tower, Vector3(4.2, 17.0, 4.2), Vector3(0, 8.5, 0), masonry)
+		_box(tower, Vector3(4.8, 0.65, 4.8), Vector3(0, 17.0, 0), pale_stone)
+		_box(tower, Vector3(3.5, 4.2, 3.5), Vector3(0, 19.35, 0), pale_stone)
+		for face in [-1.0, 1.0]:
+			_box(tower, Vector3(0.12, 1.65, 1.05), Vector3(face * 1.81, 19.6, 0), shadow_stone)
+			_box(tower, Vector3(1.05, 1.65, 0.12), Vector3(0, 19.6, face * 1.81), shadow_stone)
+		_box(tower, Vector3(4.6, 0.35, 4.6), Vector3(0, 21.6, 0), trim)
+		_cylinder(tower, 1.7, 1.0, Vector3(0, 22.2, 0), roof, 12)
+		_cylinder(tower, 1.25, 1.2, Vector3(0, 23.2, 0), roof, 12)
+		_cylinder(tower, 0.68, 1.2, Vector3(0, 24.25, 0), roof, 10)
+		_cylinder(tower, 0.10, 2.2, Vector3(0, 25.8, 0), pale_stone, 8)
 
 func _make_street_furniture() -> void:
 	for x in range(-100, 101, 20):
