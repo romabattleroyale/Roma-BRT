@@ -18,6 +18,8 @@ func _ready() -> void:
 	pivot.rotation.x = pitch
 
 func _unhandled_input(event: InputEvent) -> void:
+	if event is InputEventMouseButton and event.pressed and Input.mouse_mode == Input.MOUSE_MODE_VISIBLE:
+		Input.mouse_mode = Input.MOUSE_MODE_CAPTURED
 	if event is InputEventMouseMotion and Input.mouse_mode == Input.MOUSE_MODE_CAPTURED:
 		rotate_y(-event.relative.x * mouse_sensitivity)
 		pitch = clampf(pitch - event.relative.y * mouse_sensitivity, -1.25, 1.25)
