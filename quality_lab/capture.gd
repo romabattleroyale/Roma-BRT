@@ -12,7 +12,7 @@ func _capture_scene() -> void:
 	var scene := packed.instantiate()
 	root.add_child(scene)
 	for frame in range(3):
-		await process_frame
+		await RenderingServer.frame_post_draw
 	var camera := Camera3D.new()
 	camera.name = "PreviewCamera"
 	scene.add_child(camera)
@@ -29,13 +29,13 @@ func _capture_scene() -> void:
 		return
 	camera.global_position = Vector3(0, 8, 0)
 	camera.look_at(Vector3(0, 10, -18), Vector3.UP)
-	await process_frame
+	await RenderingServer.frame_post_draw
 	if not _save_view(output_dir.path_join("colosseo_interior.png")):
 		quit(5)
 		return
 	camera.global_position = Vector3(0, 78, 92)
 	camera.look_at(Vector3(0, 0, 0), Vector3.UP)
-	await process_frame
+	await RenderingServer.frame_post_draw
 	if not _save_view(output_dir.path_join("roma_district_overview.png")):
 		quit(6)
 		return
