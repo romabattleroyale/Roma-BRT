@@ -287,7 +287,7 @@ func _make_colosseum() -> void:
 				_cylinder(col, 0.36, 0.20, p + radial * 0.78 - Vector3(0, 2.08, 0), stone, 12)
 				for flute_offset in [-0.13, 0.0, 0.13]:
 					_cylinder(col, 0.026, 3.7, p + radial * 0.96 + tangent * flute_offset, trim, 6)
-			pier.look_at(p + tangent, Vector3.UP)
+			pier.rotation.y = a + PI * 0.5
 			_box(col, Vector3(1.25, 0.35, 1.65), p + Vector3(0, 2.2, 0), stone, true)
 			_box(col, Vector3(1.18, 0.28, 1.58), p + Vector3(0, -2.18, 0), stone, true)
 			# carved cornice profiles and shadow reveals at each storey
@@ -296,13 +296,13 @@ func _make_colosseum() -> void:
 			# deep shadowed bay behind each opening
 			var inner := Vector3(cos(a) * (rx - 0.42), y + 2.35, sin(a) * (rz - 0.42))
 			var bay := _box(col, Vector3(0.24, 3.25, 0.24), inner, shadow_stone)
-			bay.look_at(inner + tangent, Vector3.UP)
+			bay.rotation.y = a + PI * 0.5
 			# upper-floor window recesses and lintel detail
 			if tier > 0 and i % 2 == 0:
 				var win := _box(col, Vector3(0.12, 1.5, 0.9), p + Vector3(0, 0.15, 0), shadow_stone)
-				win.look_at(p + tangent, Vector3.UP)
+				win.rotation.y = a + PI * 0.5
 				var lintel := _box(col, Vector3(0.2, 0.16, 1.15), p + Vector3(0, 0.98, 0), trim)
-				lintel.look_at(p + tangent, Vector3.UP)
+				lintel.rotation.y = a + PI * 0.5
 		# five voussoirs over each opening form a readable Roman arcade rhythm
 		for bay in range(SEGMENTS):
 			var a0 := TAU * float(bay) / SEGMENTS
@@ -313,22 +313,22 @@ func _make_colosseum() -> void:
 				var theta := PI - PI * float(stone_idx) / 6.0
 				var arc_pos := Vector3(cos(mid_a) * rx, y + 2.55 + sin(theta) * 1.30, sin(mid_a) * rz) + tangent_arch * (cos(theta) * 1.30)
 				var voussoir := _box(col, Vector3(0.58, 0.42, 1.42), arc_pos, trim)
-				voussoir.look_at(arc_pos + tangent_arch, Vector3.UP)
+				voussoir.rotation.y = mid_a + PI * 0.5
 				voussoir.rotate_object_local(Vector3(1, 0, 0), theta - PI * 0.5)
 			# Projecting keystone and fine inner archivolt give each arch a stronger silhouette.
 			var crown_pos := Vector3(cos(mid_a) * rx, y + 3.88, sin(mid_a) * rz)
 			var keystone := _box(col, Vector3(0.72, 0.68, 1.54), crown_pos, trim)
-			keystone.look_at(crown_pos + tangent_arch, Vector3.UP)
+			keystone.rotation.y = mid_a + PI * 0.5
 			var inner_crown := Vector3(cos(mid_a) * (rx - 0.10), y + 3.76, sin(mid_a) * (rz - 0.10))
 			var crown_shadow := _box(col, Vector3(0.16, 0.20, 1.22), inner_crown, shadow_stone)
-			crown_shadow.look_at(inner_crown + tangent_arch, Vector3.UP)
+			crown_shadow.rotation.y = mid_a + PI * 0.5
 		# Continuous projecting stringcourse with small dentils below each tier.
 		_elliptical_ring(col, rx + 0.55, rz + 0.55, 0.22, y + 4.42, stone)
 		for dentil_idx in range(SEGMENTS):
 			var dentil_a := TAU * float(dentil_idx) / SEGMENTS
 			var dentil_pos := Vector3(cos(dentil_a) * (rx + 0.62), y + 4.18, sin(dentil_a) * (rz + 0.62))
 			var dentil := _box(col, Vector3(0.20, 0.22, 0.24), dentil_pos, trim)
-			dentil.look_at(dentil_pos + Vector3(-sin(dentil_a), 0, cos(dentil_a)), Vector3.UP)
+			dentil.rotation.y = dentil_a + PI * 0.5
 		_elliptical_ring(col, rx + 0.35, rz + 0.35, 0.45, y + 4.65, trim)
 		# Fine secondary course lines break up the broad travertine bands and catch sunset light.
 		_elliptical_ring(col, rx + 0.68, rz + 0.68, 0.09, y + 4.02, trim)
@@ -340,7 +340,7 @@ func _make_colosseum() -> void:
 		var attic_a := TAU * float(attic_idx) / SEGMENTS
 		var attic_pos := Vector3(cos(attic_a) * (RX - 1.9), 24.05, sin(attic_a) * (RZ - 1.35))
 		var attic_pier := _box(col, Vector3(0.48, 2.0, 0.72), attic_pos, trim, true)
-		attic_pier.look_at(attic_pos + Vector3(-sin(attic_a), 0, cos(attic_a)), Vector3.UP)
+		attic_pier.rotation.y = attic_a + PI * 0.5
 		if attic_idx % 4 == 0:
 			_box(col, Vector3(0.78, 0.18, 0.92), attic_pos + Vector3(0, 1.05, 0), stone)
 	_elliptical_ring(col, RX - 1.35, RZ - 0.92, 0.38, 25.20, trim)
@@ -413,14 +413,14 @@ func _make_colosseum() -> void:
 		var rz_attic := RZ - 1.55
 		var center := Vector3(cos(a) * rx_attic, 22.0, sin(a) * rz_attic)
 		var attic_panel := _box(col, Vector3(0.55, 2.3, 2.15), center, stone)
-		attic_panel.look_at(center + tangent, Vector3.UP)
+		attic_panel.rotation.y = a + PI * 0.5
 		if i % 2 == 0:
 			var opening := _box(col, Vector3(0.10, 0.85, 0.62), center + radial * 0.31 + Vector3(0, 0.12, 0), shadow_stone)
-			opening.look_at(center + tangent, Vector3.UP)
+			opening.rotation.y = a + PI * 0.5
 			var sill := _box(col, Vector3(0.18, 0.12, 0.82), center + radial * 0.36 + Vector3(0, -0.38, 0), trim)
-			sill.look_at(center + tangent, Vector3.UP)
+			sill.rotation.y = a + PI * 0.5
 		var pilaster := _box(col, Vector3(0.68, 2.45, 0.20), center + radial * 0.34, trim)
-		pilaster.look_at(center + tangent, Vector3.UP)
+		pilaster.rotation.y = a + PI * 0.5
 	_elliptical_ring(col, RX - 1.35, RZ - 1.0, 0.65, 23.25, trim, true)
 	_elliptical_ring(col, RX - 1.15, RZ - 0.8, 0.32, 24.0, shadow_stone, true)
 	# ceremonial SPQR standards and monumental approach stairs
@@ -479,7 +479,7 @@ func _make_colosseum() -> void:
 			var radial := Vector3(cos(a), 0, sin(a))
 			var pos := Vector3(radial.x * (20.5 + level * 0.65), yy, radial.z * (14.8 + level * 0.45))
 			var support := _box(col, Vector3(0.72, 3.5, 0.9), pos, trim, true)
-			support.look_at(pos + Vector3(-radial.z, 0, radial.x), Vector3.UP)
+			support.rotation.y = a + PI * 0.5
 			_box(col, Vector3(1.0, 0.18, 1.15), pos + Vector3(0, 1.8, 0), stone)
 		# gallery floor bands visually separate the circulation levels
 		_elliptical_ring(col, 21.0 + level * 0.7, 15.2 + level * 0.45, 0.26, yy + 1.95, trim, true)
@@ -539,10 +539,10 @@ func _make_colosseum() -> void:
 		var tangent := Vector3(-sin(a), 0, cos(a))
 		var p := Vector3(cos(a) * (RX - 2.1), attic_y + 1.45, sin(a) * (RZ - 1.7))
 		var attic_pier := _box(col, Vector3(0.8, 2.9, 1.05), p, trim, true)
-		attic_pier.look_at(p + tangent, Vector3.UP)
+		attic_pier.rotation.y = a + PI * 0.5
 		if i % 2 == 0:
 			var opening := _box(col, Vector3(0.14, 0.72, 0.48), p - radial * 0.28 + Vector3(0, 0.05, 0), shadow_stone)
-			opening.look_at(p + tangent, Vector3.UP)
+			opening.rotation.y = a + PI * 0.5
 		_box(col, Vector3(1.12, 0.18, 1.38), p + Vector3(0, 1.5, 0), stone)
 	_elliptical_ring(col, RX - 1.65, RZ - 1.25, 0.55, attic_y + 3.0, trim)
 	# monumental entrance portals, travertine stairs and sculptural plinths
