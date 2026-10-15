@@ -529,8 +529,6 @@ func _make_colosseum() -> void:
 			_box(col, Vector3(0.075, 0.025, half_depth * 1.85), Vector3(x, 1.68, 0), arena_wood if plank % 3 == 0 else arena_wood_light)
 	for x in range(-8, 9, 4):
 		_box(col, Vector3(2.2, 1.0, 12), Vector3(x, 0.55, 0), shadow_stone)
-	for x in range(-8, 9, 4):
-		_box(col, Vector3(2.2, 1.0, 12), Vector3(x, 0.55, 0), shadow_stone)
 	# upper attic story: alternating solid panels, pilasters and small square openings
 	var attic_y := 1.15 + (FLOORS - 1) * 5.25 + 4.65
 	for i in range(SEGMENTS):
