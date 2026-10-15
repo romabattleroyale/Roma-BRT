@@ -183,6 +183,13 @@ func _make_environment() -> void:
 	env.ambient_light_energy = 0.58
 	env.tonemap_mode = Environment.TONE_MAPPER_FILMIC
 	env.glow_enabled = true
+	env.ssao_enabled = true
+	env.ssao_radius = 2.0
+	env.ssao_intensity = 1.25
+	env.ssao_power = 1.35
+	env.adjustment_enabled = true
+	env.adjustment_contrast = 1.08
+	env.adjustment_saturation = 1.06
 	world.environment = env
 	add_child(world)
 	var sun := DirectionalLight3D.new()
