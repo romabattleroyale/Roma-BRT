@@ -326,6 +326,9 @@ func _make_colosseum() -> void:
 			var dentil := _box(col, Vector3(0.20, 0.22, 0.24), dentil_pos, trim)
 			dentil.look_at(dentil_pos + Vector3(-sin(dentil_a), 0, cos(dentil_a)), Vector3.UP)
 		_elliptical_ring(col, rx + 0.35, rz + 0.35, 0.45, y + 4.65, trim)
+		# Fine secondary course lines break up the broad travertine bands and catch sunset light.
+		_elliptical_ring(col, rx + 0.68, rz + 0.68, 0.09, y + 4.02, pale_stone if false else trim)
+		_elliptical_ring(col, rx + 0.72, rz + 0.72, 0.07, y + 4.30, shadow_stone)
 	# Small pale-stone statuary on the main ledges breaks up the repeated arcade rhythm.
 	var statue_stone := _mat(Color("#e1d1b0"), 0.82)
 	for tier in [1, 2]:
