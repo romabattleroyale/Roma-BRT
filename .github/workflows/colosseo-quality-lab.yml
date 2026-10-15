@@ -7,6 +7,12 @@ on:
     paths:
       - "quality_lab/**"
       - ".github/workflows/colosseo-quality-lab.yml"
+  pull_request:
+    branches:
+      - main
+    paths:
+      - "quality_lab/**"
+      - ".github/workflows/colosseo-quality-lab.yml"
   workflow_dispatch:
 
 permissions:
