@@ -238,6 +238,19 @@ func _make_colosseum() -> void:
 		_box(col, Vector3(0.22, 1.7, 12.0), Vector3(x, 0.72, 0), trim)
 		for z in range(-5, 6, 2):
 			_box(col, Vector3(2.7, 0.16, 0.16), Vector3(x, 1.58, z), shadow_stone)
+	# warm practical lights in the lower ambulatory and service corridors
+	for i in range(24):
+		var a := TAU * float(i) / 24.0
+		var radial := Vector3(cos(a), 0, sin(a))
+		var lamp_pos := Vector3(radial.x * 21.8, 3.3, radial.z * 15.6)
+		var lamp := OmniLight3D.new()
+		lamp.position = lamp_pos
+		lamp.light_color = Color("#ffbd7a")
+		lamp.light_energy = 0.45
+		lamp.omni_range = 5.5
+		lamp.shadow_enabled = false
+		col.add_child(lamp)
+		_cylinder(col, 0.12, 0.34, lamp_pos, trim, 10)
 	# arena floor and hypogeum lanes
 	_box(col, Vector3(29, 0.22, 19), Vector3(0, 1.55, 0), _mat(Color("#b99a70")))
 	for x in range(-12, 13, 4):
