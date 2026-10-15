@@ -774,26 +774,40 @@ func _make_scooter(origin: Vector3, paint: Material) -> void:
 	_box(scooter, Vector3(0.24, 0.10, 0.42), Vector3(0, 0.78, 0.12), _mat(Color("#242321")))
 
 func _make_tree_crown(origin: Vector3, radius: float, height: float, material: Material) -> Node3D:
+	# Layered, angular foliage reads as a stylized Roman umbrella pine rather than five smooth balls.
 	var tree := Node3D.new()
 	tree.position = origin
 	add_child(tree)
-	_cylinder(tree, 0.23, 2.2, Vector3(0, -0.3, 0), _mat(Color("#6a432d")), 9)
+	_cylinder(tree, radius * 0.13, height * 0.82, Vector3(0, height * 0.12, 0), _mat(Color("#60432d")), 8)
+	var rng := RandomNumberGenerator.new()
+	rng.seed = int(absf(origin.x * 173.0 + origin.z * 317.0)) + 90210
 	var cluster_positions := [
-		Vector3(0, 1.05, 0),
-		Vector3(radius * 0.48, 1.18, radius * 0.10),
-		Vector3(-radius * 0.42, 1.12, -radius * 0.18),
-		Vector3(radius * 0.10, 1.30, -radius * 0.45),
-		Vector3(-radius * 0.12, 1.26, radius * 0.42)
+		Vector3(0, height * 0.52, 0),
+		Vector3(radius * 0.44, height * 0.48, radius * 0.12),
+		Vector3(-radius * 0.42, height * 0.45, -radius * 0.20),
+		Vector3(radius * 0.12, height * 0.56, -radius * 0.43),
+		Vector3(-radius * 0.15, height * 0.54, radius * 0.40),
+		Vector3(radius * 0.28, height * 0.34, -radius * 0.27),
+		Vector3(-radius * 0.30, height * 0.36, radius * 0.22),
+		Vector3(radius * 0.02, height * 0.68, radius * 0.08)
 	]
 	for i in range(cluster_positions.size()):
 		var canopy := MeshInstance3D.new()
 		var sphere := SphereMesh.new()
-		sphere.radius = radius * (0.68 if i == 0 else 0.46)
-		sphere.height = sphere.radius * 2.0
+		sphere.radial_segments = 8
+		sphere.rings = 5
+		sphere.radius = radius * (0.62 if i == 0 else rng.randf_range(0.30, 0.43))
+		sphere.height = sphere.radius * 1.5
 		canopy.mesh = sphere
-		canopy.position = cluster_positions[i]
-		canopy.scale = Vector3(1.0, height / maxf(radius * 2.0, 0.1), 1.0)
-		canopy.material_override = material
+		canopy.position = cluster_positions[i] + Vector3(rng.randf_range(-0.12, 0.12), 0, rng.randf_range(-0.12, 0.12))
+		canopy.scale = Vector3(rng.randf_range(1.0, 1.35), rng.randf_range(0.55, 0.78), rng.randf_range(0.95, 1.2))
+		var leaf_material := (material as StandardMaterial3D).duplicate() as StandardMaterial3D if material is StandardMaterial3D else _mat(Color("#596c3b"))
+		var shade := rng.randf_range(0.82, 1.12)
+		leaf_material.albedo_color = Color(
+			clampf(leaf_material.albedo_color.r * shade, 0.0, 1.0),
+			clampf(leaf_material.albedo_color.g * shade, 0.0, 1.0),
+			clampf(leaf_material.albedo_color.b * shade, 0.0, 1.0), 1.0)
+		canopy.material_override = leaf_material
 		tree.add_child(canopy)
 	return tree
 
