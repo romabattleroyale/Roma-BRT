@@ -42,7 +42,7 @@ func _unhandled_input(event: InputEvent) -> void:
 			pivot.rotation.x = pitch
 
 func _physics_process(delta: float) -> void:
-	var axis := Input.get_vector("ui_left", "ui_right", "ui_up", "ui_down")
+	var axis := Input.get_vector("move_left", "move_right", "move_forward", "move_back")
 	axis += touch_move
 	axis = axis.limit_length(1.0)
 	var speed := run_speed if Input.is_key_pressed(KEY_SHIFT) else walk_speed
@@ -53,4 +53,6 @@ func _physics_process(delta: float) -> void:
 		velocity.y -= 22.0 * delta
 	else:
 		velocity.y = -0.5
+		if Input.is_action_just_pressed("jump"):
+			velocity.y = 6.5
 	move_and_slide()
