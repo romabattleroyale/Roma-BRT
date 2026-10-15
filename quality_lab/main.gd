@@ -196,6 +196,26 @@ func _make_colosseum() -> void:
 		_box(col, Vector3(1.25, 0.12, 0.17), Vector3(bx + 0.95, 11.45, -25.04), gold_mat)
 	for step in range(8):
 		_box(col, Vector3(18.0, 0.28, 1.1), Vector3(0, 0.14 + step * 0.28, -35.0 + step * 1.1), trim, true)
+	# vomitoria stair aisles: radial stair flights between seating wedges
+	for aisle in range(16):
+		var a := TAU * float(aisle) / 16.0
+		var radial := Vector3(cos(a), 0, sin(a))
+		for step in range(10):
+			var r := 21.5 + step * 0.82
+			var pos := Vector3(radial.x * r, 1.75 + step * 0.29, radial.z * (15.0 + step * 0.58))
+			var stair := _box(col, Vector3(1.45, 0.18, 0.95), pos, stone)
+			stair.rotation.y = -a
+	# radial vomitoria portals with deep reveals and lintels
+	for aisle in range(16):
+		var a := TAU * float(aisle) / 16.0
+		var radial := Vector3(cos(a), 0, sin(a))
+		var tangent := Vector3(-sin(a), 0, cos(a))
+		var pos := Vector3(radial.x * 27.0, 5.0, radial.z * 19.0)
+		for side in [-1.0, 1.0]:
+			var jamb := _box(col, Vector3(0.38, 3.2, 0.48), pos + tangent * side * 1.05, trim, true)
+			jamb.look_at(pos + tangent * side * 1.05 + tangent, Vector3.UP)
+		var lintel := _box(col, Vector3(0.42, 0.34, 2.5), pos + Vector3(0, 1.72, 0), stone)
+		lintel.look_at(pos + tangent, Vector3.UP)
 	# arena, inner walls, tiered seating and hypogeum corridors
 	_elliptical_ring(col, 19.5, 13.7, 0.35, 1.25, shadow_stone)
 	_elliptical_ring(col, 18.4, 12.8, 0.3, 1.45, trim)
