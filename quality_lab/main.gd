@@ -18,6 +18,7 @@ func _ready() -> void:
 	_make_colosseum()
 	_make_neighbourhood()
 	_make_street_furniture()
+	_make_vehicles()
 	_make_player()
 	_make_hud()
 
@@ -478,6 +479,46 @@ func _make_street_furniture() -> void:
 		_box(self, Vector3(0.035, 0.012, 58.0), Vector3(x, 0.095, 0.0), _mat(Color("#a88b65")))
 	for z in range(-28, 29, 4):
 		_box(self, Vector3(78.0, 0.012, 0.035), Vector3(0.0, 0.095, z), _mat(Color("#a88b65")))
+
+func _make_vehicles() -> void:
+	# Parked compact cars and scooters add scale and lived-in Roman street character.
+	var tire := _mat(Color("#242321"), 0.96)
+	var glass := _mat(Color("#263c47"), 0.38, 0.12)
+	var chrome := _mat(Color("#c5bda9"), 0.42, 0.35)
+	var car_colors := [_mat(Color("#a94332")), _mat(Color("#d4c5a2")), _mat(Color("#536b78"))]
+	var car_positions := [Vector3(-59.0, 0, -69.5), Vector3(58.0, 0, 55.5), Vector3(-59.0, 0, -44.5)]
+	for i in range(car_positions.size()):
+		var car := Node3D.new()
+		car.position = car_positions[i]
+		add_child(car)
+		_box(car, Vector3(3.5, 0.62, 1.65), Vector3(0, 0.66, 0), car_colors[i], true)
+		_box(car, Vector3(1.95, 0.72, 1.32), Vector3(-0.18, 1.28, 0), car_colors[i])
+		_box(car, Vector3(1.72, 0.48, 0.035), Vector3(-0.18, 1.32, -0.68), glass)
+		_box(car, Vector3(1.72, 0.48, 0.035), Vector3(-0.18, 1.32, 0.68), glass)
+		_box(car, Vector3(0.12, 0.16, 0.12), Vector3(1.7, 0.62, -0.53), chrome)
+		_box(car, Vector3(0.12, 0.16, 0.12), Vector3(1.7, 0.62, 0.53), chrome)
+		_box(car, Vector3(0.16, 0.16, 1.5), Vector3(-1.78, 0.53, 0), chrome)
+		for wheel_x in [-1.12, 1.12]:
+			for wheel_z in [-0.82, 0.82]:
+				var wheel := _cylinder(car, 0.36, 0.22, Vector3(wheel_x, 0.38, wheel_z), tire, 12)
+				wheel.rotation.z = PI * 0.5
+				var hub := _cylinder(car, 0.16, 0.235, Vector3(wheel_x, 0.38, wheel_z), chrome, 10)
+				hub.rotation.z = PI * 0.5
+	_make_scooter(Vector3(-47.0, 0, -51.0), _mat(Color("#a94332")))
+	_make_scooter(Vector3(48.0, 0, 51.0), _mat(Color("#4e5d63")))
+
+func _make_scooter(origin: Vector3, paint: Material) -> void:
+	var scooter := Node3D.new()
+	scooter.position = origin
+	add_child(scooter)
+	var tire := _mat(Color("#252422"), 0.96)
+	for wheel_z in [-0.48, 0.48]:
+		var wheel := _cylinder(scooter, 0.19, 0.12, Vector3(0, 0.22, wheel_z), tire, 12)
+		wheel.rotation.x = PI * 0.5
+	_box(scooter, Vector3(0.30, 0.12, 0.68), Vector3(0, 0.42, 0.05), paint)
+	_cylinder(scooter, 0.055, 0.78, Vector3(0, 0.80, -0.30), paint, 8)
+	_box(scooter, Vector3(0.55, 0.055, 0.07), Vector3(0, 1.19, -0.30), paint)
+	_box(scooter, Vector3(0.24, 0.10, 0.42), Vector3(0, 0.78, 0.12), _mat(Color("#242321")))
 
 func _make_tree_crown(origin: Vector3, radius: float, height: float, material: Material) -> Node3D:
 	var tree := Node3D.new()
