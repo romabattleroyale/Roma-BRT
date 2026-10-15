@@ -347,8 +347,10 @@ func _make_neighbourhood() -> void:
 			_box(building, Vector3(w + 0.7, 0.32, d + 0.7), Vector3(0, h + 0.1, 0), trim)
 			_box(building, Vector3(w + 0.9, 0.45, d + 0.9), Vector3(0, h + 0.42, 0), _mat(Color("#713b2a")))
 			if (row + col) % 2 == 0:
-				_box(building, Vector3(w + 0.5, 0.20, d * 0.56), Vector3(0, h + 0.78, -d * 0.22), terracotta).rotation.x = -0.28
-				_box(building, Vector3(w + 0.5, 0.20, d * 0.56), Vector3(0, h + 0.78, d * 0.22), terracotta).rotation.x = 0.28
+				var roof_left := _box(building, Vector3(w + 0.5, 0.20, d * 0.56), Vector3(0, h + 0.78, -d * 0.22), terracotta)
+				roof_left.rotation.x = -0.28
+				var roof_right := _box(building, Vector3(w + 0.5, 0.20, d * 0.56), Vector3(0, h + 0.78, d * 0.22), terracotta)
+				roof_right.rotation.x = 0.28
 				_box(building, Vector3(w + 0.6, 0.22, 0.28), Vector3(0, h + 1.02, 0), shadow_stone)
 			var floors := int(h / 2.8)
 			for f in range(floors):
