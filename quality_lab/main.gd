@@ -34,6 +34,45 @@ func _make_materials() -> void:
 	shadow_stone = _mat(Color("#80664b"))
 	terracotta = _mat(Color("#a94f32"))
 	asphalt = _mat(Color("#35302c"))
+	stone.albedo_texture = _procedural_stone_texture(Color("#c9a879"), 41)
+	trim.albedo_texture = _procedural_stone_texture(Color("#ead0a0"), 83)
+	shadow_stone.albedo_texture = _procedural_stone_texture(Color("#80664b"), 117)
+	terracotta.albedo_texture = _procedural_brick_texture()
+
+func _procedural_stone_texture(base: Color, seed_value: int) -> Texture2D:
+	var img := Image.create(256, 256, false, Image.FORMAT_RGBA8)
+	var rng := RandomNumberGenerator.new()
+	rng.seed = seed_value
+	for y in range(256):
+		for x in range(256):
+			var cell_x := x % 64
+			var cell_y := y % 32
+			var mortar := cell_x < 2 or cell_y < 2
+			var variation := rng.randf_range(-0.055, 0.055)
+			var c := base.darkened(0.34) if mortar else Color(
+				clampf(base.r + variation, 0.0, 1.0),
+				clampf(base.g + variation, 0.0, 1.0),
+				clampf(base.b + variation, 0.0, 1.0), 1.0)
+			img.set_pixel(x, y, c)
+	return ImageTexture.create_from_image(img)
+
+func _procedural_brick_texture() -> Texture2D:
+	var img := Image.create(256, 256, false, Image.FORMAT_RGBA8)
+	var rng := RandomNumberGenerator.new()
+	rng.seed = 2026
+	for y in range(256):
+		for x in range(256):
+			var row := int(y / 32)
+			var offset := 32 if row % 2 else 0
+			var cell_x := (x + offset) % 64
+			var mortar := cell_x < 3 or y % 32 < 3
+			var v := rng.randf_range(-0.07, 0.07)
+			var c := Color("#613a2d") if mortar else Color(
+				clampf(0.66 + v, 0.0, 1.0),
+				clampf(0.28 + v * 0.6, 0.0, 1.0),
+				clampf(0.17 + v * 0.4, 0.0, 1.0), 1.0)
+			img.set_pixel(x, y, c)
+	return ImageTexture.create_from_image(img)
 
 func _box(parent: Node3D, size: Vector3, pos: Vector3, material: Material, bevel := false) -> MeshInstance3D:
 	var n := MeshInstance3D.new()
