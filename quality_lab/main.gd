@@ -397,6 +397,15 @@ func _make_street_furniture() -> void:
 		_box(self, Vector3(1.45, 0.78, 0.08), Vector3(x, 1.12, -32.68), bronze)
 		for yy in [0.82, 1.42]:
 			_box(self, Vector3(1.1, 0.045, 0.035), Vector3(x, yy, -32.61), trim)
+	# Roman street signs and district markers, mounted on dark iron posts
+	var iron := _mat(Color("#292b2a"), 0.56, 0.38)
+	var sign_stone := _mat(Color("#e0c99f"), 0.84)
+	for idx in range(6):
+		var sx := -60.0 + idx * 24.0
+		var sz := -46.0 if idx % 2 == 0 else 46.0
+		_cylinder(self, 0.09, 3.2, Vector3(sx, 1.6, sz), iron, 10)
+		_box(self, Vector3(3.6, 0.9, 0.12), Vector3(sx, 2.65, sz), sign_stone, true)
+		_box(self, Vector3(3.25, 0.06, 0.05), Vector3(sx, 2.35, sz - 0.08), terracotta)
 	# painted zebra crossings and Roman paving insets
 	for stripe in range(9):
 		_box(self, Vector3(0.7, 0.035, 7.0), Vector3(-3.2 + stripe * 0.8, 0.08, -48.0), trim)
