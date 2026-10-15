@@ -22,6 +22,7 @@ func _ready() -> void:
 	_make_neighbourhood()
 	_make_street_furniture()
 	_make_vehicles()
+	_make_showcase_figures()
 	_make_player()
 	_make_hud()
 
@@ -570,6 +571,34 @@ func _make_street_furniture() -> void:
 		_box(self, Vector3(0.035, 0.012, 58.0), Vector3(x, 0.095, 0.0), _mat(Color("#a88b65")))
 	for z in range(-28, 29, 4):
 		_box(self, Vector3(78.0, 0.012, 0.035), Vector3(0.0, 0.095, z), _mat(Color("#a88b65")))
+
+func _make_showcase_figures() -> void:
+	# Low-poly Roman citizens provide human scale in the architectural showcase.
+	var skin := _mat(Color("#b9825d"), 0.82)
+	var tunic_a := _mat(Color("#8b3027"), 0.84)
+	var tunic_b := _mat(Color("#d3b98c"), 0.9)
+	var leather := _mat(Color("#49332b"), 0.92)
+	var bronze := _mat(Color("#9b7845"), 0.65, 0.16)
+	for idx in range(2):
+		var person := Node3D.new()
+		person.position = Vector3(-3.0 + idx * 6.0, 0.0, 39.5)
+		person.rotation.y = PI
+		add_child(person)
+		var tunic := _box(person, Vector3(0.78, 1.18, 0.42), Vector3(0, 1.18, 0), tunic_a if idx == 0 else tunic_b)
+		var head := _cylinder(person, 0.22, 0.34, Vector3(0, 2.02, 0), skin, 12)
+		var neck := _cylinder(person, 0.10, 0.18, Vector3(0, 1.79, 0), skin, 8)
+		for side in [-1.0, 1.0]:
+			var arm := _cylinder(person, 0.105, 0.72, Vector3(side * 0.52, 1.35, 0), skin, 8)
+			arm.rotation.z = -side * 0.12
+			var bracer := _cylinder(person, 0.12, 0.26, Vector3(side * 0.55, 1.12, 0), bronze, 8)
+			bracer.rotation.z = -side * 0.12
+			var leg := _cylinder(person, 0.13, 0.82, Vector3(side * 0.22, 0.42, 0), leather, 8)
+			var sandal := _box(person, Vector3(0.26, 0.10, 0.40), Vector3(side * 0.22, 0.08, -0.06), leather)
+		_box(person, Vector3(0.82, 0.12, 0.46), Vector3(0, 1.72, 0), bronze)
+		# Simple crested bronze helmet silhouette.
+		_cylinder(person, 0.27, 0.12, Vector3(0, 2.23, 0), bronze, 12)
+		_box(person, Vector3(0.06, 0.30, 0.06), Vector3(0, 2.42, 0), tunic_a)
+		_box(person, Vector3(0.14, 0.42, 0.12), Vector3(0, 2.22, 0.02), bronze)
 
 func _make_vehicles() -> void:
 	# Parked compact cars and scooters add scale and lived-in Roman street character.
