@@ -508,6 +508,9 @@ func _make_neighbourhood() -> void:
 	var faded_cream := _mat(Color("#e0c79b"), 0.9)
 	var dark_wood := _mat(Color("#59382b"), 0.95)
 	var greenery := _mat(Color("#5d7042"), 0.96)
+	var pale_limewash := _mat(Color("#e8d8b8"), 0.94)
+	var balcony_iron := _mat(Color("#39312b"), 0.7, 0.18)
+	var shutter_green := _mat(Color("#566044"), 0.9)
 	# Local Roman street grid between insulae, with raised travertine sidewalks.
 	for street_z in [-69.5, -44.5, 55.5]:
 		_box(self, Vector3(240, 0.14, 6.2), Vector3(0, -0.035, street_z), asphalt)
@@ -572,6 +575,9 @@ func _make_neighbourhood() -> void:
 						var wx: float = -w * 0.5 + 1.5 + win * (w - 3.0) / max(1, int(w / 2.7) - 1)
 						_box(building, Vector3(0.82, 1.25, 0.12), Vector3(wx, yy + 0.6, side * (d * 0.5 + 0.08)), shadow_stone)
 						_box(building, Vector3(1.04, 0.12, 0.18), Vector3(wx, yy + 1.28, side * (d * 0.5 + 0.12)), trim)
+						_box(building, Vector3(0.30, 1.12, 0.075), Vector3(wx - 0.40, yy + 0.58, side * (d * 0.5 + 0.18)), shutter_green)
+						_box(building, Vector3(0.30, 1.12, 0.075), Vector3(wx + 0.40, yy + 0.58, side * (d * 0.5 + 0.18)), shutter_green)
+						_box(building, Vector3(1.18, 0.10, 0.24), Vector3(wx, yy - 0.12, side * (d * 0.5 + 0.16)), pale_limewash)
 				# Side elevations also receive aligned openings and terracotta shutters.
 				for side_x in [-1.0, 1.0]:
 					for win_z in range(max(2, int(d / 2.8))):
@@ -591,7 +597,8 @@ func _make_neighbourhood() -> void:
 							_box(building, Vector3(1.7, 0.10, 0.78), Vector3(wx, yy + 0.04, d * 0.5 + 0.48), trim)
 							_box(building, Vector3(1.7, 0.09, 0.08), Vector3(wx, yy + 0.52, d * 0.5 + 0.86), shadow_stone)
 							for rail_x in [-0.68, -0.34, 0.0, 0.34, 0.68]:
-								_box(building, Vector3(0.055, 0.42, 0.055), Vector3(wx + rail_x, yy + 0.30, d * 0.5 + 0.86), trim)
+								_box(building, Vector3(0.055, 0.42, 0.055), Vector3(wx + rail_x, yy + 0.30, d * 0.5 + 0.86), balcony_iron)
+							_box(building, Vector3(1.50, 0.055, 0.055), Vector3(wx, yy + 0.49, d * 0.5 + 0.86), balcony_iron)
 			# ground-level shopfronts, awnings and balconies
 			_box(building, Vector3(w * 0.72, 2.1, 0.16), Vector3(0, 1.2, d * 0.5 + 0.1), shadow_stone)
 			_box(building, Vector3(w * 0.8, 0.24, 1.1), Vector3(0, 2.45, d * 0.5 + 0.55), terracotta)
