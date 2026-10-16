@@ -300,15 +300,50 @@ class _StreamSessionScreenState extends State<StreamSessionScreen> {
         case 'peer_left':
           peerPresent = false;
           offerSent = false;
+          creatingOffer = false;
           pendingIce.clear();
           _status('L’altro dispositivo si è disconnesso');
           if (mounted) setState(() => linked = false);
+          // A closed WebRTC peer connection cannot be reused for the next
+          // viewer. Rebuild it while keeping the camera's local capture alive.
+          await _resetPeerAfterRemoteLeft();
           break;
         case 'error':
           _error(message['message']?.toString() ?? 'Errore del server');
           break;
       }
     } catch (e) { _error('Messaggio di segnalazione non valido: $e'); }
+  }
+
+  Future<void> _resetPeerAfterRemoteLeft() async {
+    final oldPeer = peer;
+    peer = null;
+    if (oldPeer != null) {
+      try { await oldPeer.close(); } catch (_) {}
+      try { await oldPeer.dispose(); } catch (_) {}
+    }
+    if (!mounted || !signalingReady) return;
+    try {
+      await _createPeer();
+      if (isCamera) {
+        final stream = localStream;
+        if (stream != null) {
+          for (final track in stream.getTracks()) {
+            await peer!.addTrack(track, stream);
+          }
+          localTracksReady = true;
+        } else {
+          localTracksReady = false;
+        }
+      } else {
+        await peer!.addTransceiver(
+          kind: RTCRtpMediaType.RTCRtpMediaTypeVideo,
+          init: RTCRtpTransceiverInit(direction: TransceiverDirection.RecvOnly),
+        );
+      }
+    } catch (e) {
+      _error('Impossibile ripristinare il collegamento WebRTC: $e');
+    }
   }
 
   Future<void> _maybeCreateOffer() async {
@@ -350,7 +385,215 @@ class _StreamSessionScreenState extends State<StreamSessionScreen> {
           !(parsedServer.scheme == 'ws' || parsedServer.scheme == 'wss') ||
           parsedServer.host.isEmpty ||
           normalizedRoom.length < 6 || normalizedRoom.length > 10 ||
-          !RegExp(r'^[A-Z2-9]{6,10}').hasMatch(normalizedRoom)) {
+          !RegExp(r'^[A-Z2-9]{6,10}) {
+        throw const FormatException();
+      }
+      setState(() { url.text = scannedServer; room.text = normalizedRoom; error = null; });
+    } catch (_) { _error('QR non valido. Scansiona il codice generato da SENTINEL ONE.'); }
+  }
+
+  void _scheduleReconnect() {
+    if (!mounted || manuallyStopped || reconnectTimer?.isActive == true || reconnectAttempts >= 8) return;
+    final seconds = min(30, 1 << reconnectAttempts);
+    reconnectAttempts++;
+    if (mounted) setState(() { busy = false; linked = false; status = 'Riconnessione automatica tra ${seconds}s…'; });
+    reconnectTimer = Timer(Duration(seconds: seconds), () {
+      if (mounted && !manuallyStopped) _start(reconnect: true);
+    });
+  }
+
+  Future<void> _stop() async {
+    manuallyStopped = true;
+    reconnectTimer?.cancel();
+    reconnectTimer = null;
+    await _cleanup();
+    unawaited(EventStore.record('Sessione terminata', isCamera ? 'Trasmissione telecamera arrestata' : 'Monitor disconnesso'));
+    if (mounted) setState(() { busy = false; linked = false; status = 'Sessione terminata'; });
+  }
+
+  Future<void> _cleanup({bool cancelSubscription = true}) async {
+    if (recorder != null) await _stopRecording();
+    if (cancelSubscription) {
+      await subscription?.cancel();
+    }
+    subscription = null;
+    signalingReady = false;
+    pendingSignals.clear();
+    pendingIce.clear();
+    _send({'type': 'hangup'});
+    await socket?.close(); socket = null;
+    final p = peer; peer = null;
+    if (p != null) { await p.close(); await p.dispose(); }
+    final stream = localStream; localStream = null;
+    if (stream != null) {
+      for (final track in stream.getTracks()) { await track.stop(); }
+      await stream.dispose();
+    }
+    video.srcObject = null;
+  }
+
+  @override
+  void dispose() {
+    if (recorder != null) unawaited(_stopRecording());
+    if (socket != null && !manuallyStopped) unawaited(EventStore.record('Sessione terminata', 'Schermata chiusa'));
+    manuallyStopped = true;
+    reconnectTimer?.cancel();
+    subscription?.cancel(); socket?.close(); peer?.close(); peer?.dispose();
+    final stream = localStream;
+    if (stream != null) { for (final track in stream.getTracks()) { track.stop(); } stream.dispose(); }
+    video.srcObject = null; video.dispose(); url.dispose(); room.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: bg,
+      appBar: AppBar(backgroundColor: bg, title: Text(isCamera ? 'Telecamera · trasmissione' : 'Monitor · ricezione')),
+      body: ListView(padding: const EdgeInsets.all(16), children: [
+        Container(height: MediaQuery.sizeOf(context).height * .43, clipBehavior: Clip.antiAlias,
+          decoration: BoxDecoration(color: panel, borderRadius: BorderRadius.circular(22), border: Border.all(color: cyan.withValues(alpha: .25))),
+          child: Stack(fit: StackFit.expand, children: [
+            RTCVideoView(video, objectFit: RTCVideoViewObjectFit.RTCVideoViewObjectFitContain),
+            Align(alignment: Alignment.topLeft, child: Container(margin: const EdgeInsets.all(12), padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
+              decoration: BoxDecoration(color: Colors.black.withValues(alpha: .72), borderRadius: BorderRadius.circular(20)),
+              child: Row(mainAxisSize: MainAxisSize.min, children: [
+                Icon(Icons.circle, color: linked ? const Color(0xFF47E0A0) : const Color(0xFFFFC66D), size: 8),
+                const SizedBox(width: 7), Text(linked ? 'COLLEGATO' : 'IN ATTESA', style: const TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.bold))
+              ])))
+          ])),
+        const SizedBox(height: 18),
+        Text(status, style: const TextStyle(color: cyan, fontWeight: FontWeight.w800, fontSize: 16)),
+        const SizedBox(height: 8),
+        Text(isCamera ? 'Avvia la sessione e condividi il codice con il monitor. Il video parte quando il secondo dispositivo si collega.' : 'Inserisci lo stesso server e codice del telefono telecamera. Il video apparirà dopo la negoziazione WebRTC.', style: const TextStyle(color: muted, height: 1.45)),
+        if (isCamera && localStream != null) ...[
+          OutlinedButton.icon(
+            onPressed: recording ? _stopRecording : _toggleRecording,
+            icon: Icon(recording ? Icons.stop_circle_outlined : Icons.fiber_manual_record_rounded),
+            label: Text(recording ? 'Ferma e salva registrazione' : 'Avvia registrazione locale · beta'),
+            style: OutlinedButton.styleFrom(
+              foregroundColor: recording ? const Color(0xFFFF6B80) : cyan,
+              side: BorderSide(color: recording ? const Color(0xFFFF6B80) : cyan),
+              padding: const EdgeInsets.symmetric(vertical: 14),
+            ),
+          ),
+          if (recording) const Padding(
+            padding: EdgeInsets.only(top: 8),
+            child: Text('Registrazione attiva · file privato sul telefono', textAlign: TextAlign.center, style: TextStyle(color: Color(0xFFFF6B80), fontSize: 11)),
+          ),
+          const SizedBox(height: 12),
+        ],
+        const SizedBox(height: 18),
+        _field('Server di segnalazione', url, hint: 'wss://tuo-server.example', onChanged: (_) => setState(() {})),
+        const SizedBox(height: 12),
+        _field('Codice stanza', room, hint: '8 caratteri', uppercase: true, onChanged: (_) => setState(() {})),
+        if (isCamera) ...[
+          const SizedBox(height: 12),
+          Container(
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(color: panel, borderRadius: BorderRadius.circular(18)),
+            child: Column(children: [
+              const Text('ABBINAMENTO QR', style: TextStyle(color: cyan, fontWeight: FontWeight.w800, letterSpacing: 1.2)),
+              const SizedBox(height: 8),
+              const Text('Sul telefono monitor scansiona questo codice. Contiene solo server e codice stanza, mai il token di accesso.',
+                textAlign: TextAlign.center, style: TextStyle(color: muted, fontSize: 11, height: 1.4)),
+              const SizedBox(height: 12),
+              Container(
+                color: Colors.white,
+                padding: const EdgeInsets.all(8),
+                child: QrImageView(
+                  data: jsonEncode({'server': url.text.trim(), 'room': room.text.trim().toUpperCase()}),
+                  size: 184,
+                  backgroundColor: Colors.white,
+                  errorCorrectionLevel: QrErrorCorrectLevel.M,
+                ),
+              ),
+            ]),
+          ),
+        ] else ...[
+          const SizedBox(height: 8),
+          OutlinedButton.icon(
+            onPressed: busy || linked ? null : _scanPairingQr,
+            icon: const Icon(Icons.qr_code_scanner_rounded),
+            label: const Text('Scansiona QR della telecamera'),
+          ),
+        ],
+        const SizedBox(height: 10),
+        _field('Token aggiuntivo (facoltativo)', signalToken, hint: 'Solo se il gestore del server lo richiede'),
+        const SizedBox(height: 18),
+        const Text('Relay TURN (facoltativo)', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w800, fontSize: 14)),
+        const SizedBox(height: 6),
+        const Text('Necessario su alcune reti, soprattutto per accesso remoto. Inserisci dati del tuo provider TURN; separa più URL con virgole.', style: TextStyle(color: muted, fontSize: 11, height: 1.4)),
+        const SizedBox(height: 10),
+        _field('URL TURN', turnUrls, hint: 'turn:host:3478, turns:host:5349'),
+        const SizedBox(height: 10),
+        _field('Nome utente TURN', turnUsername, hint: 'Nome utente'),
+        const SizedBox(height: 10),
+        _field('Credenziale TURN', turnCredential, hint: 'Password o token'),
+        if (isCamera) Align(alignment: Alignment.centerRight, child: TextButton.icon(onPressed: () { room.text = _newCode(); setState(() {}); }, icon: const Icon(Icons.refresh_rounded), label: const Text('Nuovo codice'))),
+        if (error != null) Container(margin: const EdgeInsets.only(top: 12), padding: const EdgeInsets.all(12),
+          decoration: BoxDecoration(color: const Color(0xFF351923), borderRadius: BorderRadius.circular(12)),
+          child: Text(error!, style: const TextStyle(color: Color(0xFFFFA6B5), height: 1.4))),
+        const SizedBox(height: 18),
+        FilledButton.icon(onPressed: busy ? null : (socket == null ? _start : _stop),
+          icon: Icon(socket == null ? Icons.link_rounded : Icons.link_off_rounded),
+          label: Text(busy ? 'Connessione…' : (socket == null ? (isCamera ? 'Avvia telecamera' : 'Collega al video') : 'Termina sessione')),
+          style: FilledButton.styleFrom(backgroundColor: violet, foregroundColor: Colors.white, padding: const EdgeInsets.symmetric(vertical: 16))),
+        const SizedBox(height: 12),
+        const Text('La rete locale richiede un server raggiungibile via Wi-Fi. Fuori casa servono un server WSS pubblicato e, per alcune reti, un relay TURN. Non inserire dati sensibili in server non verificati.', style: TextStyle(color: muted, fontSize: 11, height: 1.45)),
+        TextButton.icon(onPressed: () => Clipboard.setData(ClipboardData(text: room.text)), icon: const Icon(Icons.copy_rounded), label: const Text('Copia codice stanza')),
+      ]),
+    );
+  }
+
+  Widget _field(String label, TextEditingController controller, {String? hint, bool uppercase = false, ValueChanged<String>? onChanged}) =>
+    Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+      Text(label, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w700, fontSize: 12)),
+      const SizedBox(height: 7),
+      TextField(controller: controller, onChanged: onChanged, enabled: !linked && !busy, autocorrect: false,
+        textCapitalization: uppercase ? TextCapitalization.characters : TextCapitalization.none,
+        inputFormatters: uppercase ? [FilteringTextInputFormatter.allow(RegExp('[A-Za-z2-9]')), LengthLimitingTextInputFormatter(10), _UpperCaseFormatter()] : null,
+        style: const TextStyle(color: Colors.white),
+        decoration: InputDecoration(hintText: hint, filled: true, fillColor: panel, border: OutlineInputBorder(borderRadius: BorderRadius.circular(14), borderSide: BorderSide.none))),
+    ]);
+}
+
+class _UpperCaseFormatter extends TextInputFormatter {
+  @override
+  TextEditingValue formatEditUpdate(TextEditingValue oldValue, TextEditingValue newValue) =>
+    newValue.copyWith(text: newValue.text.toUpperCase(), selection: newValue.selection);
+}
+
+class _PairingQrScannerScreen extends StatefulWidget {
+  const _PairingQrScannerScreen();
+  @override
+  State<_PairingQrScannerScreen> createState() => _PairingQrScannerScreenState();
+}
+
+class _PairingQrScannerScreenState extends State<_PairingQrScannerScreen> {
+  bool _completed = false;
+  @override
+  Widget build(BuildContext context) => Scaffold(
+    backgroundColor: const Color(0xFF080B12),
+    appBar: AppBar(backgroundColor: const Color(0xFF080B12), title: const Text('Scansiona abbinamento')),
+    body: Stack(fit: StackFit.expand, children: [
+      MobileScanner(onDetect: (capture) {
+        if (_completed || capture.barcodes.isEmpty) return;
+        final value = capture.barcodes.first.rawValue;
+        if (value == null || value.isEmpty) return;
+        _completed = true;
+        Navigator.of(context).pop(value);
+      }),
+      Align(alignment: Alignment.bottomCenter, child: Container(
+        margin: const EdgeInsets.all(20), padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(color: Colors.black.withValues(alpha: .78), borderRadius: BorderRadius.circular(16)),
+        child: const Text('Inquadra il QR mostrato sul telefono telecamera. Il codice stanza autorizza l’abbinamento; non contiene password.',
+          textAlign: TextAlign.center, style: TextStyle(color: Colors.white, height: 1.4)),
+      )),
+    ]),
+  );
+}
+).hasMatch(normalizedRoom)) {
         throw const FormatException();
       }
       setState(() { url.text = scannedServer; room.text = normalizedRoom; error = null; });
