@@ -580,7 +580,7 @@ private fun HouseModel3D(panel: Color, accent: Color, selectedRoom: String, onRo
                     Text("SCENA 3D · FILAMENT", color = accent, fontSize = 10.sp, fontWeight = FontWeight.Bold)
                 }
                 Surface(color = Color(0xFF12372D), shape = RoundedCornerShape(50)) {
-                    Text("● ONLINE", Modifier.padding(horizontal = 9.dp, vertical = 6.dp), color = onlineGreen, fontSize = 9.sp, fontWeight = FontWeight.Bold)
+                    Text("● NON COLLEGATE", Modifier.padding(horizontal = 9.dp, vertical = 6.dp), color = offlineRed, fontSize = 9.sp, fontWeight = FontWeight.Bold)
                 }
             }
             Box(Modifier.fillMaxWidth().height(290.dp).padding(top = 8.dp).background(if (isDark) Color(0xFF090F19) else Color(0xFFEAF0F6), RoundedCornerShape(18.dp))) {
