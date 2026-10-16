@@ -1,17 +1,20 @@
-name: Flutter checks and Android APK
+name: Flutter and server checks (no APK)
 
-# Keep APK builds off ordinary pull-request commits, but allow a release-test build on the working branch.
+# APK creation is intentionally delegated to the repository owner's Codemagic workflow.
+# This workflow only runs tests and static analysis.
 concurrency:
-  group: android-apk-${{ github.ref }}
+  group: checks-${{ github.event.pull_request.number || github.ref }}
   cancel-in-progress: true
 
 on:
   push:
     branches: [main, fix/remote-stream-setup]
+  pull_request:
+    branches: [main]
   workflow_dispatch:
 
 jobs:
-  test-and-build:
+  checks:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -34,26 +37,3 @@ jobs:
         run: flutter analyze
       - name: Run widget tests
         run: flutter test
-      - name: Generate Android platform files
-        run: flutter create --platforms=android --org com.sentinelone .
-      - name: Configure Android native resources
-        run: python3 tool/configure_android.py
-      - name: Build release APK
-        run: flutter build apk --release --split-per-abi --target-platform android-arm64
-      - name: Verify Android APK architecture
-        run: |
-          APK=build/app/outputs/flutter-apk/app-arm64-v8a-release.apk
-          test -s "$APK"
-          ABIS=$(unzip -Z1 "$APK" | awk -F/ '$1 == "lib" && $2 != "" {print $2}' | sort -u | tr '\n' ' ')
-          echo "Native ABIs in APK: $ABIS"
-          test "$ABIS" = "arm64-v8a "
-          SIZE=$(stat -c%s "$APK")
-          echo "Arm64 APK size: $SIZE bytes"
-          test "$SIZE" -lt 125829120
-      - name: Upload APK artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: sentinel-one-android-apk
-          path: build/app/outputs/flutter-apk/app-arm64-v8a-release.apk
-          if-no-files-found: error
-          retention-days: 14
