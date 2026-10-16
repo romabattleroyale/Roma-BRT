@@ -86,8 +86,12 @@ class _StreamSessionScreenState extends State<StreamSessionScreen> {
     if (!reconnect) { manuallyStopped = false; reconnectAttempts = 0; }
     final server = url.text.trim();
     final code = room.text.trim().toUpperCase();
-    if (!(server.startsWith('ws://') || server.startsWith('wss://'))) {
-      _error('Inserisci un indirizzo ws:// o wss:// valido.'); return;
+    late final Uri serverUri;
+    try {
+      serverUri = PairingPayload.parseServer(server);
+    } on FormatException {
+      _error('Inserisci l’indirizzo base ws:// o wss:// del servizio, senza percorso, query o credenziali.');
+      return;
     }
     if (!RegExp(r'^[A-Z2-9]{6,10}$').hasMatch(code)) {
       _error('Il codice stanza deve avere 6–10 caratteri: A–Z e 2–9.'); return;
@@ -102,7 +106,7 @@ class _StreamSessionScreenState extends State<StreamSessionScreen> {
     signalingReady = false; pendingIce.clear(); pendingSignals.clear(); wasConnected = false;
     try {
       await _rendererReady;
-      final baseEndpoint = Uri.parse(server.endsWith('/') ? server + 'signal/' + code : server + '/signal/' + code);
+      final baseEndpoint = serverUri.replace(path: '/signal/$code', query: null, fragment: null);
       final token = signalToken.text.trim();
       final endpoint = baseEndpoint;
       readyCompleter = Completer<void>();
