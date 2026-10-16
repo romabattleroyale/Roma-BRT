@@ -4,6 +4,7 @@ Run with: python -m unittest discover -s server -p 'test_*.py'
 """
 import asyncio
 import json
+import os
 import unittest
 from unittest.mock import patch
 
@@ -11,7 +12,7 @@ from websockets.asyncio.client import connect
 from websockets.asyncio.server import serve
 from websockets.exceptions import ConnectionClosed
 
-from signaling_server import handler, validate_bind_security
+from signaling_server import handler, ice_server_config, validate_bind_security
 
 
 class SignalingRelayTests(unittest.IsolatedAsyncioTestCase):
@@ -32,7 +33,9 @@ class SignalingRelayTests(unittest.IsolatedAsyncioTestCase):
 
             async with connect(self.url) as viewer:
                 viewer_ready = json.loads(await viewer.recv())
-                self.assertEqual(viewer_ready, {"type": "ready", "peers": 1})
+                self.assertEqual(viewer_ready["type"], "ready")
+                self.assertEqual(viewer_ready["peers"], 1)
+                self.assertTrue(viewer_ready["iceServers"])
                 joined = json.loads(await sender.recv())
                 self.assertEqual(joined["type"], "peer_joined")
 
@@ -48,6 +51,24 @@ class SignalingRelayTests(unittest.IsolatedAsyncioTestCase):
                 await sender.send(json.dumps(candidate))
                 self.assertEqual(json.loads(await viewer.recv()), candidate)
 
+
+    async def test_ice_server_config_reads_turn_credentials_from_environment(self):
+        with patch.dict(os.environ, {
+            "STUN_URLS": "stun:stun.example:3478",
+            "TURN_URLS": "turn:turn.example:3478,turns:turn.example:5349",
+            "TURN_USERNAME": "sentinel-user",
+            "TURN_CREDENTIAL": "test-secret",
+        }, clear=True):
+            servers = ice_server_config()
+        self.assertEqual(servers[0]["urls"], "stun:stun.example:3478")
+        self.assertEqual(servers[1]["urls"], ["turn:turn.example:3478", "turns:turn.example:5349"])
+        self.assertEqual(servers[1]["username"], "sentinel-user")
+        self.assertEqual(servers[1]["credential"], "test-secret")
+
+    async def test_ice_server_config_has_public_stun_fallback(self):
+        with patch.dict(os.environ, {}, clear=True):
+            servers = ice_server_config()
+        self.assertEqual(servers, [{"urls": "stun:stun.l.google.com:19302"}])
 
     async def test_public_bind_supports_random_room_code_pairing(self):
         # Random room codes are the prototype pairing capability. An optional
