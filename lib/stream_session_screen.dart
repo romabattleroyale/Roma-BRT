@@ -43,6 +43,8 @@ class _StreamSessionScreenState extends State<StreamSessionScreen> {
   bool wasConnected = false;
   int reconnectAttempts = 0;
   Timer? reconnectTimer;
+  Completer<void>? readyCompleter;
+  List<Map<String, dynamic>> serverIceServers = <Map<String, dynamic>>[];
   String status = 'Non collegato';
   String? error;
   bool get isCamera => widget.role == StreamRole.camera;
