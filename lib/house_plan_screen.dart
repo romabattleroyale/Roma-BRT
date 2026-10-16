@@ -48,26 +48,25 @@ class _HousePlanScreenState extends State<HousePlanScreen> {
   }
 
   Future<void> _addAt(Offset point, Size size) async {
-    final nameController = TextEditingController(text: 'Telecamera ${_markers.length + 1}');
+    var markerName = 'Telecamera ${_markers.length + 1}';
     final name = await showDialog<String>(
       context: context,
       builder: (dialogContext) => AlertDialog(
         backgroundColor: _panel,
         title: const Text('Aggiungi punto telecamera'),
         content: TextField(
-          controller: nameController,
           autofocus: true,
           maxLength: 32,
           decoration: const InputDecoration(labelText: 'Nome / posizione'),
+          onChanged: (value) => markerName = value,
           onSubmitted: (value) => Navigator.pop(dialogContext, value.trim()),
         ),
         actions: [
           TextButton(onPressed: () => Navigator.pop(dialogContext), child: const Text('Annulla')),
-          FilledButton(onPressed: () => Navigator.pop(dialogContext, nameController.text.trim()), child: const Text('Aggiungi')),
+          FilledButton(onPressed: () => Navigator.pop(dialogContext, markerName.trim()), child: const Text('Aggiungi')),
         ],
       ),
     );
-    nameController.dispose();
     if (!mounted || name == null || name.trim().isEmpty) return;
     setState(() {
       _markers.add({
@@ -113,20 +112,24 @@ class _HousePlanScreenState extends State<HousePlanScreen> {
       setState(() => _markers.removeWhere((item) => item['id'] == marker['id']));
       await _save();
     } else if (action == 'rename') {
-      final controller = TextEditingController(text: marker['name']?.toString() ?? '');
+      var renamed = marker['name']?.toString() ?? '';
       final name = await showDialog<String>(
         context: context,
         builder: (dialogContext) => AlertDialog(
           backgroundColor: _panel,
           title: const Text('Rinomina punto'),
-          content: TextField(controller: controller, autofocus: true, maxLength: 32),
+          content: TextField(
+            autofocus: true,
+            maxLength: 32,
+            onChanged: (value) => renamed = value,
+            onSubmitted: (value) => Navigator.pop(dialogContext, value.trim()),
+          ),
           actions: [
             TextButton(onPressed: () => Navigator.pop(dialogContext), child: const Text('Annulla')),
-            FilledButton(onPressed: () => Navigator.pop(dialogContext, controller.text.trim()), child: const Text('Salva')),
+            FilledButton(onPressed: () => Navigator.pop(dialogContext, renamed.trim()), child: const Text('Salva')),
           ],
         ),
       );
-      controller.dispose();
       if (name != null && name.isNotEmpty && mounted) {
         setState(() => marker['name'] = name);
         await _save();
