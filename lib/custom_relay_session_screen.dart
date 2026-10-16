@@ -5,6 +5,7 @@ import 'dart:typed_data';
 import 'package:camera/camera.dart';
 import 'package:flutter/material.dart';
 import 'package:image/image.dart' as img;
+import 'package:mobile_scanner/mobile_scanner.dart';
 import 'package:qr_flutter/qr_flutter.dart';
 import 'custom_stream_transport.dart';
 import 'pairing_payload.dart';
@@ -27,13 +28,29 @@ class _CustomRelaySessionScreenState extends State<CustomRelaySessionScreen> {
   Uint8List? frame;
   String status = 'Non collegato';
   String? error;
-  bool busy = false, encoding = false;
+  bool busy = false, encoding = false, scanningQr = false;
   DateTime lastFrame = DateTime.fromMillisecondsSinceEpoch(0);
 
   static String _newRoomCode() {
     const alphabet = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
     final random = math.Random.secure();
     return List.generate(8, (_) => alphabet[random.nextInt(alphabet.length)]).join();
+  }
+
+  void _handleQr(String raw) {
+    if (!mounted || !scanningQr) return;
+    try {
+      final payload = PairingPayload.parse(raw);
+      setState(() {
+        server.text = payload.server.toString();
+        room.text = payload.room;
+        scanningQr = false;
+        error = null;
+        status = 'QR acquisito · pronto per collegarsi';
+      });
+    } catch (e) {
+      setState(() => error = 'QR non valido: $e');
+    }
   }
 
   Future<void> connect() async {
@@ -111,6 +128,8 @@ class _CustomRelaySessionScreenState extends State<CustomRelaySessionScreen> {
     Container(height: 230, clipBehavior: Clip.antiAlias, decoration: BoxDecoration(color: panel, borderRadius: BorderRadius.circular(18)), child: frame == null ? const Center(child: Text('In attesa dei fotogrammi', style: TextStyle(color: muted))) : Image.memory(frame!, fit: BoxFit.contain, gaplessPlayback: true)),
     const SizedBox(height: 12), Text(status, style: const TextStyle(color: cyan, fontWeight: FontWeight.bold)),
     if (error != null) Text(error!, style: const TextStyle(color: Color(0xFFFFA6B5))),
+    if (!widget.cameraRole) OutlinedButton.icon(onPressed: transport == null && !busy ? () => setState(() => scanningQr = !scanningQr) : null, icon: Icon(scanningQr ? Icons.close : Icons.qr_code_scanner), label: Text(scanningQr ? 'Chiudi scanner QR' : 'Scansiona QR della telecamera')),
+    if (scanningQr && !widget.cameraRole) Container(height: 260, clipBehavior: Clip.antiAlias, decoration: BoxDecoration(borderRadius: BorderRadius.circular(16)), child: MobileScanner(onDetect: (capture) { for (final barcode in capture.barcodes) { final value = barcode.rawValue; if (value != null && value.isNotEmpty) { _handleQr(value); break; } } })),
     TextField(controller: server, enabled: transport == null && !busy, style: const TextStyle(color: Colors.white), decoration: const InputDecoration(labelText: 'Server ws:// o wss://')),
     TextField(controller: room, enabled: transport == null && !busy, style: const TextStyle(color: Colors.white), decoration: const InputDecoration(labelText: 'Codice stanza (6–10 caratteri)')),
     TextField(controller: token, enabled: transport == null && !busy, obscureText: true, style: const TextStyle(color: Colors.white), decoration: const InputDecoration(labelText: 'Token facoltativo')),
