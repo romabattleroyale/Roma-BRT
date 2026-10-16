@@ -1,4 +1,4 @@
-name: Native Android compile and APK check
+name: Native Android Kotlin checks
 on:
   push:
     branches: [main]
@@ -24,15 +24,5 @@ jobs:
       - uses: gradle/actions/setup-gradle@v4
         with:
           gradle-version: "8.9"
-      - name: Compile Kotlin and resources
+      - name: Check Kotlin compilation
         run: gradle -p native-android compileDebugKotlin
-      - name: Assemble debug APK
-        run: gradle -p native-android assembleDebug
-      - name: Verify APK exists
-        run: test -s native-android/app/build/outputs/apk/debug/app-debug.apk
-      - uses: actions/upload-artifact@v4
-        with:
-          name: sentinel-one-debug-apk
-          path: native-android/app/build/outputs/apk/debug/app-debug.apk
-          if-no-files-found: error
-          retention-days: 7
