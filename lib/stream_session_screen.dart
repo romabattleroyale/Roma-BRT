@@ -42,6 +42,9 @@ class _StreamSessionScreenState extends State<StreamSessionScreen> {
   String? recordingPath;
   bool recording = false;
   StreamSubscription? subscription;
+  // WebSocket callbacks can overlap while _handle awaits native WebRTC calls.
+  // Serialize them to preserve SDP/ICE/peer-left ordering.
+  Future<void> _messageQueue = Future<void>.value();
   bool busy = false, linked = false;
   bool peerPresent = false, offerSent = false, creatingOffer = false, localTracksReady = false;
   bool manuallyStopped = false;
@@ -103,7 +106,15 @@ class _StreamSessionScreenState extends State<StreamSessionScreen> {
         endpoint.toString(),
         headers: token.isEmpty ? null : {'Authorization': 'Bearer $token'},
       ).timeout(const Duration(seconds: 12));
-      subscription = socket!.listen((data) => _handle(data),
+      final activeSocket = socket!;
+      subscription = activeSocket.listen((data) {
+        _messageQueue = _messageQueue.then((_) async {
+          // Ignore messages queued by an old session after reconnect/stop.
+          if (identical(socket, activeSocket)) await _handle(data);
+        }).catchError((Object e) {
+          _error('Errore nella coda dei messaggi WebRTC: $e');
+        });
+      },
         onDone: () async {
           if (readyCompleter != null && !readyCompleter!.isCompleted) {
             readyCompleter!.completeError(StateError('Il server ha chiuso la sessione prima del messaggio ready'));
