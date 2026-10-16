@@ -5,6 +5,12 @@ import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_webrtc/flutter_webrtc.dart';
+import 'package:mobile_scanner/mobile_scanner.dart';
+import 'package:path_provider/path_provider.dart';
+import 'package:qr_flutter/qr_flutter.dart';
+import 'event_store.dart';
+import 'pairing_payload.dart';
+import 'signaling_config.dart';
 
 enum StreamRole { camera, viewer }
 
@@ -25,13 +31,30 @@ class _StreamSessionScreenState extends State<StreamSessionScreen> {
   final turnUsername = TextEditingController();
   final turnCredential = TextEditingController();
   final video = RTCVideoRenderer();
+  late final Future<void> _rendererReady;
   final pendingIce = <RTCIceCandidate>[];
+  // Signals can arrive immediately after the WebSocket joins a room, before
+  // the native peer connection and the viewer transceiver have been created.
+  final pendingSignals = <Map<String, dynamic>>[];
+  bool signalingReady = false;
   WebSocket? socket;
   RTCPeerConnection? peer;
   MediaStream? localStream;
+  MediaRecorder? recorder;
+  String? recordingPath;
+  bool recording = false;
   StreamSubscription? subscription;
+  // WebSocket callbacks can overlap while _handle awaits native WebRTC calls.
+  // Serialize them to preserve SDP/ICE/peer-left ordering.
+  Future<void> _messageQueue = Future<void>.value();
   bool busy = false, linked = false;
   bool peerPresent = false, offerSent = false, creatingOffer = false, localTracksReady = false;
+  bool manuallyStopped = false;
+  bool wasConnected = false;
+  int reconnectAttempts = 0;
+  Timer? reconnectTimer;
+  Completer<void>? readyCompleter;
+  List<Map<String, dynamic>> serverIceServers = <Map<String, dynamic>>[];
   String status = 'Non collegato';
   String? error;
   bool get isCamera => widget.role == StreamRole.camera;
@@ -39,9 +62,12 @@ class _StreamSessionScreenState extends State<StreamSessionScreen> {
   @override
   void initState() {
     super.initState();
-    url.text = widget.remote ? 'wss://INSERISCI-IL-TUO-SERVER' : 'ws://192.168.1.10:8765';
+    // Use the managed WSS signaling relay in both modes. On the same Wi-Fi, WebRTC
+    // can still establish a direct media path; this avoids requiring a separate
+    // laptop/server on the home network just to exchange SDP and ICE.
+    url.text = defaultSignalingServerUrl;
     room.text = _newCode();
-    video.initialize();
+    _rendererReady = video.initialize();
   }
 
   String _newCode() {
@@ -53,69 +79,174 @@ class _StreamSessionScreenState extends State<StreamSessionScreen> {
   void _status(String value) { if (mounted) setState(() => status = value); }
   void _error(String value) { if (mounted) setState(() => error = value); }
 
-  Future<void> _start() async {
-    if (busy) return;
+  Future<void> _start({bool reconnect = false}) async {
+    if (busy || !mounted) return;
+    reconnectTimer?.cancel();
+    reconnectTimer = null;
+    if (!reconnect) { manuallyStopped = false; reconnectAttempts = 0; }
     final server = url.text.trim();
     final code = room.text.trim().toUpperCase();
-    if (!(server.startsWith('ws://') || server.startsWith('wss://'))) {
-      _error('Inserisci un indirizzo ws:// o wss:// valido.'); return;
+    late final Uri serverUri;
+    try {
+      serverUri = PairingPayload.parseServer(server);
+    } on FormatException {
+      _error('Inserisci l’indirizzo base ws:// o wss:// del servizio, senza percorso, query o credenziali.');
+      return;
     }
     if (!RegExp(r'^[A-Z2-9]{6,10}$').hasMatch(code)) {
       _error('Il codice stanza deve avere 6–10 caratteri: A–Z e 2–9.'); return;
     }
-    if (widget.remote && signalToken.text.trim().isEmpty) {
-      _error('Per l’accesso remoto inserisci il token configurato sul server.'); return;
-    }
+    // Pairing uses the random room code and QR. A server-side SIGNAL_TOKEN is
+    // supported for private deployments, but is not required for the managed prototype relay.
     if (widget.remote && !server.startsWith('wss://')) {
       _error('Fuori casa è richiesto wss:// con TLS. Non usare ws:// su Internet.'); return;
     }
     setState(() { busy = true; linked = false; error = null; status = 'Connessione al servizio…'; });
-    peerPresent = false; offerSent = false; creatingOffer = false; localTracksReady = false; pendingIce.clear();
+    peerPresent = false; offerSent = false; creatingOffer = false; localTracksReady = false;
+    signalingReady = false; pendingIce.clear(); pendingSignals.clear(); wasConnected = false;
     try {
-      await video.initialize();
-      final baseEndpoint = Uri.parse(server.endsWith('/') ? server + 'signal/' + code : server + '/signal/' + code);
-      final token = signalToken.text.trim();
-      final endpoint = baseEndpoint;
-      socket = await WebSocket.connect(
-        endpoint.toString(),
-        headers: token.isEmpty ? null : {'Authorization': 'Bearer $token'},
-      ).timeout(const Duration(seconds: 12));
-      subscription = socket!.listen((data) => _handle(data),
-        onDone: () async {
-          // Do not cancel the subscription from inside its own onDone callback.
-          await _cleanup(cancelSubscription: false);
-          if (mounted) setState(() { busy = false; linked = false; status = 'Servizio disconnesso'; });
-        },
-        onError: (Object e) => _error('Errore WebSocket: $e'));
-      await _createPeer();
-      if (isCamera) {
+      await _rendererReady;
+      // Start local camera preview before contacting the signaling service.
+      // A relay outage must not leave the camera preview black.
+      if (isCamera && localStream == null) {
         localStream = await navigator.mediaDevices.getUserMedia({
           'audio': false,
           'video': {'facingMode': 'environment', 'width': {'ideal': 1280}, 'height': {'ideal': 720}, 'frameRate': {'ideal': 24, 'max': 30}}
         });
-        for (final track in localStream!.getTracks()) { await peer!.addTrack(track, localStream!); }
+        video.srcObject = localStream;
+        if (mounted) setState(() { status = 'Anteprima locale attiva · collegamento in avvio'; });
+      }
+      final baseEndpoint = serverUri.replace(path: '/signal/$code', query: null, fragment: null);
+      final token = signalToken.text.trim();
+      final endpoint = baseEndpoint;
+      readyCompleter = Completer<void>();
+      serverIceServers = <Map<String, dynamic>>[];
+      socket = await WebSocket.connect(
+        endpoint.toString(),
+        headers: token.isEmpty ? null : {'Authorization': 'Bearer $token'},
+      ).timeout(const Duration(seconds: 12));
+      final activeSocket = socket!;
+      subscription = activeSocket.listen((data) {
+        _messageQueue = _messageQueue.then((_) async {
+          // Ignore messages queued by an old session after reconnect/stop.
+          if (identical(socket, activeSocket)) await _handle(data);
+        }).catchError((Object e) {
+          _error('Errore nella coda dei messaggi WebRTC: $e');
+        });
+      },
+        onDone: () async {
+          if (!identical(socket, activeSocket)) return;
+          // Drain messages received before the socket closed, then ensure this
+          // callback still belongs to the active session before cleaning it.
+          try { await _messageQueue; } catch (_) {}
+          if (!identical(socket, activeSocket)) return;
+          if (readyCompleter != null && !readyCompleter!.isCompleted) {
+            readyCompleter!.completeError(StateError('Il server ha chiuso la sessione prima del messaggio ready'));
+          }
+          // Do not cancel the subscription from inside its own onDone callback.
+          await _cleanup(cancelSubscription: false);
+          if (mounted) setState(() { busy = false; linked = false; status = 'Servizio disconnesso'; });
+          _scheduleReconnect();
+        },
+        onError: (Object e) {
+          if (!identical(socket, activeSocket)) return;
+          if (readyCompleter != null && !readyCompleter!.isCompleted) readyCompleter!.completeError(e);
+          _error('Errore WebSocket: $e');
+        });
+      await readyCompleter!.future.timeout(const Duration(seconds: 8));
+      unawaited(EventStore.record('Sessione avviata', isCamera ? 'Telefono impostato come telecamera' : 'Monitor in attesa della telecamera'));
+      await _createPeer();
+      if (isCamera) {
+        final stream = localStream;
+        if (stream == null) throw StateError('Fotocamera non disponibile');
+        for (final track in stream.getTracks()) { await peer!.addTrack(track, stream); }
         localTracksReady = true;
         await _maybeCreateOffer();
-        video.srcObject = localStream;
-        _status('Telecamera pronta · codice $code');
+        video.srcObject = stream;
+        _status('Anteprima attiva · codice $code');
       } else {
         await peer!.addTransceiver(kind: RTCRtpMediaType.RTCRtpMediaTypeVideo,
           init: RTCRtpTransceiverInit(direction: TransceiverDirection.RecvOnly));
         _status('In attesa della telecamera · codice $code');
       }
+      // Start processing SDP/ICE only after the peer and role-specific tracks
+      // or transceiver exist. This prevents early signals being discarded.
+      signalingReady = true;
+      final queuedSignals = List<Map<String, dynamic>>.from(pendingSignals);
+      pendingSignals.clear();
+      for (final queued in queuedSignals) {
+        await _handle(jsonEncode(queued));
+      }
       // A signaling socket is not a live video connection. Only onConnectionState
       // may mark the session as linked once WebRTC reaches Connected.
       if (mounted) setState(() { busy = false; });
     } catch (e) {
-      await _cleanup();
-      if (mounted) setState(() { busy = false; linked = false; error = 'Collegamento non riuscito: $e\nVerifica server, porta, Wi-Fi e codice stanza.'; status = 'Non collegato'; });
+      // Keep the camera capture alive when only signaling failed, so local
+      // preview remains visible and the user can still inspect camera framing.
+      await _cleanup(preserveLocalStream: isCamera && localStream != null);
+      if (mounted) setState(() {
+        busy = false;
+        linked = false;
+        error = isCamera && localStream != null
+          ? 'Anteprima locale attiva, ma il servizio di collegamento non risponde. Riprova tra poco.'
+          : 'Collegamento non riuscito: $e';
+        status = isCamera && localStream != null ? 'Anteprima locale · non collegato' : 'Non collegato';
+      });
+      _scheduleReconnect();
+    }
+  }
+
+  Future<void> _toggleRecording() async {
+    if (recording) {
+      await _stopRecording();
+      return;
+    }
+    final stream = localStream;
+    if (!isCamera || stream == null) {
+      _error('Avvia prima la telecamera per registrare.');
+      return;
+    }
+    try {
+      final tracks = stream.getVideoTracks();
+      if (tracks.isEmpty) throw StateError('Traccia video non disponibile');
+      final root = await getApplicationDocumentsDirectory();
+      final folder = Directory('${root.path}/recordings');
+      await folder.create(recursive: true);
+      final stamp = DateTime.now().toIso8601String().replaceAll(':', '-');
+      final path = '${folder.path}/sentinel_$stamp.mp4';
+      final active = MediaRecorder();
+      await active.start(path, videoTrack: tracks.first);
+      recorder = active;
+      recordingPath = path;
+      if (mounted) setState(() { recording = true; error = null; });
+      unawaited(EventStore.record('Registrazione avviata', 'Registrazione video locale sul telefono telecamera'));
+    } catch (e) {
+      recorder = null;
+      if (mounted) setState(() => recording = false);
+      _error('Registrazione non disponibile su questo dispositivo: $e');
+    }
+  }
+
+  Future<void> _stopRecording() async {
+    final active = recorder;
+    if (active == null) return;
+    try {
+      await active.stop();
+      final path = recordingPath;
+      if (path != null) unawaited(EventStore.record('Registrazione salvata', path));
+    } catch (e) {
+      _error('Impossibile completare la registrazione: $e');
+    } finally {
+      recorder = null;
+      recordingPath = null;
+      if (mounted) setState(() => recording = false);
     }
   }
 
   Future<void> _createPeer() async {
-    final iceServers = <Map<String, dynamic>>[
-      {'urls': 'stun:stun.l.google.com:19302'},
-    ];
+    final iceServers = serverIceServers.isNotEmpty
+        ? serverIceServers.map((entry) => Map<String, dynamic>.from(entry)).toList()
+        : <Map<String, dynamic>>[{'urls': 'stun:stun.l.google.com:19302'}];
     final urls = turnUrls.text.split(',').map((value) => value.trim()).where((value) => value.isNotEmpty).toList();
     if (urls.isNotEmpty) {
       final server = <String, dynamic>{'urls': urls};
@@ -124,28 +255,65 @@ class _StreamSessionScreenState extends State<StreamSessionScreen> {
       iceServers.add(server);
     }
     peer = await createPeerConnection({'sdpSemantics': 'unified-plan', 'iceServers': iceServers});
-    peer!.onIceCandidate = (candidate) {
+    final currentPeer = peer!;
+    currentPeer.onIceCandidate = (candidate) {
+      if (!identical(peer, currentPeer)) return;
       if (candidate.candidate != null && candidate.candidate!.isNotEmpty) {
         _send({'type': 'ice', 'candidate': candidate.toMap()});
       }
     };
-    peer!.onConnectionState = (state) {
+    currentPeer.onConnectionState = (state) {
+      if (!identical(peer, currentPeer)) return;
       _status('WebRTC: ' + state.toString().split('.').last);
       if (state == RTCPeerConnectionState.RTCPeerConnectionStateConnected) {
+        if (!wasConnected) unawaited(EventStore.record('Video collegato', isCamera ? 'Trasmissione WebRTC attiva' : 'Flusso video ricevuto'));
+        wasConnected = true;
+        reconnectAttempts = 0;
         if (mounted) setState(() => linked = true);
       } else if (state == RTCPeerConnectionState.RTCPeerConnectionStateFailed ||
           state == RTCPeerConnectionState.RTCPeerConnectionStateDisconnected ||
           state == RTCPeerConnectionState.RTCPeerConnectionStateClosed) {
+        if (wasConnected) unawaited(EventStore.record('Connessione video interrotta', state.toString().split('.').last));
+        wasConnected = false;
         if (mounted) setState(() => linked = false);
       }
     };
-    peer!.onTrack = (event) {
-      if (!isCamera && event.streams.isNotEmpty) {
-        video.srcObject = event.streams.first;
-        _status('Video ricevuto');
-        if (mounted) setState(() {});
-      }
+    currentPeer.onTrack = (event) {
+      if (!identical(peer, currentPeer) || isCamera) return;
+      // Some WebRTC implementations deliver a track without an associated
+      // MediaStream. Handle both forms instead of leaving the viewer black.
+      unawaited(_attachRemoteTrack(currentPeer, event));
     };
+  }
+
+  Future<void> _attachRemoteTrack(
+    RTCPeerConnection sourcePeer,
+    RTCTrackEvent event,
+  ) async {
+    if (!identical(peer, sourcePeer) || isCamera) return;
+    try {
+      MediaStream stream;
+      if (event.streams.isNotEmpty) {
+        stream = event.streams.first;
+      } else {
+        final fallback = video.srcObject;
+        if (fallback is MediaStream) {
+          stream = fallback;
+        } else {
+          stream = await createLocalMediaStream('sentinel-remote');
+        }
+        final existingIds = stream.getTracks().map((track) => track.id).toSet();
+        if (!existingIds.contains(event.track.id)) {
+          await stream.addTrack(event.track);
+        }
+      }
+      if (!identical(peer, sourcePeer) || !mounted) return;
+      video.srcObject = stream;
+      _status('Video ricevuto');
+      setState(() {});
+    } catch (e) {
+      _error('Impossibile visualizzare la traccia video remota: $e');
+    }
   }
 
   void _send(Map<String, dynamic> value) {
@@ -155,8 +323,22 @@ class _StreamSessionScreenState extends State<StreamSessionScreen> {
   Future<void> _handle(dynamic raw) async {
     try {
       final message = jsonDecode(raw as String) as Map<String, dynamic>;
-      switch (message['type']) {
+      final type = message['type'];
+      if (!signalingReady && (type == 'offer' || type == 'answer' || type == 'ice')) {
+        if (pendingSignals.length >= 256) {
+          _error('Troppi messaggi in attesa dal servizio di segnalazione.');
+          return;
+        }
+        pendingSignals.add(message);
+        return;
+      }
+      switch (type) {
         case 'ready':
+          final configuredIce = message['iceServers'];
+          if (configuredIce is List) {
+            serverIceServers = configuredIce.whereType<Map>().map((entry) => Map<String, dynamic>.from(entry)).toList();
+          }
+          if (readyCompleter != null && !readyCompleter!.isCompleted) readyCompleter!.complete();
           peerPresent = (message['peers'] as num? ?? 0) > 0;
           _status(peerPresent ? 'Dispositivo trovato' : 'Stanza pronta · attendo il secondo telefono');
           if (peerPresent) await _maybeCreateOffer();
@@ -191,21 +373,69 @@ class _StreamSessionScreenState extends State<StreamSessionScreen> {
           final rawCandidate = message['candidate'];
           if (rawCandidate is Map) {
             final c = RTCIceCandidate(rawCandidate['candidate'] as String?, rawCandidate['sdpMid'] as String?, (rawCandidate['sdpMLineIndex'] as num?)?.toInt());
-            if (await peer!.getRemoteDescription() == null) { pendingIce.add(c); } else { await peer!.addCandidate(c); }
+            if (await peer!.getRemoteDescription() == null) {
+              if (pendingIce.length >= 256) {
+                _error('Troppi candidati ICE in attesa; verifica il dispositivo remoto.');
+                return;
+              }
+              pendingIce.add(c);
+            } else {
+              await peer!.addCandidate(c);
+            }
           }
           break;
         case 'peer_left':
           peerPresent = false;
           offerSent = false;
+          creatingOffer = false;
           pendingIce.clear();
           _status('L’altro dispositivo si è disconnesso');
+          if (!isCamera) {
+            // Drop the old remote stream immediately. Keeping it attached can
+            // leave a frozen last frame visible while the next peer negotiates.
+            video.srcObject = null;
+          }
           if (mounted) setState(() => linked = false);
+          // A closed WebRTC peer connection cannot be reused for the next
+          // viewer. Rebuild it while keeping the camera's local capture alive.
+          await _resetPeerAfterRemoteLeft();
           break;
         case 'error':
           _error(message['message']?.toString() ?? 'Errore del server');
           break;
       }
     } catch (e) { _error('Messaggio di segnalazione non valido: $e'); }
+  }
+
+  Future<void> _resetPeerAfterRemoteLeft() async {
+    final oldPeer = peer;
+    peer = null;
+    if (oldPeer != null) {
+      try { await oldPeer.close(); } catch (_) {}
+      try { await oldPeer.dispose(); } catch (_) {}
+    }
+    if (!mounted || !signalingReady) return;
+    try {
+      await _createPeer();
+      if (isCamera) {
+        final stream = localStream;
+        if (stream != null) {
+          for (final track in stream.getTracks()) {
+            await peer!.addTrack(track, stream);
+          }
+          localTracksReady = true;
+        } else {
+          localTracksReady = false;
+        }
+      } else {
+        await peer!.addTransceiver(
+          kind: RTCRtpMediaType.RTCRtpMediaTypeVideo,
+          init: RTCRtpTransceiverInit(direction: TransceiverDirection.RecvOnly),
+        );
+      }
+    } catch (e) {
+      _error('Impossibile ripristinare il collegamento WebRTC: $e');
+    }
   }
 
   Future<void> _maybeCreateOffer() async {
@@ -230,30 +460,85 @@ class _StreamSessionScreenState extends State<StreamSessionScreen> {
     pendingIce.clear();
   }
 
+  Future<void> _scanPairingQr() async {
+    final scanned = await Navigator.of(context).push<String>(
+      MaterialPageRoute(builder: (_) => const _PairingQrScannerScreen()),
+    );
+    if (!mounted || scanned == null) return;
+    try {
+      final pairing = PairingPayload.parse(scanned);
+      setState(() {
+        url.text = pairing.server.toString();
+        room.text = pairing.room;
+        error = null;
+      });
+    } on FormatException {
+      _error('QR non valido. Scansiona il codice generato da SENTINEL ONE.');
+    }
+  }
+
+  void _scheduleReconnect() {
+    if (!mounted || manuallyStopped || reconnectTimer?.isActive == true || reconnectAttempts >= 8) return;
+    final seconds = min(30, 1 << reconnectAttempts);
+    reconnectAttempts++;
+    if (mounted) setState(() { busy = false; linked = false; status = 'Riconnessione automatica tra ${seconds}s…'; });
+    reconnectTimer = Timer(Duration(seconds: seconds), () {
+      if (mounted && !manuallyStopped) _start(reconnect: true);
+    });
+  }
+
   Future<void> _stop() async {
+    manuallyStopped = true;
+    reconnectTimer?.cancel();
+    reconnectTimer = null;
     await _cleanup();
+    unawaited(EventStore.record('Sessione terminata', isCamera ? 'Trasmissione telecamera arrestata' : 'Monitor disconnesso'));
     if (mounted) setState(() { busy = false; linked = false; status = 'Sessione terminata'; });
   }
 
-  Future<void> _cleanup({bool cancelSubscription = true}) async {
-    if (cancelSubscription) {
-      await subscription?.cancel();
-    }
+  Future<void> _cleanup({bool cancelSubscription = true, bool preserveLocalStream = false}) async {
+    if (recorder != null) await _stopRecording();
+    final activeSubscription = subscription;
     subscription = null;
-    _send({'type': 'hangup'});
-    await socket?.close(); socket = null;
-    final p = peer; peer = null;
-    if (p != null) { await p.close(); await p.dispose(); }
-    final stream = localStream; localStream = null;
-    if (stream != null) {
-      for (final track in stream.getTracks()) { await track.stop(); }
-      await stream.dispose();
+    if (cancelSubscription) {
+      await activeSubscription?.cancel();
     }
-    video.srcObject = null;
+    signalingReady = false;
+    pendingSignals.clear();
+    pendingIce.clear();
+
+    // Detach the socket before awaiting close: its onDone callback can fire
+    // during the close handshake. Without detaching first, onDone may start a
+    // second cleanup concurrently and dispose the same native WebRTC objects.
+    final activeSocket = socket;
+    _send({'type': 'hangup'});
+    socket = null;
+    await activeSocket?.close();
+
+    final p = peer;
+    peer = null;
+    if (p != null) {
+      try { await p.close(); } finally { await p.dispose(); }
+    }
+    if (!preserveLocalStream) {
+      final stream = localStream;
+      localStream = null;
+      if (stream != null) {
+        for (final track in stream.getTracks()) {
+          try { await track.stop(); } catch (_) {}
+        }
+        await stream.dispose();
+      }
+      video.srcObject = null;
+    }
   }
 
   @override
   void dispose() {
+    if (recorder != null) unawaited(_stopRecording());
+    if (socket != null && !manuallyStopped) unawaited(EventStore.record('Sessione terminata', 'Schermata chiusa'));
+    manuallyStopped = true;
+    reconnectTimer?.cancel();
     subscription?.cancel(); socket?.close(); peer?.close(); peer?.dispose();
     final stream = localStream;
     if (stream != null) { for (final track in stream.getTracks()) { track.stop(); } stream.dispose(); }
@@ -282,12 +567,60 @@ class _StreamSessionScreenState extends State<StreamSessionScreen> {
         Text(status, style: const TextStyle(color: cyan, fontWeight: FontWeight.w800, fontSize: 16)),
         const SizedBox(height: 8),
         Text(isCamera ? 'Avvia la sessione e condividi il codice con il monitor. Il video parte quando il secondo dispositivo si collega.' : 'Inserisci lo stesso server e codice del telefono telecamera. Il video apparirà dopo la negoziazione WebRTC.', style: const TextStyle(color: muted, height: 1.45)),
+        if (isCamera && localStream != null) ...[
+          OutlinedButton.icon(
+            onPressed: recording ? _stopRecording : _toggleRecording,
+            icon: Icon(recording ? Icons.stop_circle_outlined : Icons.fiber_manual_record_rounded),
+            label: Text(recording ? 'Ferma e salva registrazione' : 'Avvia registrazione locale · beta'),
+            style: OutlinedButton.styleFrom(
+              foregroundColor: recording ? const Color(0xFFFF6B80) : cyan,
+              side: BorderSide(color: recording ? const Color(0xFFFF6B80) : cyan),
+              padding: const EdgeInsets.symmetric(vertical: 14),
+            ),
+          ),
+          if (recording) const Padding(
+            padding: EdgeInsets.only(top: 8),
+            child: Text('Registrazione attiva · file privato sul telefono', textAlign: TextAlign.center, style: TextStyle(color: Color(0xFFFF6B80), fontSize: 11)),
+          ),
+          const SizedBox(height: 12),
+        ],
         const SizedBox(height: 18),
-        _field('Server di segnalazione', url, hint: 'wss://tuo-server.example'),
+        _field('Server di segnalazione', url, hint: 'wss://tuo-server.example', onChanged: (_) => setState(() {})),
         const SizedBox(height: 12),
-        _field('Codice stanza', room, hint: '8 caratteri', uppercase: true),
+        _field('Codice stanza', room, hint: '8 caratteri', uppercase: true, onChanged: (_) => setState(() {})),
+        if (isCamera) ...[
+          const SizedBox(height: 12),
+          Container(
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(color: panel, borderRadius: BorderRadius.circular(18)),
+            child: Column(children: [
+              const Text('ABBINAMENTO QR', style: TextStyle(color: cyan, fontWeight: FontWeight.w800, letterSpacing: 1.2)),
+              const SizedBox(height: 8),
+              const Text('Sul telefono monitor scansiona questo codice. Contiene solo server e codice stanza, mai il token di accesso.',
+                textAlign: TextAlign.center, style: TextStyle(color: muted, fontSize: 11, height: 1.4)),
+              const SizedBox(height: 12),
+              Container(
+                color: Colors.white,
+                padding: const EdgeInsets.all(8),
+                child: QrImageView(
+                  data: jsonEncode({'server': url.text.trim(), 'room': room.text.trim().toUpperCase()}),
+                  size: 184,
+                  backgroundColor: Colors.white,
+                  errorCorrectionLevel: QrErrorCorrectLevel.M,
+                ),
+              ),
+            ]),
+          ),
+        ] else ...[
+          const SizedBox(height: 8),
+          OutlinedButton.icon(
+            onPressed: busy || linked ? null : _scanPairingQr,
+            icon: const Icon(Icons.qr_code_scanner_rounded),
+            label: const Text('Scansiona QR della telecamera'),
+          ),
+        ],
         const SizedBox(height: 10),
-        _field('Token di accesso (remoto)', signalToken, hint: widget.remote ? 'Token configurato sul server' : 'Lascia vuoto per test locale'),
+        _field('Token aggiuntivo (facoltativo)', signalToken, hint: 'Solo se il gestore del server lo richiede'),
         const SizedBox(height: 18),
         const Text('Relay TURN (facoltativo)', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w800, fontSize: 14)),
         const SizedBox(height: 6),
@@ -308,17 +641,17 @@ class _StreamSessionScreenState extends State<StreamSessionScreen> {
           label: Text(busy ? 'Connessione…' : (socket == null ? (isCamera ? 'Avvia telecamera' : 'Collega al video') : 'Termina sessione')),
           style: FilledButton.styleFrom(backgroundColor: violet, foregroundColor: Colors.white, padding: const EdgeInsets.symmetric(vertical: 16))),
         const SizedBox(height: 12),
-        const Text('La rete locale richiede un server raggiungibile via Wi-Fi. Fuori casa servono un server WSS pubblicato e, per alcune reti, un relay TURN. Non inserire dati sensibili in server non verificati.', style: TextStyle(color: muted, fontSize: 11, height: 1.45)),
+        const Text('Il server WSS preconfigurato scambia solo i messaggi di segnalazione: non trasporta il video. Sullo stesso Wi-Fi WebRTC tenta una connessione video diretta tra i telefoni; alcune reti possono comunque richiedere TURN. Usa solo servizi di segnalazione fidati.', style: TextStyle(color: muted, fontSize: 11, height: 1.45)),
         TextButton.icon(onPressed: () => Clipboard.setData(ClipboardData(text: room.text)), icon: const Icon(Icons.copy_rounded), label: const Text('Copia codice stanza')),
       ]),
     );
   }
 
-  Widget _field(String label, TextEditingController controller, {String? hint, bool uppercase = false}) =>
+  Widget _field(String label, TextEditingController controller, {String? hint, bool uppercase = false, ValueChanged<String>? onChanged}) =>
     Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
       Text(label, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w700, fontSize: 12)),
       const SizedBox(height: 7),
-      TextField(controller: controller, enabled: !linked && !busy, autocorrect: false,
+      TextField(controller: controller, onChanged: onChanged, enabled: !linked && !busy, autocorrect: false,
         textCapitalization: uppercase ? TextCapitalization.characters : TextCapitalization.none,
         inputFormatters: uppercase ? [FilteringTextInputFormatter.allow(RegExp('[A-Za-z2-9]')), LengthLimitingTextInputFormatter(10), _UpperCaseFormatter()] : null,
         style: const TextStyle(color: Colors.white),
@@ -330,4 +663,34 @@ class _UpperCaseFormatter extends TextInputFormatter {
   @override
   TextEditingValue formatEditUpdate(TextEditingValue oldValue, TextEditingValue newValue) =>
     newValue.copyWith(text: newValue.text.toUpperCase(), selection: newValue.selection);
+}
+
+class _PairingQrScannerScreen extends StatefulWidget {
+  const _PairingQrScannerScreen();
+  @override
+  State<_PairingQrScannerScreen> createState() => _PairingQrScannerScreenState();
+}
+
+class _PairingQrScannerScreenState extends State<_PairingQrScannerScreen> {
+  bool _completed = false;
+  @override
+  Widget build(BuildContext context) => Scaffold(
+    backgroundColor: const Color(0xFF080B12),
+    appBar: AppBar(backgroundColor: const Color(0xFF080B12), title: const Text('Scansiona abbinamento')),
+    body: Stack(fit: StackFit.expand, children: [
+      MobileScanner(onDetect: (capture) {
+        if (_completed || capture.barcodes.isEmpty) return;
+        final value = capture.barcodes.first.rawValue;
+        if (value == null || value.isEmpty) return;
+        _completed = true;
+        Navigator.of(context).pop(value);
+      }),
+      Align(alignment: Alignment.bottomCenter, child: Container(
+        margin: const EdgeInsets.all(20), padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(color: Colors.black.withValues(alpha: .78), borderRadius: BorderRadius.circular(16)),
+        child: const Text('Inquadra il QR mostrato sul telefono telecamera. Il codice stanza autorizza l’abbinamento; non contiene password.',
+          textAlign: TextAlign.center, style: TextStyle(color: Colors.white, height: 1.4)),
+      )),
+    ]),
+  );
 }

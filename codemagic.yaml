@@ -1,6 +1,6 @@
 workflows:
   sentinel-one-android:
-    name: SENTINEL ONE Android APK
+    name: SENTINEL ONE Android APK (manual Codemagic build)
     max_build_duration: 60
     instance_type: linux_x2
     environment:
@@ -8,16 +8,23 @@ workflows:
     scripts:
       - name: Generate Android project files
         script: flutter create --platforms=android --org com.sentinelone .
+      - name: Configure Android native resources
+        script: python3 tool/configure_android.py
       - name: Get Flutter packages
         script: flutter pub get
       - name: Analyze Dart code
         script: flutter analyze
       - name: Run tests
         script: flutter test
-      - name: Build release APK
-        script: flutter build apk --release
+      - name: Build release APK for modern Android phones
+        script: flutter build apk --release --split-per-abi --target-platform android-arm64
+      - name: Verify the generated APK
+        script: |
+          APK=build/app/outputs/flutter-apk/app-arm64-v8a-release.apk
+          test -s "$APK"
+          echo "APK size: $(stat -c%s "$APK") bytes"
     artifacts:
-      - build/**/outputs/**/*.apk
+      - build/app/outputs/flutter-apk/app-arm64-v8a-release.apk
     publishing:
       email:
         recipients:
