@@ -308,8 +308,8 @@ class _StreamSessionScreenState extends State<StreamSessionScreen> {
           _field('Nome utente TURN', turnUsername, hint: 'Nome utente'),
           const SizedBox(height: 10),
           _field('Credenziale TURN', turnCredential, hint: 'Password o token'),
-        ]
-        if (isCamera) Align(alignment: Alignment.centerRight, child: TextButton.icon(onPressed: () { room.text = _newCode(); setState(() {}); }, icon: const Icon(Icons.refresh_rounded), label: const Text('Nuovo codice'))),
+        ],
+        if (isCamera && !widget.pairedSession) Align(alignment: Alignment.centerRight, child: TextButton.icon(onPressed: () { room.text = _newCode(); setState(() {}); }, icon: const Icon(Icons.refresh_rounded), label: const Text('Nuovo codice'))),
         if (error != null) Container(margin: const EdgeInsets.only(top: 12), padding: const EdgeInsets.all(12),
           decoration: BoxDecoration(color: const Color(0xFF351923), borderRadius: BorderRadius.circular(12)),
           child: Text(error!, style: const TextStyle(color: Color(0xFFFFA6B5), height: 1.4))),
