@@ -150,7 +150,11 @@ async def handler(peer: ServerConnection) -> None:
 
         await send_json(peer, {"type": "ready", "peers": len(peers), "iceServers": ice_server_config()})
         for other in peers:
-            await send_json(other, {"type": "peer_joined"})
+            try:
+                await send_json(other, {"type": "peer_joined"})
+            except ConnectionClosed:
+                # A stale peer must not make the newly joined client disconnect.
+                continue
 
         async for raw in peer:
             if not isinstance(raw, str) or len(raw.encode("utf-8")) > MAX_MESSAGE_BYTES:
@@ -169,7 +173,11 @@ async def handler(peer: ServerConnection) -> None:
             async with room.lock:
                 recipients = tuple(p for p in room.peers if p is not peer)
             for other in recipients:
-                await send_json(other, message)
+                try:
+                    await send_json(other, message)
+                except ConnectionClosed:
+                    # The recipient's own handler will remove it from the room.
+                    continue
     except ConnectionClosed:
         pass
     finally:
