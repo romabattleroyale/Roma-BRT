@@ -186,7 +186,7 @@ class _PairingQrScreenState extends State<PairingQrScreen> {
             textAlign: TextAlign.center, style: const TextStyle(fontSize: 19, fontWeight: FontWeight.w800)),
           const SizedBox(height: 8),
           Text(widget.isCamera
-            ? 'Apri SENTINEL ONE sul secondo telefono e scansiona questo QR. Poi avvia la telecamera.'
+            ? 'Apri SENTINEL ONE sul secondo telefono e scansiona questo QR. La telecamera partirà automaticamente dopo l’associazione.'
             : 'Scansiona il QR mostrato dal telefono che vuoi usare come telecamera.',
             textAlign: TextAlign.center, style: const TextStyle(color: _muted, height: 1.45)),
           const SizedBox(height: 22),
