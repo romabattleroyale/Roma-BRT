@@ -5,6 +5,7 @@ Run with: python -m unittest discover -s server -p 'test_*.py'
 import asyncio
 import json
 import unittest
+from unittest.mock import patch
 
 from websockets.asyncio.client import connect
 from websockets.asyncio.server import serve
@@ -53,6 +54,20 @@ class SignalingRelayTests(unittest.IsolatedAsyncioTestCase):
         ) as peer:
             with self.assertRaises(ConnectionClosed):
                 await peer.recv()
+
+
+    async def test_configured_token_rejects_missing_or_wrong_token(self):
+        with patch.dict("os.environ", {"SIGNAL_TOKEN": "secret-for-tests"}):
+            for suffix in ("", "?token=wrong"):
+                async with connect(self.url + suffix) as peer:
+                    with self.assertRaises(ConnectionClosed):
+                        await peer.recv()
+
+    async def test_configured_token_accepts_matching_token(self):
+        with patch.dict("os.environ", {"SIGNAL_TOKEN": "secret-for-tests"}):
+            async with connect(self.url + "?token=secret-for-tests") as peer:
+                ready = json.loads(await peer.recv())
+                self.assertEqual(ready, {"type": "ready", "peers": 0})
 
     async def test_third_peer_is_rejected(self):
         async with connect(self.url) as first:
