@@ -245,10 +245,19 @@ class _StreamSessionScreenState extends State<StreamSessionScreen> {
       final scannedRoom = decoded['room'];
       if (scannedServer is! String || scannedRoom is! String) throw const FormatException();
       final parsedServer = Uri.tryParse(scannedServer);
+      final normalizedRoom = scannedRoom.toUpperCase();
       if (parsedServer == null ||
           !(parsedServer.scheme == 'ws' || parsedServer.scheme == 'wss') ||
           parsedServer.host.isEmpty ||
-          !RegExp(r'^[A-Z2-9]{6,10}' + r'
+          normalizedRoom.length < 6 || normalizedRoom.length > 10 ||
+          !RegExp(r'^[A-Z2-9]{6,10}').hasMatch(normalizedRoom)) {
+        throw const FormatException();
+      }
+      setState(() { url.text = scannedServer; room.text = normalizedRoom; error = null; });
+    } catch (_) { _error('QR non valido. Scansiona il codice generato da SENTINEL ONE.'); }
+  }
+
+  Future<void> _stop() async {
     await _cleanup();
     if (mounted) setState(() { busy = false; linked = false; status = 'Sessione terminata'; });
   }
@@ -368,114 +377,6 @@ class _StreamSessionScreenState extends State<StreamSessionScreen> {
       Text(label, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w700, fontSize: 12)),
       const SizedBox(height: 7),
       TextField(controller: controller, onChanged: onChanged, enabled: !linked && !busy, autocorrect: false,
-        textCapitalization: uppercase ? TextCapitalization.characters : TextCapitalization.none,
-        inputFormatters: uppercase ? [FilteringTextInputFormatter.allow(RegExp('[A-Za-z2-9]')), LengthLimitingTextInputFormatter(10), _UpperCaseFormatter()] : null,
-        style: const TextStyle(color: Colors.white),
-        decoration: InputDecoration(hintText: hint, filled: true, fillColor: panel, border: OutlineInputBorder(borderRadius: BorderRadius.circular(14), borderSide: BorderSide.none))),
-    ]);
-}
-
-class _UpperCaseFormatter extends TextInputFormatter {
-  @override
-  TextEditingValue formatEditUpdate(TextEditingValue oldValue, TextEditingValue newValue) =>
-    newValue.copyWith(text: newValue.text.toUpperCase(), selection: newValue.selection);
-}
-).hasMatch(scannedRoom.toUpperCase())) {
-        throw const FormatException();
-      }
-      setState(() { url.text = scannedServer; room.text = scannedRoom.toUpperCase(); error = null; });
-    } catch (_) { _error('QR non valido. Scansiona il codice generato da SENTINEL ONE.'); }
-  }
-
-  Future<void> _stop() async {
-    await _cleanup();
-    if (mounted) setState(() { busy = false; linked = false; status = 'Sessione terminata'; });
-  }
-
-  Future<void> _cleanup({bool cancelSubscription = true}) async {
-    if (cancelSubscription) {
-      await subscription?.cancel();
-    }
-    subscription = null;
-    _send({'type': 'hangup'});
-    await socket?.close(); socket = null;
-    final p = peer; peer = null;
-    if (p != null) { await p.close(); await p.dispose(); }
-    final stream = localStream; localStream = null;
-    if (stream != null) {
-      for (final track in stream.getTracks()) { await track.stop(); }
-      await stream.dispose();
-    }
-    video.srcObject = null;
-  }
-
-  @override
-  void dispose() {
-    subscription?.cancel(); socket?.close(); peer?.close(); peer?.dispose();
-    final stream = localStream;
-    if (stream != null) { for (final track in stream.getTracks()) { track.stop(); } stream.dispose(); }
-    video.srcObject = null; video.dispose(); url.dispose(); room.dispose();
-    super.dispose();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: bg,
-      appBar: AppBar(backgroundColor: bg, title: Text(isCamera ? 'Telecamera · trasmissione' : 'Monitor · ricezione')),
-      body: ListView(padding: const EdgeInsets.all(16), children: [
-        Container(height: MediaQuery.sizeOf(context).height * .43, clipBehavior: Clip.antiAlias,
-          decoration: BoxDecoration(color: panel, borderRadius: BorderRadius.circular(22), border: Border.all(color: cyan.withValues(alpha: .25))),
-          child: Stack(fit: StackFit.expand, children: [
-            RTCVideoView(video, objectFit: RTCVideoViewObjectFit.RTCVideoViewObjectFitContain),
-            Align(alignment: Alignment.topLeft, child: Container(margin: const EdgeInsets.all(12), padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
-              decoration: BoxDecoration(color: Colors.black.withValues(alpha: .72), borderRadius: BorderRadius.circular(20)),
-              child: Row(mainAxisSize: MainAxisSize.min, children: [
-                Icon(Icons.circle, color: linked ? const Color(0xFF47E0A0) : const Color(0xFFFFC66D), size: 8),
-                const SizedBox(width: 7), Text(linked ? 'COLLEGATO' : 'IN ATTESA', style: const TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.bold))
-              ])))
-          ])),
-        const SizedBox(height: 18),
-        Text(status, style: const TextStyle(color: cyan, fontWeight: FontWeight.w800, fontSize: 16)),
-        const SizedBox(height: 8),
-        Text(isCamera ? 'Avvia la sessione e condividi il codice con il monitor. Il video parte quando il secondo dispositivo si collega.' : 'Inserisci lo stesso server e codice del telefono telecamera. Il video apparirà dopo la negoziazione WebRTC.', style: const TextStyle(color: muted, height: 1.45)),
-        const SizedBox(height: 18),
-        _field('Server di segnalazione', url, hint: 'wss://tuo-server.example'),
-        const SizedBox(height: 12),
-        _field('Codice stanza', room, hint: '8 caratteri', uppercase: true),
-        const SizedBox(height: 10),
-        _field('Token di accesso (remoto)', signalToken, hint: widget.remote ? 'Token configurato sul server' : 'Lascia vuoto per test locale'),
-        const SizedBox(height: 18),
-        const Text('Relay TURN (facoltativo)', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w800, fontSize: 14)),
-        const SizedBox(height: 6),
-        const Text('Necessario su alcune reti, soprattutto per accesso remoto. Inserisci dati del tuo provider TURN; separa più URL con virgole.', style: TextStyle(color: muted, fontSize: 11, height: 1.4)),
-        const SizedBox(height: 10),
-        _field('URL TURN', turnUrls, hint: 'turn:host:3478, turns:host:5349'),
-        const SizedBox(height: 10),
-        _field('Nome utente TURN', turnUsername, hint: 'Nome utente'),
-        const SizedBox(height: 10),
-        _field('Credenziale TURN', turnCredential, hint: 'Password o token'),
-        if (isCamera) Align(alignment: Alignment.centerRight, child: TextButton.icon(onPressed: () { room.text = _newCode(); setState(() {}); }, icon: const Icon(Icons.refresh_rounded), label: const Text('Nuovo codice'))),
-        if (error != null) Container(margin: const EdgeInsets.only(top: 12), padding: const EdgeInsets.all(12),
-          decoration: BoxDecoration(color: const Color(0xFF351923), borderRadius: BorderRadius.circular(12)),
-          child: Text(error!, style: const TextStyle(color: Color(0xFFFFA6B5), height: 1.4))),
-        const SizedBox(height: 18),
-        FilledButton.icon(onPressed: busy ? null : (socket == null ? _start : _stop),
-          icon: Icon(socket == null ? Icons.link_rounded : Icons.link_off_rounded),
-          label: Text(busy ? 'Connessione…' : (socket == null ? (isCamera ? 'Avvia telecamera' : 'Collega al video') : 'Termina sessione')),
-          style: FilledButton.styleFrom(backgroundColor: violet, foregroundColor: Colors.white, padding: const EdgeInsets.symmetric(vertical: 16))),
-        const SizedBox(height: 12),
-        const Text('La rete locale richiede un server raggiungibile via Wi-Fi. Fuori casa servono un server WSS pubblicato e, per alcune reti, un relay TURN. Non inserire dati sensibili in server non verificati.', style: TextStyle(color: muted, fontSize: 11, height: 1.45)),
-        TextButton.icon(onPressed: () => Clipboard.setData(ClipboardData(text: room.text)), icon: const Icon(Icons.copy_rounded), label: const Text('Copia codice stanza')),
-      ]),
-    );
-  }
-
-  Widget _field(String label, TextEditingController controller, {String? hint, bool uppercase = false}) =>
-    Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-      Text(label, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w700, fontSize: 12)),
-      const SizedBox(height: 7),
-      TextField(controller: controller, enabled: !linked && !busy, autocorrect: false,
         textCapitalization: uppercase ? TextCapitalization.characters : TextCapitalization.none,
         inputFormatters: uppercase ? [FilteringTextInputFormatter.allow(RegExp('[A-Za-z2-9]')), LengthLimitingTextInputFormatter(10), _UpperCaseFormatter()] : null,
         style: const TextStyle(color: Colors.white),
