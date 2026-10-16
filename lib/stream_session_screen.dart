@@ -39,7 +39,7 @@ class _StreamSessionScreenState extends State<StreamSessionScreen> {
   @override
   void initState() {
     super.initState();
-    url.text = widget.remote ? 'wss://INSERISCI-IL-TUO-SERVER' : 'ws://192.168.1.10:8765';
+    url.text = widget.remote ? 'wss://sentinel-one-signaling.onrender.com' : 'ws://192.168.1.10:8765';
     room.text = _newCode();
     video.initialize();
   }
@@ -63,8 +63,9 @@ class _StreamSessionScreenState extends State<StreamSessionScreen> {
     if (!RegExp(r'^[A-Z2-9]{6,10}$').hasMatch(code)) {
       _error('Il codice stanza deve avere 6–10 caratteri: A–Z e 2–9.'); return;
     }
-    if (widget.remote && signalToken.text.trim().isEmpty) {
-      _error('Per l’accesso remoto inserisci il token configurato sul server.'); return;
+    final usesConfiguredPublicRelay = Uri.tryParse(server)?.host == 'sentinel-one-signaling.onrender.com';
+    if ((widget.remote || usesConfiguredPublicRelay) && signalToken.text.trim().isEmpty) {
+      _error('Inserisci il token SIGNAL_TOKEN configurato sul servizio di segnalazione.'); return;
     }
     if (widget.remote && !server.startsWith('wss://')) {
       _error('Fuori casa è richiesto wss:// con TLS. Non usare ws:// su Internet.'); return;
@@ -287,7 +288,7 @@ class _StreamSessionScreenState extends State<StreamSessionScreen> {
         const SizedBox(height: 12),
         _field('Codice stanza', room, hint: '8 caratteri', uppercase: true),
         const SizedBox(height: 10),
-        _field('Token di accesso (remoto)', signalToken, hint: widget.remote ? 'Token configurato sul server' : 'Lascia vuoto per test locale'),
+        _field('Token di accesso (se richiesto dal server)', signalToken, hint: (widget.remote || Uri.tryParse(url.text.trim())?.host == 'sentinel-one-signaling.onrender.com') ? 'Token SIGNAL_TOKEN del servizio' : 'Lascia vuoto solo per un relay locale senza token'),
         const SizedBox(height: 18),
         const Text('Relay TURN (facoltativo)', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w800, fontSize: 14)),
         const SizedBox(height: 6),
