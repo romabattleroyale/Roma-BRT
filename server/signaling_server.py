@@ -116,6 +116,23 @@ async def consume_pair(request: web.Request) -> web.Response:
     })
 
 
+async def pair_status(request: web.Request) -> web.Response:
+    try:
+        body = await request.json()
+    except (json.JSONDecodeError, web.HTTPBadRequest):
+        raise web.HTTPBadRequest(text="Richiesta non valida.")
+    room_code = body.get("room") if isinstance(body, dict) else None
+    camera_token = body.get("cameraToken") if isinstance(body, dict) else None
+    if not isinstance(room_code, str) or not ROOM_RE.fullmatch(room_code):
+        raise web.HTTPBadRequest(text="Stanza non valida.")
+    room = rooms.get(room_code)
+    if room is None or room.expires_at <= time.time():
+        raise web.HTTPGone(text="Associazione scaduta.")
+    if not isinstance(camera_token, str) or not secrets.compare_digest(_hash(camera_token), room.camera_token_hash):
+        raise web.HTTPUnauthorized(text="Credenziale telecamera non valida.")
+    return web.json_response({"paired": bool(room.viewer_token_hash)})
+
+
 async def websocket_signal(request: web.Request) -> web.StreamResponse:
     code = request.match_info.get("room", "").upper()
     if not ROOM_RE.fullmatch(code):
@@ -182,6 +199,7 @@ def create_app() -> web.Application:
     app.router.add_get("/health", health)
     app.router.add_post("/pair/create", create_pair)
     app.router.add_post("/pair/consume", consume_pair)
+    app.router.add_post("/pair/status", pair_status)
     app.router.add_get("/signal/{room}", websocket_signal)
     return app
 
