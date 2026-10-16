@@ -40,6 +40,24 @@ async def send_json(peer: ServerConnection, payload: dict) -> None:
     await peer.send(json.dumps(payload, separators=(",", ":")))
 
 
+def ice_server_config() -> list[dict[str, object]]:
+    """Return public STUN and optional deployment-managed TURN credentials."""
+    servers: list[dict[str, object]] = [
+        {"urls": os.getenv("STUN_URLS", "stun:stun.l.google.com:19302").split(",")[0].strip()}
+    ]
+    turn_urls = [item.strip() for item in os.getenv("TURN_URLS", "").split(",") if item.strip()]
+    if turn_urls:
+        server: dict[str, object] = {"urls": turn_urls}
+        username = os.getenv("TURN_USERNAME", "").strip()
+        credential = os.getenv("TURN_CREDENTIAL", "")
+        if username:
+            server["username"] = username
+        if credential:
+            server["credential"] = credential
+        servers.append(server)
+    return servers
+
+
 async def handler(peer: ServerConnection) -> None:
     room_code = ""
     try:
@@ -77,7 +95,7 @@ async def handler(peer: ServerConnection) -> None:
             room.peers.add(peer)
             peers = tuple(p for p in room.peers if p is not peer)
 
-        await send_json(peer, {"type": "ready", "peers": len(peers)})
+        await send_json(peer, {"type": "ready", "peers": len(peers), "iceServers": ice_server_config()})
         for other in peers:
             await send_json(other, {"type": "peer_joined"})
 
