@@ -28,7 +28,7 @@ The app now contains the WebRTC session flow and a signaling relay development s
 
 ## Deploy the signaling relay (Render blueprint)
 
-A starter deployment blueprint is provided in `render.yaml`. In Render, create a new Blueprint from this repository and confirm the `sentinel-one-signaling` web service. The blueprint generates a `SIGNAL_TOKEN` secret and binds the relay to the platform-assigned port. After deployment:
+A starter deployment blueprint is provided in `render.yaml`. In Render, create a new Blueprint from this repository and confirm the `sentinel-one-signaling` web service. The blueprint binds the relay to the platform-assigned port; it does **not** currently create a `SIGNAL_TOKEN` secret. The prototype therefore relies on the random room code and is not suitable as a production security service. After deployment:
 
 1. The current app default is `wss://sentinel-one-signaling.onrender.com`. Confirm the service is Live in Render before testing; do not append `/signal/...` because the app adds that path itself.
 2. Open the app on the camera phone and show the pairing QR. On the monitor phone, scan it; no shared token needs to be copied for the prototype relay.
@@ -56,4 +56,4 @@ Choose whether this phone is the camera or monitor, then select local Wi-Fi or r
 
 A minimal WebSocket relay is available in `server/signaling_server.py`. It relays only WebRTC SDP offers/answers and ICE candidates; it does **not** carry video. The service currently uses short room codes as a development join mechanism and is **not production-secure** on its own.
 
-For remote deployment, set the environment variable `SIGNAL_TOKEN` to a long random secret and enter the same token in the app. The relay validates it using a constant-time comparison. The token is a basic shared-secret gate, not full user/account authentication. Before production use, add short-lived per-room credentials, WSS/TLS termination, origin/access controls, rate limiting and monitoring. Remote access also needs TURN credentials and a deployment endpoint. The Flutter app connects to this WebSocket protocol, but the included service is only a development relay. It is not deployed automatically by the GitHub Actions build and is not safe to expose publicly as-is.
+For a private test deployment, you can set `SIGNAL_TOKEN` to a long random secret; enter the same token manually on both phones because the QR code does not contain it. The relay validates it using a constant-time comparison. This token is a basic shared-secret gate, not full user/account authentication. Before production use, add short-lived per-device/per-room credentials, WSS/TLS termination, origin/access controls, stronger rate limiting and monitoring. Remote access may also need TURN credentials. The included service is only a development relay, is not deployed by the GitHub Actions build, and must not be treated as a production-ready security system.
