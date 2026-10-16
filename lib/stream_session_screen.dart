@@ -74,8 +74,12 @@ class _StreamSessionScreenState extends State<StreamSessionScreen> {
     try {
       await video.initialize();
       final baseEndpoint = Uri.parse(server.endsWith('/') ? server + 'signal/' + code : server + '/signal/' + code);
-      final endpoint = signalToken.text.trim().isEmpty ? baseEndpoint : baseEndpoint.replace(queryParameters: {'token': signalToken.text.trim()});
-      socket = await WebSocket.connect(endpoint.toString()).timeout(const Duration(seconds: 12));
+      final token = signalToken.text.trim();
+      final endpoint = baseEndpoint;
+      socket = await WebSocket.connect(
+        endpoint.toString(),
+        headers: token.isEmpty ? null : {'Authorization': 'Bearer $token'},
+      ).timeout(const Duration(seconds: 12));
       subscription = socket!.listen((data) => _handle(data),
         onDone: () async {
           await _cleanup();
