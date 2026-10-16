@@ -68,10 +68,11 @@ class _CameraSenderScreenState extends State<CameraSenderScreen>
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
     final controller = _controller;
-    if (controller == null || !controller.value.isInitialized) return;
     if (state == AppLifecycleState.inactive || state == AppLifecycleState.paused) {
-      controller.dispose();
-      _controller = null;
+      if (controller != null) {
+        _controller = null;
+        controller.dispose();
+      }
     } else if (state == AppLifecycleState.resumed) {
       _initializeCamera();
     }
@@ -95,71 +96,145 @@ class _CameraSenderScreenState extends State<CameraSenderScreen>
   @override
   Widget build(BuildContext context) {
     final controller = _controller;
+    final size = MediaQuery.sizeOf(context);
+    final previewHeight = (size.height * .48).clamp(320.0, 560.0);
     return Scaffold(
       backgroundColor: _bg,
-      appBar: AppBar(backgroundColor: _bg, title: const Text('Modalità telecamera')),
-      body: ListView(padding: const EdgeInsets.all(18), children: [
-        Container(
-          height: 250, clipBehavior: Clip.antiAlias,
-          decoration: BoxDecoration(
-            color: _panel, borderRadius: BorderRadius.circular(24),
-            border: Border.all(color: _cyan.withValues(alpha: .22))),
-          child: _loading
-              ? const Center(child: CircularProgressIndicator(color: _cyan))
-              : _error != null
-                  ? Center(child: Padding(
-                      padding: const EdgeInsets.all(24),
-                      child: Column(mainAxisSize: MainAxisSize.min, children: [
-                        const Icon(Icons.no_photography_outlined, color: _muted, size: 44),
-                        const SizedBox(height: 14),
-                        Text(_error!, textAlign: TextAlign.center,
-                            style: const TextStyle(color: Colors.white)),
-                        const SizedBox(height: 16),
-                        FilledButton(onPressed: _initializeCamera, child: const Text('Riprova')),
-                      ])))
-                  : controller != null && controller.value.isInitialized
-                      ? Stack(fit: StackFit.expand, children: [
-                          Center(
-                            child: AspectRatio(
-                              aspectRatio: controller.value.aspectRatio,
-                              child: CameraPreview(controller),
-                            ),
+      appBar: AppBar(
+        backgroundColor: _bg,
+        title: const Text('Modalità telecamera'),
+      ),
+      body: ListView(
+        padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
+        children: [
+          Container(
+            height: previewHeight,
+            clipBehavior: Clip.antiAlias,
+            decoration: BoxDecoration(
+              color: _panel,
+              borderRadius: BorderRadius.circular(24),
+              border: Border.all(color: _cyan.withValues(alpha: .22)),
+            ),
+            child: _loading
+                ? const Center(child: CircularProgressIndicator(color: _cyan))
+                : _error != null
+                    ? Center(
+                        child: Padding(
+                          padding: const EdgeInsets.all(24),
+                          child: Column(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              const Icon(Icons.no_photography_outlined,
+                                  color: _muted, size: 44),
+                              const SizedBox(height: 14),
+                              Text(_error!, textAlign: TextAlign.center,
+                                  style: const TextStyle(color: Colors.white)),
+                              const SizedBox(height: 16),
+                              FilledButton(
+                                onPressed: _initializeCamera,
+                                child: const Text('Riprova'),
+                              ),
+                            ],
                           ),
-                          Positioned(top: 12, left: 12, child: Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 11, vertical: 7),
-                            decoration: BoxDecoration(
-                              color: Colors.black.withValues(alpha: .72),
-                              borderRadius: BorderRadius.circular(20)),
-                            child: const Row(children: [
-                              Icon(Icons.circle, color: _green, size: 8),
-                              SizedBox(width: 7),
-                              Text('ANTEPRIMA LOCALE', style: TextStyle(
-                                color: Colors.white, fontSize: 10, fontWeight: FontWeight.bold)),
-                            ]))),
-                          if (_cameras.length > 1)
-                            Positioned(right: 12, bottom: 12, child: IconButton.filled(
-                              onPressed: _switchCamera, icon: const Icon(Icons.cameraswitch_rounded))),
-                        ])
-                      : const Center(child: Text('Fotocamera non disponibile')),
-        ),
-        const SizedBox(height: 18),
-        const Text('Questo telefono diventa una telecamera',
-          style: TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.w800)),
-        const SizedBox(height: 8),
-        const Text(
-          'Questa prima fase verifica la fotocamera e mostra l’anteprima sul dispositivo. Il video non viene ancora trasmesso all’altro telefono.',
-          style: TextStyle(color: _muted, height: 1.5)),
-        const SizedBox(height: 16),
-        Container(padding: const EdgeInsets.all(15),
-          decoration: BoxDecoration(color: _panel, borderRadius: BorderRadius.circular(18)),
-          child: const Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
-            Icon(Icons.lock_outline_rounded, color: _cyan),
-            SizedBox(width: 12),
-            Expanded(child: Text(
-              'Privacy: l’anteprima resta su questo telefono. La condivisione locale e l’accesso remoto verranno attivati dopo aver implementato associazione sicura e trasporto video.',
-              style: TextStyle(color: _muted, height: 1.45, fontSize: 12))),
-          ])),
-      ]),
+                        ),
+                      )
+                    : controller != null && controller.value.isInitialized
+                        ? Stack(
+                            fit: StackFit.expand,
+                            children: [
+                              // Fill the tall preview area without distorting the image.
+                              // Any crop is limited to the edges, never a stretch.
+                              ClipRect(
+                                child: SizedBox.expand(
+                                  child: FittedBox(
+                                    fit: BoxFit.cover,
+                                    alignment: Alignment.center,
+                                    child: SizedBox(
+                                      width: controller.value.previewSize!.height,
+                                      height: controller.value.previewSize!.width,
+                                      child: CameraPreview(controller),
+                                    ),
+                                  ),
+                                ),
+                              ),
+                              Positioned(
+                                top: 12,
+                                left: 12,
+                                child: Container(
+                                  padding: const EdgeInsets.symmetric(
+                                      horizontal: 11, vertical: 7),
+                                  decoration: BoxDecoration(
+                                    color: Colors.black.withValues(alpha: .72),
+                                    borderRadius: BorderRadius.circular(20),
+                                  ),
+                                  child: const Row(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      Icon(Icons.circle, color: _green, size: 8),
+                                      SizedBox(width: 7),
+                                      Text('ANTEPRIMA LOCALE',
+                                          style: TextStyle(
+                                            color: Colors.white,
+                                            fontSize: 10,
+                                            fontWeight: FontWeight.bold,
+                                          )),
+                                    ],
+                                  ),
+                                ),
+                              ),
+                              if (_cameras.length > 1)
+                                Positioned(
+                                  right: 12,
+                                  bottom: 12,
+                                  child: IconButton.filled(
+                                    tooltip: 'Cambia fotocamera',
+                                    onPressed: _switchCamera,
+                                    icon: const Icon(Icons.cameraswitch_rounded),
+                                  ),
+                                ),
+                            ],
+                          )
+                        : const Center(
+                            child: Text('Fotocamera non disponibile'),
+                          ),
+          ),
+          const SizedBox(height: 18),
+          const Text(
+            'Questo telefono diventa una telecamera',
+            style: TextStyle(
+              color: Colors.white,
+              fontSize: 20,
+              fontWeight: FontWeight.w800,
+            ),
+          ),
+          const SizedBox(height: 8),
+          const Text(
+            'Anteprima dal vivo sul dispositivo. Il collegamento video con gli altri telefoni è il prossimo passaggio.',
+            style: TextStyle(color: _muted, height: 1.5),
+          ),
+          const SizedBox(height: 16),
+          Container(
+            padding: const EdgeInsets.all(15),
+            decoration: BoxDecoration(
+              color: _panel,
+              borderRadius: BorderRadius.circular(18),
+            ),
+            child: const Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Icon(Icons.lock_outline_rounded, color: _cyan),
+                SizedBox(width: 12),
+                Expanded(
+                  child: Text(
+                    'Privacy: per ora il video resta su questo telefono. La condivisione richiederà associazione sicura e trasporto video protetto.',
+                    style: TextStyle(color: _muted, height: 1.45, fontSize: 12),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
     );
   }
 }
