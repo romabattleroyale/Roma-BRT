@@ -7,5 +7,5 @@ services:
     envVars:
       - key: SIGNAL_HOST
         value: 0.0.0.0
-      - key: SIGNAL_TOKEN
-        generateValue: true
+      - key: PUBLIC_SERVER
+        value: wss://sentinel-one-signaling.onrender.com
