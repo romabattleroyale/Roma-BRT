@@ -1,7 +1,7 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
-import 'package:flutter_vlc_player/vlc_player_flutter.dart';
+import 'package:flutter_vlc_player/flutter_vlc_player.dart';
 
 const _ipBg = Color(0xFF080B12);
 const _ipPanel = Color(0xFF111824);
@@ -39,7 +39,7 @@ class _IpCameraScreenState extends State<IpCameraScreen> {
     try {
       final controller = VlcPlayerController.network(
         raw,
-        hwAcc: HwAcc.FULL,
+        hwAcc: HwAcc.full,
         autoPlay: true,
         options: VlcPlayerOptions(),
       );
