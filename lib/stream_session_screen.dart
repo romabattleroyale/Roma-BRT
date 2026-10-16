@@ -418,7 +418,7 @@ class _StreamSessionScreenState extends State<StreamSessionScreen> {
           !(parsedServer.scheme == 'ws' || parsedServer.scheme == 'wss') ||
           parsedServer.host.isEmpty ||
           normalizedRoom.length < 6 || normalizedRoom.length > 10 ||
-          !RegExp(r'^[A-Z2-9]{6,10}) {
+          !RegExp(r'^[A-Z2-9]{6,10}$').hasMatch(normalizedRoom)) {
         throw const FormatException();
       }
       setState(() { url.text = scannedServer; room.text = normalizedRoom; error = null; });
