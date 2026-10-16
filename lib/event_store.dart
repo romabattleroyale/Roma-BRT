@@ -28,15 +28,23 @@ class EventStore {
     try {
       final prefs = await SharedPreferences.getInstance();
       final stored = prefs.getStringList(_storageKey) ?? <String>[];
-      return stored.map((raw) {
-        final value = jsonDecode(raw);
-        if (value is! Map) return <String, String>{};
-        return <String, String>{
-          'title': value['title']?.toString() ?? 'Evento',
-          'detail': value['detail']?.toString() ?? '',
-          'time': value['time']?.toString() ?? '',
-        };
-      }).where((event) => event['title']?.isNotEmpty == true).toList();
+      final events = <Map<String, String>>[];
+      for (final raw in stored) {
+        try {
+          final value = jsonDecode(raw);
+          if (value is! Map) continue;
+          final event = <String, String>{
+            'title': value['title']?.toString() ?? 'Evento',
+            'detail': value['detail']?.toString() ?? '',
+            'time': value['time']?.toString() ?? '',
+          };
+          if (event['title']!.isNotEmpty) events.add(event);
+        } catch (_) {
+          // Skip one malformed entry without hiding the rest of the history.
+          continue;
+        }
+      }
+      return events;
     } catch (_) {
       return <Map<String, String>>[];
     }
