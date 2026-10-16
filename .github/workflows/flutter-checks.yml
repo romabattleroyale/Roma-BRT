@@ -9,6 +9,13 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install signaling server dependencies
+        run: python -m pip install -r server/requirements.txt
+      - name: Test signaling relay
+        run: python -m unittest discover -s server -p 'test_*.py'
       - uses: subosito/flutter-action@v2
         with:
           channel: stable
