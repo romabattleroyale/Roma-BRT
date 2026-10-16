@@ -11,7 +11,7 @@ import json
 import os
 import re
 import secrets
-from urllib.parse import parse_qs, urlsplit
+from urllib.parse import urlsplit
 from collections import defaultdict
 from dataclasses import dataclass, field
 
@@ -42,7 +42,8 @@ async def handler(peer: ServerConnection) -> None:
         request = urlsplit(peer.request.path)
         parts = request.path.strip("/").split("/")
         required_token = os.getenv("SIGNAL_TOKEN", "").strip()
-        supplied_token = parse_qs(request.query).get("token", [""])[0]
+        authorization = peer.request.headers.get("Authorization", "")
+        supplied_token = authorization.removeprefix("Bearer ").strip() if authorization.startswith("Bearer ") else ""
         if required_token and not secrets.compare_digest(supplied_token, required_token):
             await peer.close(code=1008, reason="Invalid signaling token")
             return
