@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'custom_relay_session_screen.dart';
+import 'stream_session_screen.dart';
 
 class LocalViewerScreen extends StatelessWidget {
   const LocalViewerScreen({super.key, this.remote = false});
@@ -7,5 +7,5 @@ class LocalViewerScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) =>
-      CustomRelaySessionScreen(cameraRole: false, remote: remote);
+      StreamSessionScreen(role: StreamRole.viewer, remote: remote);
 }
