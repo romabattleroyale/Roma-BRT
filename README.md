@@ -55,6 +55,12 @@ The GitHub Actions workflow checks the code and builds an APK artifact. Configur
 Choose whether this phone is the camera or monitor, then select local Wi-Fi or remote access. The next screen lets you enter the signaling server and room code, explicitly start the camera or connect the viewer, and see connection status. The camera role can display a pairing QR containing only the signaling URL and room code; the monitor can scan it to fill those fields. The QR carries the signaling URL and random room code; no shared token is needed unless the server operator explicitly enables one. Both modes use the configured WSS signaling relay by default; the local-Wi-Fi test still relies on WebRTC ICE to select a direct media route. A TURN relay may still be required by restrictive networks.
 
 
+## Experimental binary stream transport (zero-cost development path)
+
+The server now exposes an experimental binary WebSocket endpoint at `/stream/<ROOM>` alongside the existing `/signal/<ROOM>` endpoint. A client must first send `{"type":"join","role":"camera"}` or `{"type":"join","role":"viewer"}`. The camera role can send binary frame packets (up to 1 MiB); the relay forwards them to the viewer role in the same room. The service accepts at most one camera and one viewer per room and applies the same optional `SIGNAL_TOKEN` gate and connection rate limit as the signaling endpoint.
+
+**Important:** this is a tested transport primitive, not yet an end-to-end camera feature in the Flutter UI. The app still uses its existing WebRTC session screen and does not yet capture JPEG frames and send them to `/stream`. Do not treat this endpoint as a working replacement for the current video path until camera capture, frame pacing, viewer rendering, lifecycle handling and physical-device tests are integrated. A public deployment should use WSS/TLS and strong, expiring pairing credentials; room codes alone are not production authentication. The relay carries video bytes through the host, so free hosting bandwidth and sleep limits may make it unsuitable for continuous remote monitoring.
+
 ## WebRTC signaling service (development foundation)
 
 A minimal WebSocket relay is available in `server/signaling_server.py`. It relays only WebRTC SDP offers/answers and ICE candidates; it does **not** carry video. The service currently uses short room codes as a development join mechanism and is **not production-secure** on its own.
