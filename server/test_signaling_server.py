@@ -65,14 +65,14 @@ class SignalingRelayTests(unittest.IsolatedAsyncioTestCase):
 
     async def test_configured_token_rejects_missing_or_wrong_token(self):
         with patch.dict("os.environ", {"SIGNAL_TOKEN": "secret-for-tests"}):
-            for suffix in ("", "?token=wrong"):
-                async with connect(self.url + suffix) as peer:
+            for headers in ({}, {"Authorization": "Bearer wrong"}):
+                async with connect(self.url, additional_headers=headers) as peer:
                     with self.assertRaises(ConnectionClosed):
                         await peer.recv()
 
     async def test_configured_token_accepts_matching_token(self):
         with patch.dict("os.environ", {"SIGNAL_TOKEN": "secret-for-tests"}):
-            async with connect(self.url + "?token=secret-for-tests") as peer:
+            async with connect(self.url, additional_headers={"Authorization": "Bearer secret-for-tests"}) as peer:
                 ready = json.loads(await peer.recv())
                 self.assertEqual(ready, {"type": "ready", "peers": 0})
 
