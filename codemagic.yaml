@@ -12,11 +12,14 @@ workflows:
         script: gradle -p native-android assembleRelease
       - name: Verify APK output
         script: |
+          set -e
           APK=native-android/app/build/outputs/apk/release/app-release.apk
           test -s "$APK"
           echo "APK size: $(stat -c%s "$APK") bytes"
+          echo "APK absolute path: $CM_BUILD_DIR/$APK"
+          find native-android/app/build/outputs -type f -name "*.apk" -print
     artifacts:
-      - native-android/app/build/outputs/apk/release/app-release.apk
+      - native-android/app/build/outputs/**/*.apk
     publishing:
       email:
         recipients:
