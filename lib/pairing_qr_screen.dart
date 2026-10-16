@@ -45,7 +45,7 @@ class _PairingQrScreenState extends State<PairingQrScreen> {
       request.write(jsonEncode(body));
       final response = await request.close().timeout(const Duration(seconds: 20));
       final textBody = await response.transform(utf8.decoder).join();
-      final decoded = textBody.isEmpty ? <String, dynamic>{} : jsonDecode(textBody);
+      dynamic decoded;\n      try { decoded = textBody.isEmpty ? <String, dynamic>{} : jsonDecode(textBody); } catch (_) { decoded = <String, dynamic>{'message': textBody}; }
       if (response.statusCode < 200 || response.statusCode >= 300) {
         final message = decoded is Map ? decoded['message']?.toString() : null;
         throw HttpException(message ?? 'Il servizio di associazione ha risposto con HTTP ${response.statusCode}.');
