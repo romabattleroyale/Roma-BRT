@@ -89,19 +89,28 @@ class _StreamSessionScreenState extends State<StreamSessionScreen> {
       final baseEndpoint = Uri.parse(server.endsWith('/') ? server + 'signal/' + code : server + '/signal/' + code);
       final token = signalToken.text.trim();
       final endpoint = baseEndpoint;
+      readyCompleter = Completer<void>();
+      serverIceServers = <Map<String, dynamic>>[];
       socket = await WebSocket.connect(
         endpoint.toString(),
         headers: token.isEmpty ? null : {'Authorization': 'Bearer $token'},
       ).timeout(const Duration(seconds: 12));
       subscription = socket!.listen((data) => _handle(data),
         onDone: () async {
+          if (readyCompleter != null && !readyCompleter!.isCompleted) {
+            readyCompleter!.completeError(StateError('Il server ha chiuso la sessione prima del messaggio ready'));
+          }
           // Do not cancel the subscription from inside its own onDone callback.
           await _cleanup(cancelSubscription: false);
           if (mounted) setState(() { busy = false; linked = false; status = 'Servizio disconnesso'; });
           _scheduleReconnect();
         },
-        onError: (Object e) => _error('Errore WebSocket: $e'));
+        onError: (Object e) {
+          if (readyCompleter != null && !readyCompleter!.isCompleted) readyCompleter!.completeError(e);
+          _error('Errore WebSocket: $e');
+        });
       unawaited(EventStore.record('Sessione avviata', isCamera ? 'Telefono impostato come telecamera' : 'Monitor in attesa della telecamera'));
+      await readyCompleter!.future.timeout(const Duration(seconds: 8));
       await _createPeer();
       if (isCamera) {
         localStream = await navigator.mediaDevices.getUserMedia({
@@ -176,9 +185,9 @@ class _StreamSessionScreenState extends State<StreamSessionScreen> {
   }
 
   Future<void> _createPeer() async {
-    final iceServers = <Map<String, dynamic>>[
-      {'urls': 'stun:stun.l.google.com:19302'},
-    ];
+    final iceServers = serverIceServers.isNotEmpty
+        ? serverIceServers.map((entry) => Map<String, dynamic>.from(entry)).toList()
+        : <Map<String, dynamic>>[{'urls': 'stun:stun.l.google.com:19302'}];
     final urls = turnUrls.text.split(',').map((value) => value.trim()).where((value) => value.isNotEmpty).toList();
     if (urls.isNotEmpty) {
       final server = <String, dynamic>{'urls': urls};
@@ -225,6 +234,11 @@ class _StreamSessionScreenState extends State<StreamSessionScreen> {
       final message = jsonDecode(raw as String) as Map<String, dynamic>;
       switch (message['type']) {
         case 'ready':
+          final configuredIce = message['iceServers'];
+          if (configuredIce is List) {
+            serverIceServers = configuredIce.whereType<Map>().map((entry) => Map<String, dynamic>.from(entry)).toList();
+          }
+          if (readyCompleter != null && !readyCompleter!.isCompleted) readyCompleter!.complete();
           peerPresent = (message['peers'] as num? ?? 0) > 0;
           _status(peerPresent ? 'Dispositivo trovato' : 'Stanza pronta · attendo il secondo telefono');
           if (peerPresent) await _maybeCreateOffer();
