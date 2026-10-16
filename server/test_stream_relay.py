@@ -42,7 +42,7 @@ class StreamRelayTests(unittest.IsolatedAsyncioTestCase):
             try:
                 self.assertTrue(ready_viewer["peerPresent"])
                 self.assertEqual(json.loads(await camera.recv())["type"], "peer_joined")
-                frame = b"\\xff\\xd8sentinel-test-jpeg\\xff\\xd9"
+                frame = b"\xff\xd8sentinel-test-jpeg\xff\xd9"
                 await camera.send(frame)
                 self.assertEqual(await asyncio.wait_for(viewer.recv(), 1), frame)
             finally:
