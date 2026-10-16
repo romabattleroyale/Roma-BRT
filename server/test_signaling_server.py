@@ -11,7 +11,7 @@ from websockets.asyncio.client import connect
 from websockets.asyncio.server import serve
 from websockets.exceptions import ConnectionClosed
 
-from signaling_server import handler
+from signaling_server import handler, validate_bind_security
 
 
 class SignalingRelayTests(unittest.IsolatedAsyncioTestCase):
@@ -47,6 +47,13 @@ class SignalingRelayTests(unittest.IsolatedAsyncioTestCase):
                 candidate = {"type": "ice", "candidate": {"candidate": "test"}}
                 await sender.send(json.dumps(candidate))
                 self.assertEqual(json.loads(await viewer.recv()), candidate)
+
+
+    async def test_public_bind_requires_token(self):
+        with self.assertRaises(RuntimeError):
+            validate_bind_security("0.0.0.0", "")
+        validate_bind_security("127.0.0.1", "")
+        validate_bind_security("0.0.0.0", "configured-secret")
 
     async def test_invalid_room_code_is_rejected(self):
         async with connect(

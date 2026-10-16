@@ -101,11 +101,15 @@ async def handler(peer: ServerConnection) -> None:
                     pass
 
 
+def validate_bind_security(host: str, token: str) -> None:
+    if host not in {"127.0.0.1", "localhost", "::1"} and not token.strip():
+        raise RuntimeError("SIGNAL_TOKEN must be configured before binding the signaling service to a non-loopback interface")
+
+
 async def main() -> None:
     host = os.getenv("SIGNAL_HOST", "127.0.0.1")
     port = int(os.getenv("SIGNAL_PORT", "8765"))
-    if host not in {"127.0.0.1", "localhost", "::1"} and not os.getenv("SIGNAL_TOKEN", "").strip():
-        raise RuntimeError("SIGNAL_TOKEN must be configured before binding the signaling service to a non-loopback interface")
+    validate_bind_security(host, os.getenv("SIGNAL_TOKEN", ""))
     async with serve(
         handler, host, port, max_size=MAX_MESSAGE_BYTES,
         ping_interval=20, ping_timeout=20,
