@@ -37,6 +37,21 @@ rooms: dict[str, Room] = defaultdict(Room)
 # Basic per-IP connection throttling for the public prototype relay.
 ATTEMPTS_PER_MINUTE = 30
 connection_attempts: dict[str, deque[float]] = defaultdict(deque)
+last_rate_limit_cleanup = 0.0
+
+
+def prune_connection_attempts(now: float) -> None:
+    """Bound the rate-limit cache by removing IPs inactive for over a minute."""
+    global last_rate_limit_cleanup
+    if now - last_rate_limit_cleanup < 60:
+        return
+    stale_ips = [
+        ip for ip, attempts in connection_attempts.items()
+        if not attempts or now - attempts[-1] > 60
+    ]
+    for ip in stale_ips:
+        connection_attempts.pop(ip, None)
+    last_rate_limit_cleanup = now
 
 
 async def send_json(peer: ServerConnection, payload: dict) -> None:
@@ -45,9 +60,12 @@ async def send_json(peer: ServerConnection, payload: dict) -> None:
 
 def ice_server_config() -> list[dict[str, object]]:
     """Return public STUN and optional deployment-managed TURN credentials."""
-    servers: list[dict[str, object]] = [
-        {"urls": os.getenv("STUN_URLS", "stun:stun.l.google.com:19302").split(",")[0].strip()}
-    ]
+    configured_stun = os.getenv("STUN_URLS", "stun:stun.l.google.com:19302")
+    stun_urls = [item.strip() for item in configured_stun.split(",") if item.strip()]
+    if not stun_urls:
+        stun_urls = ["stun:stun.l.google.com:19302"]
+    stun_value: str | list[str] = stun_urls[0] if len(stun_urls) == 1 else stun_urls
+    servers: list[dict[str, object]] = [{"urls": stun_value}]
     turn_urls = [item.strip() for item in os.getenv("TURN_URLS", "").split(",") if item.strip()]
     if turn_urls:
         server: dict[str, object] = {"urls": turn_urls}
@@ -55,7 +73,11 @@ def ice_server_config() -> list[dict[str, object]]:
         shared_secret = os.getenv("TURN_SHARED_SECRET", "")
         if shared_secret:
             # Coturn REST API credentials expire; never send the shared secret to clients.
-            ttl = max(300, min(86400, int(os.getenv("TURN_TTL_SECONDS", "3600"))))
+            try:
+                requested_ttl = int(os.getenv("TURN_TTL_SECONDS", "3600"))
+            except (TypeError, ValueError):
+                requested_ttl = 3600
+            ttl = max(300, min(86400, requested_ttl))
             username = f"{int(time.time()) + ttl}:{username_prefix}"
             credential = base64.b64encode(
                 hmac.new(shared_secret.encode("utf-8"), username.encode("utf-8"), hashlib.sha1).digest()
@@ -80,6 +102,7 @@ async def handler(peer: ServerConnection) -> None:
         remote = peer.remote_address
         client_ip = str(remote[0]) if remote else "unknown"
         now = time.monotonic()
+        prune_connection_attempts(now)
         attempts = connection_attempts[client_ip]
         while attempts and now - attempts[0] > 60:
             attempts.popleft()
