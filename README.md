@@ -30,3 +30,7 @@ flutter test
 flutter build apk --release
 ```
 The GitHub Actions workflow checks the code and builds an APK artifact. Configure Android signing before distributing a signed release.
+
+
+## Connection setup UI
+The app now includes an explicit connection setup screen for choosing the intended camera/viewer workflow and understanding local vs remote requirements. This is setup guidance only: it does not establish a session or transmit video until a signaling service and WebRTC transport are implemented and configured.
