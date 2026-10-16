@@ -55,7 +55,7 @@ class _ConnectionSetupScreenState extends State<ConnectionSetupScreen>
           const SizedBox(height: 18),
           const Text('Un sistema. Due dispositivi.', style: TextStyle(color: Colors.white, fontSize: 23, fontWeight: FontWeight.w800, letterSpacing: -.5)),
           const SizedBox(height: 8),
-          const Text('Scegli quale telefono invia il video e quale lo visualizza. Per il primo test useremo il servizio di segnalazione già configurato; il video WebRTC viaggia direttamente tra i telefoni quando la rete lo consente.', style: TextStyle(color: _muted, height: 1.5)),
+          const Text('Scegli quale telefono invia il video e quale lo visualizza. Il telefono invia fotogrammi JPEG al relay personalizzato, che li inoltra al monitor. È un prototipo video senza audio.', style: TextStyle(color: _muted, height: 1.5)),
           const SizedBox(height: 18),
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
@@ -80,7 +80,7 @@ class _ConnectionSetupScreenState extends State<ConnectionSetupScreen>
       const SizedBox(height: 10),
       _modeTile(selected: !_remoteMode, icon: Icons.wifi_rounded, title: 'Rete Wi-Fi locale', subtitle: "Per il primo test: entrambi i telefoni sullo stesso Wi-Fi. Il servizio WSS coordina l'abbinamento; il video tenta un percorso diretto tra i dispositivi.", onTap: () => setState(() => _remoteMode = false)),
       const SizedBox(height: 9),
-      _modeTile(selected: _remoteMode, icon: Icons.public_rounded, title: 'Fuori casa · Internet', subtitle: 'Richiede segnalazione sicura e un relay quando la connessione diretta non è possibile.', onTap: () => setState(() => _remoteMode = true)),
+      _modeTile(selected: _remoteMode, icon: Icons.public_rounded, title: 'Fuori casa · Internet', subtitle: 'Richiede un endpoint WSS pubblico e il relay JPEG raggiungibile da Internet.', onTap: () => setState(() => _remoteMode = true)),
       const SizedBox(height: 18),
       Container(
         padding: const EdgeInsets.all(16),
@@ -92,8 +92,8 @@ class _ConnectionSetupScreenState extends State<ConnectionSetupScreen>
           ]),
           const SizedBox(height: 10),
           Text(_remoteMode
-            ? 'Prima di collegare il video, SENTINEL ONE deve disporre di un servizio di segnalazione autenticato e di un relay TURN configurato.'
-            : 'Usa il server WSS già preconfigurato per lo scambio dei messaggi WebRTC. Se i telefoni sono sullo stesso Wi-Fi, il video può passare direttamente tra loro senza un server video locale.',
+            ? 'Per la modalità remota configura un endpoint WSS pubblico e distribuisci il relay JPEG con TLS e autenticazione. Non è un servizio pronto all'uso finché il server non è pubblicato.'
+            : 'Il video usa il relay JPEG personalizzato. Inserisci l'indirizzo WebSocket del relay; per una prova in rete locale puoi usare un server raggiungibile da entrambi i telefoni.',
             style: const TextStyle(color: _muted, height: 1.5, fontSize: 12)),
           const SizedBox(height: 14),
           const Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
@@ -110,7 +110,7 @@ class _ConnectionSetupScreenState extends State<ConnectionSetupScreen>
         style: FilledButton.styleFrom(backgroundColor: _violet, foregroundColor: Colors.white, padding: const EdgeInsets.symmetric(vertical: 16)),
       ),
       const SizedBox(height: 8),
-      const Text('Questa schermata prepara il collegamento. Lo stato diventerà COLLEGATO solo quando WebRTC confermerà una connessione reale.', textAlign: TextAlign.center, style: TextStyle(color: _muted, fontSize: 11)),
+      const Text('Questa schermata prepara il collegamento. Il monitor mostrerà i fotogrammi quando il relay avrà collegato entrambi i dispositivi.', textAlign: TextAlign.center, style: TextStyle(color: _muted, fontSize: 11)),
     ]),
   );
 
