@@ -54,6 +54,26 @@ class SignalingRelayTests(unittest.IsolatedAsyncioTestCase):
                 self.assertEqual(json.loads(await viewer.recv()), candidate)
 
 
+    async def test_ice_server_config_supports_multiple_stun_urls(self):
+        with patch.dict(os.environ, {
+            "STUN_URLS": "stun:first.example:3478, stun:second.example:3478",
+        }, clear=True):
+            servers = ice_server_config()
+        self.assertEqual(servers[0]["urls"], [
+            "stun:first.example:3478",
+            "stun:second.example:3478",
+        ])
+
+    async def test_invalid_turn_ttl_falls_back_to_default(self):
+        with patch.dict(os.environ, {
+            "TURN_URLS": "turn:turn.example:3478",
+            "TURN_SHARED_SECRET": "server-only-secret",
+            "TURN_TTL_SECONDS": "not-a-number",
+        }, clear=True):
+            servers = ice_server_config()
+        expiry = int(servers[1]["username"].split(":", 1)[0])
+        self.assertGreaterEqual(expiry, int(time.time()) + 3599)
+
     async def test_ice_server_config_reads_turn_credentials_from_environment(self):
         with patch.dict(os.environ, {
             "STUN_URLS": "stun:stun.example:3478",
