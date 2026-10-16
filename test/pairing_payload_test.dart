@@ -27,6 +27,22 @@ void main() {
       );
     });
 
+    test('rejects signaling URLs with query strings or fragments', () {
+      for (final server in [
+        'wss://example.com?token=secret',
+        'wss://example.com#section',
+        'wss://example.com/custom/path',
+      ]) {
+        expect(
+          () => PairingPayload.parse(jsonEncode({
+            'server': server,
+            'room': 'AB23CD45',
+          })),
+          throwsFormatException,
+        );
+      }
+    });
+
     test('rejects credentials embedded in the QR server URL', () {
       expect(
         () => PairingPayload.parse(jsonEncode({
