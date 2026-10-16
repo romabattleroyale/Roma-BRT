@@ -117,6 +117,7 @@ class _StreamSessionScreenState extends State<StreamSessionScreen> {
     } catch (e) {
       await _cleanup();
       if (mounted) setState(() { busy = false; linked = false; error = 'Collegamento non riuscito: $e\nVerifica server, porta, Wi-Fi e codice stanza.'; status = 'Non collegato'; });
+      _scheduleReconnect();
     }
   }
 
