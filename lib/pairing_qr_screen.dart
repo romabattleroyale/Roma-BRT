@@ -30,6 +30,8 @@ class _PairingQrScreenState extends State<PairingQrScreen> {
   String? _ticket;
   String? _cameraToken;
   Timer? _expiryTimer;
+  Timer? _pollTimer;
+  bool _navigated = false;
 
   @override
   void initState() {
@@ -75,6 +77,10 @@ class _PairingQrScreenState extends State<PairingQrScreen> {
         _message = _ticket == null ? 'Il server non ha restituito il codice QR.' : 'QR valido per 3 minuti. Scansionalo dall’altro telefono.';
       });
       _expiryTimer?.cancel();
+      _pollTimer?.cancel();
+      if (_ticket != null && _cameraToken != null) {
+        _pollTimer = Timer.periodic(const Duration(seconds: 3), (_) => _checkPairing());
+      }
       _expiryTimer = Timer(const Duration(minutes: 3), () {
         if (mounted && _ticket != null) setState(() { _ticket = null; _message = 'QR scaduto. Generane uno nuovo.'; });
       });
@@ -130,11 +136,24 @@ class _PairingQrScreenState extends State<PairingQrScreen> {
     }
   }
 
+  Future<void> _checkPairing() async {
+    if (_navigated || _room == null || _cameraToken == null) return;
+    try {
+      final result = await _post('/pair/status', {'room': _room, 'cameraToken': _cameraToken});
+      if (result['paired'] == true && mounted && !_navigated) _startCameraSession();
+    } catch (_) {
+      // A sleeping/free signaling service can be temporarily unreachable; keep the QR visible.
+    }
+  }
+
   void _startCameraSession() {
     final room = _room;
     final token = _cameraToken;
-    if (room == null || token == null) return;
-    Navigator.of(context).push(MaterialPageRoute(builder: (_) => StreamSessionScreen(
+    if (room == null || token == null || _navigated) return;
+    _navigated = true;
+    _pollTimer?.cancel();
+    _expiryTimer?.cancel();
+    Navigator.of(context).pushReplacement(MaterialPageRoute(builder: (_) => StreamSessionScreen(
       role: StreamRole.camera,
       remote: true,
       initialServer: _signalServer,
@@ -148,6 +167,7 @@ class _PairingQrScreenState extends State<PairingQrScreen> {
   @override
   void dispose() {
     _expiryTimer?.cancel();
+    _pollTimer?.cancel();
     super.dispose();
   }
 
@@ -187,9 +207,7 @@ class _PairingQrScreenState extends State<PairingQrScreen> {
               icon: const Icon(Icons.refresh_rounded), label: const Text('Genera nuovo QR'),
               style: FilledButton.styleFrom(backgroundColor: _violet, minimumSize: const Size.fromHeight(50))),
             const SizedBox(height: 10),
-            FilledButton.icon(onPressed: _ticket == null || _cameraToken == null ? null : _startCameraSession,
-              icon: const Icon(Icons.videocam_rounded), label: const Text('Avvia questa telecamera'),
-              style: FilledButton.styleFrom(backgroundColor: _cyan, foregroundColor: _bg, minimumSize: const Size.fromHeight(50))),
+            const Padding(padding: EdgeInsets.only(top: 12), child: Text('Quando l’altro telefono scansiona il QR, la telecamera si avvia automaticamente.', textAlign: TextAlign.center, style: TextStyle(color: _cyan, height: 1.4))),
           ] else ...[
             if (_scanning)
               ClipRRect(borderRadius: BorderRadius.circular(18), child: SizedBox(height: 320, child: MobileScanner(onDetect: _onDetect)))
