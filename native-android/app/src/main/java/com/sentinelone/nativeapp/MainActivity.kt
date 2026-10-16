@@ -24,6 +24,8 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.material3.LocalContentColor
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Brush
@@ -343,7 +345,8 @@ private fun Dashboard(
     onStop: () -> Unit,
     onSwitchCamera: () -> Unit
 ) {
-    Box(Modifier.fillMaxSize().background(Brush.verticalGradient(listOf(Color(0xFF10182A), Night, Color(0xFF070910))))) {
+    CompositionLocalProvider(LocalContentColor provides Color.White) {
+      Box(Modifier.fillMaxSize().background(Brush.verticalGradient(listOf(Color(0xFF10182A), Night, Color(0xFF070910))))) {
         Column(
             modifier = Modifier.fillMaxSize().statusBarsPadding().navigationBarsPadding().padding(horizontal = 22.dp, vertical = 18.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp)
@@ -435,6 +438,7 @@ private fun Dashboard(
             Text(if (role == "camera") "FRAME INVIATI: $sentFrames" else "FRAME RICEVUTI: $receivedFrames", color = Muted, fontSize = 10.sp, letterSpacing = 1.sp)
             Text("SENTINEL ONE • PROTOTIPO NATIVO", color = Color(0xFF68758B), fontSize = 9.sp, letterSpacing = 1.sp)
         }
+      }
     }
 }
 
