@@ -5,7 +5,7 @@ Android-first home-security command center built with Flutter.
 - Premium dark dashboard with violet/cyan accents.
 - Illustrative home plan with camera markers.
 - Camera/device list, demo event log, settings and interactive protection switch.
-- Local camera preview now uses the WebRTC media engine, preparing the capture path for peer-to-peer video.
+- WebRTC camera-to-viewer session flow is implemented in the app: camera capture, viewer receive-only track, SDP offer/answer and ICE exchange through the signaling WebSocket.
 - UI labels demo states explicitly.
 
 ## Product requirement: local and remote viewing
@@ -20,7 +20,7 @@ SENTINEL ONE must support viewing cameras both at home and away from home:
 Remote viewing is a core requirement, not an optional later add-on. Local Wi-Fi alone cannot provide access from outside the home. The remote signaling/relay service and Android permissions must be configured and tested before this can be considered a functioning security system.
 
 ## Current limitations
-This repository currently contains the Flutter UI foundation, not a functioning surveillance system. The WebRTC camera preview captures video locally, but it does not yet send it to another phone. Actual peer-to-peer live streaming, secure local pairing, remote signaling/TURN infrastructure, authentication, push notifications, persistent event storage, Tapo RTSP/ONVIF integration and real AR/3D reconstruction are not implemented yet. Do not treat demo status or events as actual security monitoring.
+The app now contains the WebRTC session flow and a signaling relay development service, but **end-to-end streaming has not yet been verified on two physical phones**. No signaling service is deployed for the app, so the server address must be configured before a session can connect. The default local address is a placeholder and must be replaced with the host running the relay. Remote access still needs a published WSS endpoint, authenticated pairing, TURN infrastructure and security hardening. Push notifications, persistent event storage, Tapo RTSP/ONVIF integration and real AR/3D reconstruction are not implemented. The dashboard's plan, device states and event list remain illustrative/demo data; do not rely on this build as a security system.
 
 ## Build
 Flutter and Android SDK:
@@ -34,11 +34,11 @@ The GitHub Actions workflow checks the code and builds an APK artifact. Configur
 
 
 ## Connection setup UI
-The app now includes an explicit connection setup screen for choosing the intended camera/viewer workflow and understanding local vs remote requirements. This is setup guidance only: it does not establish a session or transmit video until a signaling service and WebRTC transport are implemented and configured.
+Choose whether this phone is the camera or monitor, then select local Wi-Fi or remote access. The next screen lets you enter the signaling server and room code, explicitly start the camera or connect the viewer, and see connection status. Local mode still requires a signaling server reachable from both phones; remote mode requires `wss://`.
 
 
 ## WebRTC signaling service (development foundation)
 
 A minimal WebSocket relay is available in `server/signaling_server.py`. It relays only WebRTC SDP offers/answers and ICE candidates; it does **not** carry video. The service currently uses short room codes as a development join mechanism and is **not production-secure** on its own.
 
-Before deployment or use outside a trusted test environment, add authenticated short-lived room tokens, WSS/TLS termination, origin/access controls, rate limiting and monitoring. Remote access also needs TURN credentials and a deployment endpoint. The Flutter app does not yet connect to this service, so cross-device streaming is not enabled in the current APK.
+Before deployment or use outside a trusted test environment, add authenticated short-lived room tokens, WSS/TLS termination, origin/access controls, rate limiting and monitoring. Remote access also needs TURN credentials and a deployment endpoint. The Flutter app connects to this WebSocket protocol, but the included service is only a development relay. It is not deployed automatically by the GitHub Actions build and is not safe to expose publicly as-is.
