@@ -4,9 +4,9 @@ Android-first home-security command center built with Flutter.
 ## Current state
 - Premium dark dashboard with violet/cyan accents.
 - Illustrative home plan with camera markers.
-- Camera/device list, demo event log, settings and interactive protection switch.
+- Device list and event log start empty; no fake connected cameras or fake alarm events are presented.
 - WebRTC camera-to-viewer session flow is implemented in the app: camera capture, viewer receive-only track, SDP offer/answer and ICE exchange through the signaling WebSocket.
-- UI labels demo states explicitly.
+- Protection remains marked as not configured until real devices are linked.
 
 ## Product requirement: local and remote viewing
 SENTINEL ONE must support viewing cameras both at home and away from home:
@@ -31,7 +31,7 @@ A starter deployment blueprint is provided in `render.yaml`. In Render, create a
 3. Test with both phones first on the same Wi-Fi. For some carrier/NAT combinations, remote media also requires TURN credentials configured in the app.
 4. To revoke a pairing, stop the camera session and generate a new room code.
 
-This deploys only the signaling relay; it does not provision TURN or verify real-device video. The relay treats a random 8-character room code as a short-lived pairing capability and applies basic per-IP connection throttling. It is not full account authentication and is not yet production-hardened. The free service may sleep when idle. Its hostname being configured does not prove the relay is reachable or media negotiation succeeds; verify on two physical phones before relying on it.
+This deploys only the signaling relay; it does not provision TURN or verify real-device video. The relay treats a random 8-character room code as a pairing capability while the camera is waiting for its peer and applies basic per-IP connection throttling. The room code does not currently expire automatically; stop the session and generate a new code to revoke it. This is not full account authentication and is not production-hardened. The free service may sleep when idle. Its hostname being configured does not prove the relay is reachable or media negotiation succeeds; verify on two physical phones before relying on it.
 
 ## Build
 Flutter and Android SDK:
