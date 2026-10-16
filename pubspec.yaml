@@ -1,7 +1,7 @@
 name: sentinel_one
 description: SENTINEL ONE - smart home security command center
 publish_to: 'none'
-version: 0.2.0+2
+version: 0.3.0+3
 environment:
   sdk: ">=3.6.0 <4.0.0"
 dependencies:
@@ -9,6 +9,8 @@ dependencies:
     sdk: flutter
   cupertino_icons: ^1.0.8
   flutter_webrtc: ^1.6.2+hotfix.4
+  qr_flutter: ^4.1.0
+  mobile_scanner: ^7.0.1
 dev_dependencies:
   flutter_test:
     sdk: flutter
