@@ -55,7 +55,7 @@ class _ConnectionSetupScreenState extends State<ConnectionSetupScreen>
           const SizedBox(height: 18),
           const Text('Un sistema. Due dispositivi.', style: TextStyle(color: Colors.white, fontSize: 23, fontWeight: FontWeight.w800, letterSpacing: -.5)),
           const SizedBox(height: 8),
-          const Text('Scegli quale telefono invia il video e quale lo visualizza. Il telefono invia fotogrammi JPEG al relay personalizzato, che li inoltra al monitor. È un prototipo video senza audio.', style: TextStyle(color: _muted, height: 1.5)),
+          const Text('Scegli quale telefono invia il video e quale lo visualizza. I due telefoni negoziano il collegamento WebRTC: il video viaggia direttamente tra i dispositivi quando la rete lo consente.', style: TextStyle(color: _muted, height: 1.5)),
           const SizedBox(height: 18),
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
@@ -78,9 +78,9 @@ class _ConnectionSetupScreenState extends State<ConnectionSetupScreen>
       const SizedBox(height: 22),
       const Text('Tipo di connessione', style: TextStyle(color: Colors.white, fontSize: 17, fontWeight: FontWeight.w800)),
       const SizedBox(height: 10),
-      _modeTile(selected: !_remoteMode, icon: Icons.wifi_rounded, title: 'Rete Wi-Fi locale', subtitle: "Per il primo test: entrambi i telefoni sullo stesso Wi-Fi e un relay raggiungibile da entrambi. I fotogrammi JPEG passano attraverso il relay WebSocket.", onTap: () => setState(() => _remoteMode = false)),
+      _modeTile(selected: !_remoteMode, icon: Icons.wifi_rounded, title: 'Rete Wi-Fi locale', subtitle: "Per il primo test, tieni entrambi i telefoni sullo stesso Wi-Fi. Il servizio pubblico scambia solo i dati necessari a collegarli.", onTap: () => setState(() => _remoteMode = false)),
       const SizedBox(height: 9),
-      _modeTile(selected: _remoteMode, icon: Icons.public_rounded, title: 'Fuori casa · Internet', subtitle: 'Richiede un endpoint WSS pubblico e il relay JPEG raggiungibile da Internet.', onTap: () => setState(() => _remoteMode = true)),
+      _modeTile(selected: _remoteMode, icon: Icons.public_rounded, title: 'Fuori casa · Internet', subtitle: 'Richiede Internet su entrambi i telefoni; alcune reti richiedono un server TURN.', onTap: () => setState(() => _remoteMode = true)),
       const SizedBox(height: 18),
       Container(
         padding: const EdgeInsets.all(16),
@@ -92,7 +92,7 @@ class _ConnectionSetupScreenState extends State<ConnectionSetupScreen>
           ]),
           const SizedBox(height: 10),
           Text(_remoteMode
-            ? "Per la modalità remota configura un endpoint WSS pubblico e distribuisci il relay JPEG con TLS e autenticazione. Non è un servizio pronto all'uso finché il server non è pubblicato."
+            ? "La segnalazione WSS è già configurata. Se le due reti non consentono una connessione diretta, serve un servizio TURN."
             : "Il video usa il relay JPEG personalizzato. Inserisci l'indirizzo WebSocket del relay; per una prova in rete locale puoi usare un server raggiungibile da entrambi i telefoni.",
             style: const TextStyle(color: _muted, height: 1.5, fontSize: 12)),
           const SizedBox(height: 14),
@@ -110,7 +110,7 @@ class _ConnectionSetupScreenState extends State<ConnectionSetupScreen>
         style: FilledButton.styleFrom(backgroundColor: _violet, foregroundColor: Colors.white, padding: const EdgeInsets.symmetric(vertical: 16)),
       ),
       const SizedBox(height: 8),
-      const Text('Questa schermata prepara il collegamento. Il monitor mostrerà i fotogrammi quando il relay avrà collegato entrambi i dispositivi.', textAlign: TextAlign.center, style: TextStyle(color: _muted, fontSize: 11)),
+      const Text('Sul telefono telecamera avvia la sessione e mostra il QR; sul monitor scansionalo e avvia il collegamento.', textAlign: TextAlign.center, style: TextStyle(color: _muted, fontSize: 11)),
     ]),
   );
 
