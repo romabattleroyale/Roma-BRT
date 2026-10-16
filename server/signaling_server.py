@@ -109,7 +109,7 @@ def validate_bind_security(host: str, token: str) -> None:
 
 async def main() -> None:
     host = os.getenv("SIGNAL_HOST", "127.0.0.1")
-    port = int(os.getenv("SIGNAL_PORT", "8765"))
+    # Platforms such as Render provide PORT dynamically; keep SIGNAL_PORT for local use.\n    port = int(os.getenv("PORT", os.getenv("SIGNAL_PORT", "8765")))
     validate_bind_security(host, os.getenv("SIGNAL_TOKEN", ""))
     async with serve(
         handler, host, port, max_size=MAX_MESSAGE_BYTES,
