@@ -98,6 +98,7 @@ def ice_server_config() -> list[dict[str, object]]:
 
 async def handler(peer: ServerConnection) -> None:
     room_code = ""
+    joined_room = False
     try:
         remote = peer.remote_address
         client_ip = str(remote[0]) if remote else "unknown"
@@ -132,6 +133,7 @@ async def handler(peer: ServerConnection) -> None:
                 await peer.close(code=1013, reason="Room is full")
                 return
             room.peers.add(peer)
+            joined_room = True
             peers = tuple(p for p in room.peers if p is not peer)
 
         await send_json(peer, {"type": "ready", "peers": len(peers), "iceServers": ice_server_config()})
@@ -159,7 +161,7 @@ async def handler(peer: ServerConnection) -> None:
     except ConnectionClosed:
         pass
     finally:
-        if room_code in rooms:
+        if joined_room and room_code in rooms:
             room = rooms[room_code]
             async with room.lock:
                 room.peers.discard(peer)
