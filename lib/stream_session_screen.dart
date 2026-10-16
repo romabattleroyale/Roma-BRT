@@ -34,6 +34,9 @@ class _StreamSessionScreenState extends State<StreamSessionScreen> {
   StreamSubscription? subscription;
   bool busy = false, linked = false;
   bool peerPresent = false, offerSent = false, creatingOffer = false, localTracksReady = false;
+  bool manuallyStopped = false;
+  int reconnectAttempts = 0;
+  Timer? reconnectTimer;
   String status = 'Non collegato';
   String? error;
   bool get isCamera => widget.role == StreamRole.camera;
@@ -55,8 +58,11 @@ class _StreamSessionScreenState extends State<StreamSessionScreen> {
   void _status(String value) { if (mounted) setState(() => status = value); }
   void _error(String value) { if (mounted) setState(() => error = value); }
 
-  Future<void> _start() async {
-    if (busy) return;
+  Future<void> _start({bool reconnect = false}) async {
+    if (busy || !mounted) return;
+    reconnectTimer?.cancel();
+    reconnectTimer = null;
+    if (!reconnect) { manuallyStopped = false; reconnectAttempts = 0; }
     final server = url.text.trim();
     final code = room.text.trim().toUpperCase();
     if (!(server.startsWith('ws://') || server.startsWith('wss://'))) {
@@ -86,6 +92,7 @@ class _StreamSessionScreenState extends State<StreamSessionScreen> {
           // Do not cancel the subscription from inside its own onDone callback.
           await _cleanup(cancelSubscription: false);
           if (mounted) setState(() { busy = false; linked = false; status = 'Servizio disconnesso'; });
+          _scheduleReconnect();
         },
         onError: (Object e) => _error('Errore WebSocket: $e'));
       await _createPeer();
@@ -133,6 +140,7 @@ class _StreamSessionScreenState extends State<StreamSessionScreen> {
     peer!.onConnectionState = (state) {
       _status('WebRTC: ' + state.toString().split('.').last);
       if (state == RTCPeerConnectionState.RTCPeerConnectionStateConnected) {
+        reconnectAttempts = 0;
         if (mounted) setState(() => linked = true);
       } else if (state == RTCPeerConnectionState.RTCPeerConnectionStateFailed ||
           state == RTCPeerConnectionState.RTCPeerConnectionStateDisconnected ||
@@ -255,7 +263,20 @@ class _StreamSessionScreenState extends State<StreamSessionScreen> {
     } catch (_) { _error('QR non valido. Scansiona il codice generato da SENTINEL ONE.'); }
   }
 
+  void _scheduleReconnect() {
+    if (!mounted || manuallyStopped || reconnectTimer?.isActive == true || reconnectAttempts >= 8) return;
+    final seconds = min(30, 1 << reconnectAttempts);
+    reconnectAttempts++;
+    if (mounted) setState(() { busy = false; linked = false; status = 'Riconnessione automatica tra ${seconds}s…'; });
+    reconnectTimer = Timer(Duration(seconds: seconds), () {
+      if (mounted && !manuallyStopped) _start(reconnect: true);
+    });
+  }
+
   Future<void> _stop() async {
+    manuallyStopped = true;
+    reconnectTimer?.cancel();
+    reconnectTimer = null;
     await _cleanup();
     if (mounted) setState(() { busy = false; linked = false; status = 'Sessione terminata'; });
   }
@@ -279,6 +300,8 @@ class _StreamSessionScreenState extends State<StreamSessionScreen> {
 
   @override
   void dispose() {
+    manuallyStopped = true;
+    reconnectTimer?.cancel();
     subscription?.cancel(); socket?.close(); peer?.close(); peer?.dispose();
     final stream = localStream;
     if (stream != null) { for (final track in stream.getTracks()) { track.stop(); } stream.dispose(); }
