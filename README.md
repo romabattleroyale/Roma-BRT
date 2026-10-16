@@ -7,15 +7,26 @@ Android-first home-security command center built with Flutter.
 - Camera/device list, demo event log, settings and interactive protection switch.
 - UI labels demo states explicitly.
 
-## Limitations
-This is a UI foundation, not a functioning surveillance system. Video streaming, secure local device pairing, Android phone sender mode, push notifications, persistent event storage, Tapo RTSP/ONVIF integration and real AR/3D reconstruction are not implemented yet. Do not treat demo status or events as actual security monitoring.
+## Product requirement: local and remote viewing
+SENTINEL ONE must support viewing cameras both at home and away from home:
+- **Local mode:** prefer a direct connection over the home Wi-Fi/LAN when the viewer and camera phone are on the same network.
+- **Remote mode:** allow an authenticated viewer to connect over the internet, including when the viewer uses mobile data.
+- **Secure pairing:** each camera phone must be explicitly paired with the user's account or home, and access must be revocable.
+- **Transport security:** use encrypted connections and short-lived credentials; do not expose an unauthenticated camera stream to the public internet.
+- **Connectivity:** use WebRTC for live video where appropriate, a secure signaling service for pairing/session setup, and a TURN relay when direct peer-to-peer connectivity is blocked by NAT or carrier networks.
+- **Privacy and resilience:** clearly show connection status, avoid recording by default, and never label a demo state as a real camera state.
+
+Remote viewing is a core requirement, not an optional later add-on. Local Wi-Fi alone cannot provide access from outside the home. The remote signaling/relay service and Android permissions must be configured and tested before this can be considered a functioning security system.
+
+## Current limitations
+This repository currently contains the Flutter UI foundation, not a functioning surveillance system. Actual camera-phone sender mode, live video, secure local pairing, remote signaling/TURN infrastructure, authentication, push notifications, persistent event storage, Tapo RTSP/ONVIF integration and real AR/3D reconstruction are not implemented yet. Do not treat demo status or events as actual security monitoring.
 
 ## Build
-Flutter 3.27+ and Android SDK:
+Flutter and Android SDK:
 ```sh
 flutter pub get
 flutter analyze
 flutter test
 flutter build apk --release
 ```
-Connect the repository in Codemagic and use `codemagic.yaml`. Configure Android signing in Codemagic before producing a signed release.
+The GitHub Actions workflow checks the code and builds an APK artifact. Configure Android signing before distributing a signed release.
