@@ -5,9 +5,9 @@ workflows:
     instance_type: linux_x2
     environment:
       flutter: stable
-      android_signing:
-        - sentinel_one_keystore
     scripts:
+      - name: Generate Android project files
+        script: flutter create --platforms=android --org com.sentinelone .
       - name: Get Flutter packages
         script: flutter pub get
       - name: Analyze Dart code
