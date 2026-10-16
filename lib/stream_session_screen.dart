@@ -444,20 +444,34 @@ class _StreamSessionScreenState extends State<StreamSessionScreen> {
 
   Future<void> _cleanup({bool cancelSubscription = true}) async {
     if (recorder != null) await _stopRecording();
-    if (cancelSubscription) {
-      await subscription?.cancel();
-    }
+    final activeSubscription = subscription;
     subscription = null;
+    if (cancelSubscription) {
+      await activeSubscription?.cancel();
+    }
     signalingReady = false;
     pendingSignals.clear();
     pendingIce.clear();
+
+    // Detach the socket before awaiting close: its onDone callback can fire
+    // during the close handshake. Without detaching first, onDone may start a
+    // second cleanup concurrently and dispose the same native WebRTC objects.
+    final activeSocket = socket;
     _send({'type': 'hangup'});
-    await socket?.close(); socket = null;
-    final p = peer; peer = null;
-    if (p != null) { await p.close(); await p.dispose(); }
-    final stream = localStream; localStream = null;
+    socket = null;
+    await activeSocket?.close();
+
+    final p = peer;
+    peer = null;
+    if (p != null) {
+      try { await p.close(); } finally { await p.dispose(); }
+    }
+    final stream = localStream;
+    localStream = null;
     if (stream != null) {
-      for (final track in stream.getTracks()) { await track.stop(); }
+      for (final track in stream.getTracks()) {
+        try { await track.stop(); } catch (_) {}
+      }
       await stream.dispose();
     }
     video.srcObject = null;
