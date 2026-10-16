@@ -82,7 +82,8 @@ class _StreamSessionScreenState extends State<StreamSessionScreen> {
       ).timeout(const Duration(seconds: 12));
       subscription = socket!.listen((data) => _handle(data),
         onDone: () async {
-          await _cleanup();
+          // Do not cancel the subscription from inside its own onDone callback.
+          await _cleanup(cancelSubscription: false);
           if (mounted) setState(() { busy = false; linked = false; status = 'Servizio disconnesso'; });
         },
         onError: (Object e) => _error('Errore WebSocket: $e'));
@@ -102,7 +103,9 @@ class _StreamSessionScreenState extends State<StreamSessionScreen> {
           init: RTCRtpTransceiverInit(direction: TransceiverDirection.RecvOnly));
         _status('In attesa della telecamera · codice $code');
       }
-      if (mounted) setState(() { busy = false; linked = true; });
+      // A signaling socket is not a live video connection. Only onConnectionState
+      // may mark the session as linked once WebRTC reaches Connected.
+      if (mounted) setState(() { busy = false; });
     } catch (e) {
       await _cleanup();
       if (mounted) setState(() { busy = false; linked = false; error = 'Collegamento non riuscito: $e\nVerifica server, porta, Wi-Fi e codice stanza.'; status = 'Non collegato'; });
@@ -232,8 +235,11 @@ class _StreamSessionScreenState extends State<StreamSessionScreen> {
     if (mounted) setState(() { busy = false; linked = false; status = 'Sessione terminata'; });
   }
 
-  Future<void> _cleanup() async {
-    await subscription?.cancel(); subscription = null;
+  Future<void> _cleanup({bool cancelSubscription = true}) async {
+    if (cancelSubscription) {
+      await subscription?.cancel();
+    }
+    subscription = null;
     _send({'type': 'hangup'});
     await socket?.close(); socket = null;
     final p = peer; peer = null;
