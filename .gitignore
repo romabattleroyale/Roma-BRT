@@ -1,13 +1,14 @@
-.dart_tool/
-.packages
-.pub/
-build/
-.flutter-plugins
-.flutter-plugins-dependencies
-.idea/
-.vscode/
+# Android / Gradle
+.gradle/
+**/build/
+local.properties
 *.iml
+.idea/
 .DS_Store
-android/.gradle/
-android/local.properties
-android/key.properties
+.externalNativeBuild/
+.cxx/
+
+# Signing credentials (never commit secrets)
+*.jks
+*.keystore
+key.properties
