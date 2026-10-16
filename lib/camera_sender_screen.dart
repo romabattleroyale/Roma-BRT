@@ -119,7 +119,12 @@ class _CameraSenderScreenState extends State<CameraSenderScreen>
                       ])))
                   : controller != null && controller.value.isInitialized
                       ? Stack(fit: StackFit.expand, children: [
-                          CameraPreview(controller),
+                          Center(
+                            child: AspectRatio(
+                              aspectRatio: controller.value.aspectRatio,
+                              child: CameraPreview(controller),
+                            ),
+                          ),
                           Positioned(top: 14, left: 14, child: Container(
                             padding: const EdgeInsets.symmetric(horizontal: 11, vertical: 7),
                             decoration: BoxDecoration(
