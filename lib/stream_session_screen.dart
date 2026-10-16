@@ -106,6 +106,16 @@ class _StreamSessionScreenState extends State<StreamSessionScreen> {
     signalingReady = false; pendingIce.clear(); pendingSignals.clear(); wasConnected = false;
     try {
       await _rendererReady;
+      // Start local camera preview before contacting the signaling service.
+      // A relay outage must not leave the camera preview black.
+      if (isCamera && localStream == null) {
+        localStream = await navigator.mediaDevices.getUserMedia({
+          'audio': false,
+          'video': {'facingMode': 'environment', 'width': {'ideal': 1280}, 'height': {'ideal': 720}, 'frameRate': {'ideal': 24, 'max': 30}}
+        });
+        video.srcObject = localStream;
+        if (mounted) setState(() { status = 'Anteprima locale attiva · collegamento in avvio'; });
+      }
       final baseEndpoint = serverUri.replace(path: '/signal/$code', query: null, fragment: null);
       final token = signalToken.text.trim();
       final endpoint = baseEndpoint;
@@ -147,15 +157,13 @@ class _StreamSessionScreenState extends State<StreamSessionScreen> {
       unawaited(EventStore.record('Sessione avviata', isCamera ? 'Telefono impostato come telecamera' : 'Monitor in attesa della telecamera'));
       await _createPeer();
       if (isCamera) {
-        localStream = await navigator.mediaDevices.getUserMedia({
-          'audio': false,
-          'video': {'facingMode': 'environment', 'width': {'ideal': 1280}, 'height': {'ideal': 720}, 'frameRate': {'ideal': 24, 'max': 30}}
-        });
-        for (final track in localStream!.getTracks()) { await peer!.addTrack(track, localStream!); }
+        final stream = localStream;
+        if (stream == null) throw StateError('Fotocamera non disponibile');
+        for (final track in stream.getTracks()) { await peer!.addTrack(track, stream); }
         localTracksReady = true;
         await _maybeCreateOffer();
-        video.srcObject = localStream;
-        _status('Telecamera pronta · codice $code');
+        video.srcObject = stream;
+        _status('Anteprima attiva · codice $code');
       } else {
         await peer!.addTransceiver(kind: RTCRtpMediaType.RTCRtpMediaTypeVideo,
           init: RTCRtpTransceiverInit(direction: TransceiverDirection.RecvOnly));
@@ -173,8 +181,17 @@ class _StreamSessionScreenState extends State<StreamSessionScreen> {
       // may mark the session as linked once WebRTC reaches Connected.
       if (mounted) setState(() { busy = false; });
     } catch (e) {
-      await _cleanup();
-      if (mounted) setState(() { busy = false; linked = false; error = 'Collegamento non riuscito: $e\nVerifica server, porta, Wi-Fi e codice stanza.'; status = 'Non collegato'; });
+      // Keep the camera capture alive when only signaling failed, so local
+      // preview remains visible and the user can still inspect camera framing.
+      await _cleanup(preserveLocalStream: isCamera && localStream != null);
+      if (mounted) setState(() {
+        busy = false;
+        linked = false;
+        error = isCamera && localStream != null
+          ? 'Anteprima locale attiva, ma il servizio di collegamento non risponde. Riprova tra poco.'
+          : 'Collegamento non riuscito: $e';
+        status = isCamera && localStream != null ? 'Anteprima locale · non collegato' : 'Non collegato';
+      });
       _scheduleReconnect();
     }
   }
@@ -446,7 +463,7 @@ class _StreamSessionScreenState extends State<StreamSessionScreen> {
     if (mounted) setState(() { busy = false; linked = false; status = 'Sessione terminata'; });
   }
 
-  Future<void> _cleanup({bool cancelSubscription = true}) async {
+  Future<void> _cleanup({bool cancelSubscription = true, bool preserveLocalStream = false}) async {
     if (recorder != null) await _stopRecording();
     final activeSubscription = subscription;
     subscription = null;
@@ -470,15 +487,17 @@ class _StreamSessionScreenState extends State<StreamSessionScreen> {
     if (p != null) {
       try { await p.close(); } finally { await p.dispose(); }
     }
-    final stream = localStream;
-    localStream = null;
-    if (stream != null) {
-      for (final track in stream.getTracks()) {
-        try { await track.stop(); } catch (_) {}
+    if (!preserveLocalStream) {
+      final stream = localStream;
+      localStream = null;
+      if (stream != null) {
+        for (final track in stream.getTracks()) {
+          try { await track.stop(); } catch (_) {}
+        }
+        await stream.dispose();
       }
-      await stream.dispose();
+      video.srcObject = null;
     }
-    video.srcObject = null;
   }
 
   @override
