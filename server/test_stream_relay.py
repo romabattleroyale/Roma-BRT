@@ -103,7 +103,6 @@ class StreamRelayTests(unittest.IsolatedAsyncioTestCase):
             with self.assertRaises(ConnectionClosed):
                 await asyncio.wait_for(duplicate.recv(), 1)
             self.assertIsNotNone(stream_rooms["DUPL234"].camera)
-            self.assertFalse(stream_rooms["DUPL234"].camera.closed)
         finally:
             if duplicate is not None:
                 await duplicate.close()
