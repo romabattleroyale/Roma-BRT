@@ -3,8 +3,10 @@
 Run with: python -m unittest discover -s server -p 'test_*.py'
 """
 import asyncio
+import base64
 import json
 import os
+import time
 import unittest
 from unittest.mock import patch
 
@@ -64,6 +66,22 @@ class SignalingRelayTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(servers[1]["urls"], ["turn:turn.example:3478", "turns:turn.example:5349"])
         self.assertEqual(servers[1]["username"], "sentinel-user")
         self.assertEqual(servers[1]["credential"], "test-secret")
+
+    async def test_ice_server_config_generates_expiring_turn_credentials(self):
+        with patch.dict(os.environ, {
+            "TURN_URLS": "turn:turn.example:3478",
+            "TURN_SHARED_SECRET": "server-only-secret",
+            "TURN_USERNAME": "sentinel",
+            "TURN_TTL_SECONDS": "3600",
+        }, clear=True):
+            servers = ice_server_config()
+        username = servers[1]["username"]
+        credential = servers[1]["credential"]
+        expiry = int(username.split(":", 1)[0])
+        self.assertGreaterEqual(expiry, int(time.time()) + 299)
+        self.assertTrue(username.endswith(":sentinel"))
+        self.assertEqual(len(base64.b64decode(credential)), 20)
+        self.assertNotIn("server-only-secret", json.dumps(servers))
 
     async def test_ice_server_config_has_public_stun_fallback(self):
         with patch.dict(os.environ, {}, clear=True):
