@@ -116,6 +116,11 @@ class _StreamSessionScreenState extends State<StreamSessionScreen> {
         });
       },
         onDone: () async {
+          if (!identical(socket, activeSocket)) return;
+          // Drain messages received before the socket closed, then ensure this
+          // callback still belongs to the active session before cleaning it.
+          try { await _messageQueue; } catch (_) {}
+          if (!identical(socket, activeSocket)) return;
           if (readyCompleter != null && !readyCompleter!.isCompleted) {
             readyCompleter!.completeError(StateError('Il server ha chiuso la sessione prima del messaggio ready'));
           }
@@ -125,6 +130,7 @@ class _StreamSessionScreenState extends State<StreamSessionScreen> {
           _scheduleReconnect();
         },
         onError: (Object e) {
+          if (!identical(socket, activeSocket)) return;
           if (readyCompleter != null && !readyCompleter!.isCompleted) readyCompleter!.completeError(e);
           _error('Errore WebSocket: $e');
         });
