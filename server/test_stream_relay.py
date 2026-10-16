@@ -68,6 +68,47 @@ class StreamRelayTests(unittest.IsolatedAsyncioTestCase):
         finally:
             await peer.close()
 
+    async def test_invalid_room_code_is_rejected(self):
+        peer = await connect(self.url + "ROOM!")
+        try:
+            with self.assertRaises(ConnectionClosed):
+                await peer.recv()
+        finally:
+            await peer.close()
+
+    async def test_camera_disconnect_notifies_viewer_and_cleans_room(self):
+        camera, _ = await self.join("camera", "LEAVE23")
+        viewer, _ = await self.join("viewer", "LEAVE23")
+        try:
+            self.assertEqual(json.loads(await camera.recv())["type"], "peer_joined")
+            await camera.close()
+            notice = json.loads(await asyncio.wait_for(viewer.recv(), 1))
+            self.assertEqual(notice, {"type": "peer_left", "role": "camera"})
+            for _ in range(20):
+                room = stream_rooms.get("LEAVE23")
+                if room is not None and room.camera is None:
+                    break
+                await asyncio.sleep(0.01)
+            self.assertIsNone(stream_rooms["LEAVE23"].camera)
+        finally:
+            await viewer.close()
+            await camera.close()
+
+    async def test_duplicate_camera_role_is_rejected_without_replacing_first(self):
+        camera, _ = await self.join("camera", "DUPL234")
+        duplicate = None
+        try:
+            duplicate = await connect(self.url + "DUPL234")
+            await duplicate.send(json.dumps({"type": "join", "role": "camera"}))
+            with self.assertRaises(ConnectionClosed):
+                await asyncio.wait_for(duplicate.recv(), 1)
+            self.assertIsNotNone(stream_rooms["DUPL234"].camera)
+            self.assertFalse(stream_rooms["DUPL234"].camera.closed)
+        finally:
+            if duplicate is not None:
+                await duplicate.close()
+            await camera.close()
+
 
 if __name__ == "__main__":
     unittest.main()
