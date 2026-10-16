@@ -35,7 +35,7 @@ class _CameraSenderScreenState extends State<CameraSenderScreen>
       if (_cameras.isEmpty) {
         throw CameraException('no-camera', 'Nessuna fotocamera disponibile.');
       }
-      _selectedCamera = _selectedCamera.clamp(0, _cameras.length - 1);
+      _selectedCamera = _selectedCamera.clamp(0, _cameras.length - 1).toInt();
       final controller = CameraController(
         _cameras[_selectedCamera], ResolutionPreset.high, enableAudio: false);
       _controller = controller;

@@ -26,7 +26,7 @@ jobs:
           from pathlib import Path
           p = Path('android/app/src/main/AndroidManifest.xml')
           s = p.read_text()
-          permission = '    <uses-permission android:name="android.permission.CAMERA" />\\n'
+          permission = '    <uses-permission android:name="android.permission.CAMERA" />' + chr(10)
           if 'android.permission.CAMERA' not in s:
               s = s.replace('    <application', permission + '    <application', 1)
           p.write_text(s)
