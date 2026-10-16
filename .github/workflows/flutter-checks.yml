@@ -1,16 +1,14 @@
 name: Flutter checks and Android APK
 
-# Cancel stale runs so newer fixes do not wait behind obsolete commits.
+# APK builds are intentionally excluded from pull-request commits.
+# Use the separate PR workflow for fast validation; build only on main or manually.
 concurrency:
-  group: flutter-checks-${{ github.event.pull_request.number || github.ref }}
+  group: android-apk-${{ github.ref }}
   cancel-in-progress: true
 
 on:
   push:
     branches: [main]
-  pull_request:
-    branches: [main]
-  # Run a full APK build on demand from any selected branch.
   workflow_dispatch:
 
 jobs:
@@ -37,19 +35,13 @@ jobs:
         run: flutter analyze
       - name: Run widget tests
         run: flutter test
-      # Pull requests get fast feedback. APK generation is reserved for main
-      # pushes or an explicit workflow_dispatch run on the selected branch.
       - name: Generate Android platform files
-        if: github.event_name != 'pull_request'
         run: flutter create --platforms=android --org com.sentinelone .
       - name: Configure Android native resources
-        if: github.event_name != 'pull_request'
         run: python3 tool/configure_android.py
       - name: Build release APK
-        if: github.event_name != 'pull_request'
         run: flutter build apk --release --split-per-abi --target-platform android-arm64
       - name: Verify Android APK architecture
-        if: github.event_name != 'pull_request'
         run: |
           APK=build/app/outputs/flutter-apk/app-arm64-v8a-release.apk
           test -s "$APK"
@@ -60,7 +52,6 @@ jobs:
           echo "Arm64 APK size: $SIZE bytes"
           test "$SIZE" -lt 125829120
       - name: Upload APK artifact
-        if: github.event_name != 'pull_request'
         uses: actions/upload-artifact@v4
         with:
           name: sentinel-one-android-apk
