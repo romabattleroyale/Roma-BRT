@@ -1,14 +1,13 @@
 name: Flutter checks and Android APK
 
-# APK builds are intentionally excluded from pull-request commits.
-# Use the separate PR workflow for fast validation; build only on main or manually.
+# Keep APK builds off ordinary pull-request commits, but allow a release-test build on the working branch.
 concurrency:
   group: android-apk-${{ github.ref }}
   cancel-in-progress: true
 
 on:
   push:
-    branches: [main]
+    branches: [main, fix/remote-stream-setup]
   workflow_dispatch:
 
 jobs:
