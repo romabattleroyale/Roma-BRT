@@ -362,6 +362,11 @@ class _StreamSessionScreenState extends State<StreamSessionScreen> {
           creatingOffer = false;
           pendingIce.clear();
           _status('L’altro dispositivo si è disconnesso');
+          if (!isCamera) {
+            // Drop the old remote stream immediately. Keeping it attached can
+            // leave a frozen last frame visible while the next peer negotiates.
+            video.srcObject = null;
+          }
           if (mounted) setState(() => linked = false);
           // A closed WebRTC peer connection cannot be reused for the next
           // viewer. Rebuild it while keeping the camera's local capture alive.
