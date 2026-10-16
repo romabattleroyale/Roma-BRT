@@ -120,6 +120,8 @@ def validate_bind_security(host: str, token: str) -> None:
     # A high-entropy, short-lived room code is the prototype pairing capability.
     # If SIGNAL_TOKEN is configured, the additional shared-secret gate remains enabled.
     # Production deployments should add account identity and expiring signed credentials.
+    if not host.strip():
+        raise RuntimeError("SIGNAL_HOST must not be empty")
 
 
 async def main() -> None:
