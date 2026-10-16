@@ -16,6 +16,13 @@ android {
         versionName = "1.0.0"
     }
 
+    buildTypes {
+        getByName("release") {
+            // Test installable APK for Codemagic; use a private production keystore before public distribution.
+            signingConfig = signingConfigs.getByName("debug")
+        }
+    }
+
     buildFeatures { compose = true }
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_17
