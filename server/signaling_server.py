@@ -128,6 +128,7 @@ async def handler(peer: ServerConnection) -> None:
             await peer.close(code=1008, reason="Invalid room code")
             return
 
+        room_full = False
         async with rooms_lock:
             room = rooms.get(room_code)
             if room is None:
@@ -135,11 +136,17 @@ async def handler(peer: ServerConnection) -> None:
                 rooms[room_code] = room
             async with room.lock:
                 if len(room.peers) >= MAX_PEERS_PER_ROOM:
-                    await peer.close(code=1013, reason="Room is full")
-                    return
-                room.peers.add(peer)
-                joined_room = True
-                peers = tuple(p for p in room.peers if p is not peer)
+                    room_full = True
+                    peers = ()
+                else:
+                    room.peers.add(peer)
+                    joined_room = True
+                    peers = tuple(p for p in room.peers if p is not peer)
+        # Never await a WebSocket close handshake while holding global/room
+        # locks; a stalled client must not block joins to unrelated rooms.
+        if room_full:
+            await peer.close(code=1013, reason="Room is full")
+            return
 
         await send_json(peer, {"type": "ready", "peers": len(peers), "iceServers": ice_server_config()})
         for other in peers:
