@@ -41,6 +41,9 @@ class _CustomRelaySessionScreenState extends State<CustomRelaySessionScreen> {
     setState(() { busy = true; error = null; });
     try {
       final base = PairingPayload.parseServer(server.text.trim());
+      if (widget.remote && base.scheme != 'wss') {
+        throw const FormatException('Per la modalità Internet è obbligatorio WSS/TLS');
+      }
       final client = SentinelStreamTransport(server: base, room: room.text.trim().toUpperCase(), role: widget.cameraRole ? SentinelStreamRole.camera : SentinelStreamRole.viewer, token: token.text,
         onStatus: (s) { if (mounted) setState(() => status = s); },
         onError: (e) { if (mounted) setState(() => error = e.toString()); },
@@ -48,7 +51,7 @@ class _CustomRelaySessionScreenState extends State<CustomRelaySessionScreen> {
       await client.connect();
       transport = client;
       if (widget.cameraRole) await _startCamera();
-      if (mounted) setState(() { busy = false; status = 'Relay connesso'; });
+      if (mounted) setState(() { busy = false; });
     } catch (e) {
       await _stopCamera();
       final old = transport; transport = null; await old?.close();
@@ -101,7 +104,7 @@ class _CustomRelaySessionScreenState extends State<CustomRelaySessionScreen> {
   }
 
   Future<void> _stopCamera() async { final c = camera; camera = null; if (c == null) return; try { if (c.value.isStreamingImages) await c.stopImageStream(); } catch (_) {} try { await c.dispose(); } catch (_) {} }
-  Future<void> disconnect() async { setState(() => busy = true); await _stopCamera(); final old = transport; transport = null; await old?.close(); if (mounted) setState(() { busy = false; frame = null; status = 'Sessione terminata'; }); }
+  Future<void> disconnect() async { if (busy) return; setState(() => busy = true); await _stopCamera(); final old = transport; transport = null; await old?.close(); if (mounted) setState(() { busy = false; frame = null; status = 'Sessione terminata'; }); }
   @override void dispose() { final t = transport; if (t != null) unawaited(t.close()); final c = camera; if (c != null) unawaited(c.dispose()); server.dispose(); room.dispose(); token.dispose(); super.dispose(); }
 
   @override Widget build(BuildContext context) => Scaffold(backgroundColor: bg, appBar: AppBar(backgroundColor: bg, title: Text(widget.cameraRole ? 'Telecamera · relay JPEG' : 'Monitor · relay JPEG')), body: ListView(padding: const EdgeInsets.all(16), children: [
