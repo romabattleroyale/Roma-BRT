@@ -45,7 +45,7 @@ The GitHub Actions workflow checks the code and builds an APK artifact. Configur
 
 
 ## Connection setup UI
-Choose whether this phone is the camera or monitor, then select local Wi-Fi or remote access. The next screen lets you enter the signaling server and room code, explicitly start the camera or connect the viewer, and see connection status. Local mode still requires a signaling server reachable from both phones; remote mode requires `wss://`.
+Choose whether this phone is the camera or monitor, then select local Wi-Fi or remote access. The next screen lets you enter the signaling server and room code, explicitly start the camera or connect the viewer, and see connection status. The camera role can display a pairing QR containing only the signaling URL and room code; the monitor can scan it to fill those fields. The shared signaling token must still be entered separately and is never embedded in the QR. Local mode still requires a signaling server reachable from both phones; remote mode requires `wss://`.
 
 
 ## WebRTC signaling service (development foundation)
