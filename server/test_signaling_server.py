@@ -14,7 +14,7 @@ from websockets.asyncio.client import connect
 from websockets.asyncio.server import serve
 from websockets.exceptions import ConnectionClosed
 
-from signaling_server import handler, ice_server_config, rooms, rooms_lock, validate_bind_security
+from signaling_server import handler, ice_server_config, rooms, validate_bind_security
 
 
 class SignalingRelayTests(unittest.IsolatedAsyncioTestCase):
@@ -31,6 +31,10 @@ class SignalingRelayTests(unittest.IsolatedAsyncioTestCase):
         async with connect(self.url) as peer:
             await peer.recv()
             self.assertIn("TEST234", rooms)
+        for _ in range(20):
+            if "TEST234" not in rooms:
+                break
+            await asyncio.sleep(0.01)
         self.assertNotIn("TEST234", rooms)
 
     async def test_two_peers_exchange_signals(self):
