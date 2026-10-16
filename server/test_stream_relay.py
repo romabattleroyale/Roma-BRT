@@ -2,6 +2,7 @@
 import asyncio
 import json
 import unittest
+from urllib.parse import urlsplit
 
 from websockets.asyncio.client import connect
 from websockets.asyncio.server import serve
@@ -10,10 +11,15 @@ from websockets.exceptions import ConnectionClosed
 from stream_relay import stream_handler, stream_rooms
 
 
+async def test_handler(peer):
+    room_code = urlsplit(peer.request.path).path.strip("/").upper()
+    await stream_handler(peer, room_code)
+
+
 class StreamRelayTests(unittest.IsolatedAsyncioTestCase):
     async def asyncSetUp(self):
         stream_rooms.clear()
-        self.server = await serve(stream_handler, "127.0.0.1", 0, max_size=1024 * 1024)
+        self.server = await serve(test_handler, "127.0.0.1", 0, max_size=1024 * 1024)
         self.port = self.server.sockets[0].getsockname()[1]
         self.url = f"ws://127.0.0.1:{self.port}/"
 
@@ -36,7 +42,7 @@ class StreamRelayTests(unittest.IsolatedAsyncioTestCase):
             try:
                 self.assertTrue(ready_viewer["peerPresent"])
                 self.assertEqual(json.loads(await camera.recv())["type"], "peer_joined")
-                frame = b"\xff\xd8sentinel-test-jpeg\xff\xd9"
+                frame = b"\\xff\\xd8sentinel-test-jpeg\\xff\\xd9"
                 await camera.send(frame)
                 self.assertEqual(await asyncio.wait_for(viewer.recv(), 1), frame)
             finally:
