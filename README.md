@@ -5,6 +5,7 @@ Android-first home-security command center built with Flutter.
 - Premium dark dashboard with violet/cyan accents.
 - Illustrative home plan with camera markers.
 - Camera/device list, demo event log, settings and interactive protection switch.
+- Local camera preview now uses the WebRTC media engine, preparing the capture path for peer-to-peer video.
 - UI labels demo states explicitly.
 
 ## Product requirement: local and remote viewing
@@ -19,7 +20,7 @@ SENTINEL ONE must support viewing cameras both at home and away from home:
 Remote viewing is a core requirement, not an optional later add-on. Local Wi-Fi alone cannot provide access from outside the home. The remote signaling/relay service and Android permissions must be configured and tested before this can be considered a functioning security system.
 
 ## Current limitations
-This repository currently contains the Flutter UI foundation, not a functioning surveillance system. Actual camera-phone sender mode, live video, secure local pairing, remote signaling/TURN infrastructure, authentication, push notifications, persistent event storage, Tapo RTSP/ONVIF integration and real AR/3D reconstruction are not implemented yet. Do not treat demo status or events as actual security monitoring.
+This repository currently contains the Flutter UI foundation, not a functioning surveillance system. The WebRTC camera preview captures video locally, but it does not yet send it to another phone. Actual peer-to-peer live streaming, secure local pairing, remote signaling/TURN infrastructure, authentication, push notifications, persistent event storage, Tapo RTSP/ONVIF integration and real AR/3D reconstruction are not implemented yet. Do not treat demo status or events as actual security monitoring.
 
 ## Build
 Flutter and Android SDK:
