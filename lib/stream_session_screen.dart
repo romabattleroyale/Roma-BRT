@@ -261,6 +261,10 @@ class _StreamSessionScreenState extends State<StreamSessionScreen> {
       final message = jsonDecode(raw as String) as Map<String, dynamic>;
       final type = message['type'];
       if (!signalingReady && (type == 'offer' || type == 'answer' || type == 'ice')) {
+        if (pendingSignals.length >= 256) {
+          _error('Troppi messaggi in attesa dal servizio di segnalazione.');
+          return;
+        }
         pendingSignals.add(message);
         return;
       }
@@ -305,7 +309,15 @@ class _StreamSessionScreenState extends State<StreamSessionScreen> {
           final rawCandidate = message['candidate'];
           if (rawCandidate is Map) {
             final c = RTCIceCandidate(rawCandidate['candidate'] as String?, rawCandidate['sdpMid'] as String?, (rawCandidate['sdpMLineIndex'] as num?)?.toInt());
-            if (await peer!.getRemoteDescription() == null) { pendingIce.add(c); } else { await peer!.addCandidate(c); }
+            if (await peer!.getRemoteDescription() == null) {
+              if (pendingIce.length >= 256) {
+                _error('Troppi candidati ICE in attesa; verifica il dispositivo remoto.');
+                return;
+              }
+              pendingIce.add(c);
+            } else {
+              await peer!.addCandidate(c);
+            }
           }
           break;
         case 'peer_left':
