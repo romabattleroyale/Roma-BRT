@@ -229,12 +229,15 @@ class _StreamSessionScreenState extends State<StreamSessionScreen> {
       iceServers.add(server);
     }
     peer = await createPeerConnection({'sdpSemantics': 'unified-plan', 'iceServers': iceServers});
-    peer!.onIceCandidate = (candidate) {
+    final currentPeer = peer!;
+    currentPeer.onIceCandidate = (candidate) {
+      if (!identical(peer, currentPeer)) return;
       if (candidate.candidate != null && candidate.candidate!.isNotEmpty) {
         _send({'type': 'ice', 'candidate': candidate.toMap()});
       }
     };
-    peer!.onConnectionState = (state) {
+    currentPeer.onConnectionState = (state) {
+      if (!identical(peer, currentPeer)) return;
       _status('WebRTC: ' + state.toString().split('.').last);
       if (state == RTCPeerConnectionState.RTCPeerConnectionStateConnected) {
         if (!wasConnected) unawaited(EventStore.record('Video collegato', isCamera ? 'Trasmissione WebRTC attiva' : 'Flusso video ricevuto'));
@@ -249,7 +252,8 @@ class _StreamSessionScreenState extends State<StreamSessionScreen> {
         if (mounted) setState(() => linked = false);
       }
     };
-    peer!.onTrack = (event) {
+    currentPeer.onTrack = (event) {
+      if (!identical(peer, currentPeer)) return;
       if (!isCamera && event.streams.isNotEmpty) {
         video.srcObject = event.streams.first;
         _status('Video ricevuto');
