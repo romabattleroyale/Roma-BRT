@@ -78,7 +78,7 @@ class _ConnectionSetupScreenState extends State<ConnectionSetupScreen>
       const SizedBox(height: 22),
       const Text('Tipo di connessione', style: TextStyle(color: Colors.white, fontSize: 17, fontWeight: FontWeight.w800)),
       const SizedBox(height: 10),
-      _modeTile(selected: !_remoteMode, icon: Icons.wifi_rounded, title: 'Rete Wi-Fi locale', subtitle: 'Per il primo test: entrambi i telefoni sullo stesso Wi-Fi. Il servizio WSS coordina l'abbinamento; il video tenta un percorso diretto tra i dispositivi.', onTap: () => setState(() => _remoteMode = false)),
+      _modeTile(selected: !_remoteMode, icon: Icons.wifi_rounded, title: 'Rete Wi-Fi locale', subtitle: "Per il primo test: entrambi i telefoni sullo stesso Wi-Fi. Il servizio WSS coordina l'abbinamento; il video tenta un percorso diretto tra i dispositivi.", onTap: () => setState(() => _remoteMode = false)),
       const SizedBox(height: 9),
       _modeTile(selected: _remoteMode, icon: Icons.public_rounded, title: 'Fuori casa · Internet', subtitle: 'Richiede segnalazione sicura e un relay quando la connessione diretta non è possibile.', onTap: () => setState(() => _remoteMode = true)),
       const SizedBox(height: 18),
