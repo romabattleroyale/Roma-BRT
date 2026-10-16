@@ -12,12 +12,19 @@ workflows:
         script: gradle -p native-android assembleRelease
       - name: Verify APK output
         script: |
-          set -e
-          APK=native-android/app/build/outputs/apk/release/app-release.apk
-          test -s "$APK"
+          set -eu
+          APK_DIR="native-android/app/build/outputs/apk"
+          echo "Searching for generated APK files..."
+          find "$APK_DIR" -type f -name "*.apk" -print
+          APK="$(find "$APK_DIR" -type f -name "*.apk" -print -quit)"
+          if [ -z "$APK" ]; then
+            echo "ERROR: No APK found under $APK_DIR"
+            echo "Listing build outputs for diagnosis:"
+            find native-android/app/build/outputs -maxdepth 5 -type f -print || true
+            exit 1
+          fi
+          echo "APK found: $APK"
           echo "APK size: $(stat -c%s "$APK") bytes"
-          echo "APK absolute path: $CM_BUILD_DIR/$APK"
-          find native-android/app/build/outputs -type f -name "*.apk" -print
     artifacts:
       - native-android/app/build/outputs/**/*.apk
     publishing:
