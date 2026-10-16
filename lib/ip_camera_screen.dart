@@ -1,10 +1,12 @@
 import 'dart:async';
+import 'dart:convert';
 
 import 'package:flutter/material.dart';
 import 'package:image/image.dart' as img;
 import 'event_store.dart';
 import 'notification_service.dart';
 import 'package:flutter_vlc_player/flutter_vlc_player.dart';
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 
 const _ipBg = Color(0xFF080B12);
 const _ipPanel = Color(0xFF111824);
@@ -20,6 +22,110 @@ class IpCameraScreen extends StatefulWidget {
 }
 
 class _IpCameraScreenState extends State<IpCameraScreen> {
+  static const _profilesKey = 'sentinel_one_ip_camera_profiles_v1';
+  static const _secureStorage = FlutterSecureStorage();
+  final List<Map<String, String>> _profiles = [];
+  bool _profilesLoading = true;
+
+  @override
+  void initState() {
+    super.initState();
+    unawaited(_loadProfiles());
+  }
+
+  Future<void> _loadProfiles() async {
+    try {
+      final raw = await _secureStorage.read(key: _profilesKey);
+      if (raw != null) {
+        final decoded = jsonDecode(raw);
+        if (decoded is List) {
+          _profiles
+            ..clear()
+            ..addAll(decoded.whereType<Map>().map((item) => {
+              'id': item['id']?.toString() ?? '',
+              'name': item['name']?.toString() ?? 'Telecamera',
+              'url': item['url']?.toString() ?? '',
+            }).where((item) => item['id']!.isNotEmpty && item['url']!.isNotEmpty));
+        }
+      }
+    } catch (_) {
+      // Keep the camera screen usable if secure storage is unavailable.
+    }
+    if (mounted) setState(() => _profilesLoading = false);
+  }
+
+  Future<void> _persistProfiles() async {
+    await _secureStorage.write(key: _profilesKey, value: jsonEncode(_profiles));
+  }
+
+  Future<void> _saveCurrentProfile() async {
+    final streamUrl = _url.text.trim();
+    final uri = Uri.tryParse(streamUrl);
+    if (uri == null || !const {'rtsp', 'rtsps', 'http', 'https'}.contains(uri.scheme) || uri.host.isEmpty) {
+      setState(() => _error = 'Inserisci prima un URL valido della telecamera.');
+      return;
+    }
+    final nameController = TextEditingController();
+    final name = await showDialog<String>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        backgroundColor: _ipPanel,
+        title: const Text('Salva telecamera'),
+        content: TextField(
+          controller: nameController,
+          autofocus: true,
+          textCapitalization: TextCapitalization.words,
+          decoration: const InputDecoration(labelText: 'Nome (es. Ingresso)'),
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(dialogContext), child: const Text('Annulla')),
+          FilledButton(onPressed: () => Navigator.pop(dialogContext, nameController.text.trim()), child: const Text('Salva')),
+        ],
+      ),
+    );
+    nameController.dispose();
+    if (name == null || name.isEmpty || !mounted) return;
+    final existing = _profiles.indexWhere((profile) => profile['name']!.toLowerCase() == name.toLowerCase());
+    final profile = <String, String>{
+      'id': existing >= 0 ? _profiles[existing]['id']! : DateTime.now().microsecondsSinceEpoch.toString(),
+      'name': name,
+      'url': streamUrl,
+    };
+    setState(() {
+      if (existing >= 0) {
+        _profiles[existing] = profile;
+      } else {
+        _profiles.insert(0, profile);
+      }
+      _error = null;
+    });
+    try {
+      await _persistProfiles();
+      unawaited(EventStore.record('Telecamera IP salvata', 'Profilo "$name" memorizzato in archivio protetto sul dispositivo'));
+    } catch (e) {
+      if (mounted) setState(() => _error = 'Impossibile salvare il profilo in archivio protetto: $e');
+    }
+  }
+
+  Future<void> _deleteProfile(String id) async {
+    final previous = List<Map<String, String>>.from(_profiles);
+    setState(() => _profiles.removeWhere((profile) => profile['id'] == id));
+    try {
+      await _persistProfiles();
+    } catch (e) {
+      if (mounted) setState(() {
+        _profiles
+          ..clear()
+          ..addAll(previous);
+        _error = 'Impossibile eliminare il profilo: $e';
+      });
+    }
+  }
+
+  Future<void> _openProfile(Map<String, String> profile) async {
+    _url.text = profile['url'] ?? '';
+    await _connect();
+  }
   final _url = TextEditingController();
   VlcPlayerController? _player;
   String? _error;
@@ -184,6 +290,46 @@ class _IpCameraScreenState extends State<IpCameraScreen> {
           : VlcPlayer(controller: _player!, aspectRatio: 16 / 9, placeholder: const Center(child: CircularProgressIndicator())),
       ),
       const SizedBox(height: 18),
+      Row(
+        children: [
+          const Expanded(child: Text('Le mie telecamere', style: TextStyle(fontWeight: FontWeight.w800, fontSize: 16))),
+          TextButton.icon(
+            onPressed: _saveCurrentProfile,
+            icon: const Icon(Icons.bookmark_add_outlined),
+            label: const Text('Salva'),
+          ),
+        ],
+      ),
+      if (_profilesLoading)
+        const Padding(padding: EdgeInsets.all(12), child: Center(child: CircularProgressIndicator()))
+      else if (_profiles.isEmpty)
+        const Padding(
+          padding: EdgeInsets.only(bottom: 12),
+          child: Text('Nessun profilo salvato. Inserisci l’URL e premi Salva per riutilizzarlo in seguito.', style: TextStyle(color: _ipMuted, height: 1.4, fontSize: 12)),
+        )
+      else
+        Container(
+          margin: const EdgeInsets.only(bottom: 14),
+          decoration: BoxDecoration(color: _ipPanel, borderRadius: BorderRadius.circular(14)),
+          child: Column(
+            children: _profiles.map((profile) => ListTile(
+              leading: const Icon(Icons.videocam_outlined, color: _ipCyan),
+              title: Text(profile['name']!, maxLines: 1, overflow: TextOverflow.ellipsis),
+              subtitle: Text(
+                Uri.tryParse(profile['url'] ?? '')?.host ?? 'URL salvato',
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: const TextStyle(color: _ipMuted, fontSize: 11),
+              ),
+              onTap: () => _openProfile(profile),
+              trailing: IconButton(
+                tooltip: 'Elimina profilo',
+                icon: const Icon(Icons.delete_outline, color: Color(0xFFFF8C9D)),
+                onPressed: () => _deleteProfile(profile['id']!),
+              ),
+            )).toList(),
+          ),
+        ),
       const Text('URL dello stream', style: TextStyle(fontWeight: FontWeight.w800)),
       const SizedBox(height: 8),
       TextField(
