@@ -6,6 +6,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_webrtc/flutter_webrtc.dart';
 import 'package:mobile_scanner/mobile_scanner.dart';
+import 'package:path_provider/path_provider.dart';
 import 'package:qr_flutter/qr_flutter.dart';
 import 'event_store.dart';
 
@@ -32,6 +33,9 @@ class _StreamSessionScreenState extends State<StreamSessionScreen> {
   WebSocket? socket;
   RTCPeerConnection? peer;
   MediaStream? localStream;
+  MediaRecorder? recorder;
+  String? recordingPath;
+  bool recording = false;
   StreamSubscription? subscription;
   bool busy = false, linked = false;
   bool peerPresent = false, offerSent = false, creatingOffer = false, localTracksReady = false;
@@ -121,6 +125,53 @@ class _StreamSessionScreenState extends State<StreamSessionScreen> {
       await _cleanup();
       if (mounted) setState(() { busy = false; linked = false; error = 'Collegamento non riuscito: $e\nVerifica server, porta, Wi-Fi e codice stanza.'; status = 'Non collegato'; });
       _scheduleReconnect();
+    }
+  }
+
+  Future<void> _toggleRecording() async {
+    if (recording) {
+      await _stopRecording();
+      return;
+    }
+    final stream = localStream;
+    if (!isCamera || stream == null) {
+      _error('Avvia prima la telecamera per registrare.');
+      return;
+    }
+    try {
+      final tracks = stream.getVideoTracks();
+      if (tracks.isEmpty) throw StateError('Traccia video non disponibile');
+      final root = await getApplicationDocumentsDirectory();
+      final folder = Directory('${root.path}/recordings');
+      await folder.create(recursive: true);
+      final stamp = DateTime.now().toIso8601String().replaceAll(':', '-');
+      final path = '${folder.path}/sentinel_$stamp.mp4';
+      final active = MediaRecorder();
+      await active.start(path, videoTrack: tracks.first);
+      recorder = active;
+      recordingPath = path;
+      if (mounted) setState(() { recording = true; error = null; });
+      unawaited(EventStore.record('Registrazione avviata', 'Registrazione video locale sul telefono telecamera'));
+    } catch (e) {
+      recorder = null;
+      if (mounted) setState(() => recording = false);
+      _error('Registrazione non disponibile su questo dispositivo: $e');
+    }
+  }
+
+  Future<void> _stopRecording() async {
+    final active = recorder;
+    if (active == null) return;
+    try {
+      await active.stop();
+      final path = recordingPath;
+      if (path != null) unawaited(EventStore.record('Registrazione salvata', path));
+    } catch (e) {
+      _error('Impossibile completare la registrazione: $e');
+    } finally {
+      recorder = null;
+      recordingPath = null;
+      if (mounted) setState(() => recording = false);
     }
   }
 
@@ -291,6 +342,7 @@ class _StreamSessionScreenState extends State<StreamSessionScreen> {
   }
 
   Future<void> _cleanup({bool cancelSubscription = true}) async {
+    if (recorder != null) await _stopRecording();
     if (cancelSubscription) {
       await subscription?.cancel();
     }
@@ -309,6 +361,7 @@ class _StreamSessionScreenState extends State<StreamSessionScreen> {
 
   @override
   void dispose() {
+    if (recorder != null) unawaited(_stopRecording());
     if (socket != null && !manuallyStopped) unawaited(EventStore.record('Sessione terminata', 'Schermata chiusa'));
     manuallyStopped = true;
     reconnectTimer?.cancel();
@@ -340,6 +393,23 @@ class _StreamSessionScreenState extends State<StreamSessionScreen> {
         Text(status, style: const TextStyle(color: cyan, fontWeight: FontWeight.w800, fontSize: 16)),
         const SizedBox(height: 8),
         Text(isCamera ? 'Avvia la sessione e condividi il codice con il monitor. Il video parte quando il secondo dispositivo si collega.' : 'Inserisci lo stesso server e codice del telefono telecamera. Il video apparirà dopo la negoziazione WebRTC.', style: const TextStyle(color: muted, height: 1.45)),
+        if (isCamera && localStream != null) ...[
+          OutlinedButton.icon(
+            onPressed: recording ? _stopRecording : _toggleRecording,
+            icon: Icon(recording ? Icons.stop_circle_outlined : Icons.fiber_manual_record_rounded),
+            label: Text(recording ? 'Ferma e salva registrazione' : 'Avvia registrazione locale'),
+            style: OutlinedButton.styleFrom(
+              foregroundColor: recording ? const Color(0xFFFF6B80) : cyan,
+              side: BorderSide(color: recording ? const Color(0xFFFF6B80) : cyan),
+              padding: const EdgeInsets.symmetric(vertical: 14),
+            ),
+          ),
+          if (recording) const Padding(
+            padding: EdgeInsets.only(top: 8),
+            child: Text('Registrazione attiva · file privato sul telefono', textAlign: TextAlign.center, style: TextStyle(color: Color(0xFFFF6B80), fontSize: 11)),
+          ),
+          const SizedBox(height: 12),
+        ],
         const SizedBox(height: 18),
         _field('Server di segnalazione', url, hint: 'wss://tuo-server.example', onChanged: (_) => setState(() {})),
         const SizedBox(height: 12),
