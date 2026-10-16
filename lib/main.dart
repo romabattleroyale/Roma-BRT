@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'camera_sender_screen.dart';
 import 'connection_setup_screen.dart';
+import 'event_store.dart';
 void main() => runApp(const SentinelApp());
 const bg=Color(0xFF080B12), panel=Color(0xFF111824), panel2=Color(0xFF192435), violet=Color(0xFF9B7BFF), cyan=Color(0xFF48E5F2), green=Color(0xFF47E0A0), amber=Color(0xFFFFC66D), red=Color(0xFFFF6B80), muted=Color(0xFF8D9AAF);
 class SentinelApp extends StatelessWidget { const SentinelApp({super.key}); @override Widget build(BuildContext context)=>MaterialApp(title:'SENTINEL ONE',debugShowCheckedModeBanner:false,theme:ThemeData(useMaterial3:true,brightness:Brightness.dark,scaffoldBackgroundColor:bg,colorScheme:const ColorScheme.dark(primary:violet,secondary:cyan,surface:panel),fontFamily:'Roboto'),home:const ControlCenter()); }
@@ -18,7 +19,47 @@ class _ControlCenterState extends State<ControlCenter> {
  Widget _cameraTile(CameraDevice c)=>Container(margin:const EdgeInsets.only(bottom:9),child:Material(color:panel,borderRadius:BorderRadius.circular(18),child:ListTile(onTap:()=>_cameraDetails(c),contentPadding:const EdgeInsets.symmetric(horizontal:14,vertical:4),leading:Container(width:46,height:46,decoration:BoxDecoration(color:(c.online?cyan:red).withValues(alpha: .1),borderRadius:BorderRadius.circular(14)),child:Icon(c.icon,color:c.online?cyan:red)),title:Text(c.name,style:const TextStyle(fontWeight:FontWeight.w700,fontSize:13)),subtitle:Padding(padding:const EdgeInsets.only(top:5),child:Text(c.location,style:const TextStyle(color:muted,fontSize:10))),trailing:Column(mainAxisAlignment:MainAxisAlignment.center,crossAxisAlignment:CrossAxisAlignment.end,children:[Row(mainAxisSize:MainAxisSize.min,children:[Icon(Icons.circle,size:6,color:c.online?green:red),const SizedBox(width:5),Text(c.online?'ONLINE DEMO':'OFFLINE DEMO',style:TextStyle(color:c.online?green:red,fontSize:8,fontWeight:FontWeight.bold))]),const SizedBox(height:5),Text(c.kind,style:const TextStyle(color:muted,fontSize:9,letterSpacing:1))]))));
  Widget _armCard()=>const InfoCard(title:'Protezione non attiva',body:'L’inserimento dell’allarme richiede dispositivi reali associati, regole di rilevamento e notifiche operative. SENTINEL ONE non dichiara attiva una protezione non configurata.');
  Widget _devices()=>ListView(padding:const EdgeInsets.all(18),children:[const Text('Dispositivi',style:TextStyle(fontSize:26,fontWeight:FontWeight.w800)),const SizedBox(height:5),const Text('Gestisci le telecamere della tua casa.',style:TextStyle(color:muted)),const SizedBox(height:20),if(cameras.isEmpty) const InfoCard(title:'Nessun dispositivo configurato',body:'Aggiungi un telefono reale o configura una telecamera compatibile. Lo stato verrà mostrato solo dopo un collegamento reale.'),...cameras.map(_cameraTile),const SizedBox(height:12),OutlinedButton.icon(onPressed:()=>Navigator.of(context).push(MaterialPageRoute(builder:(_)=>const CameraSenderScreen())),icon:const Icon(Icons.add),label:const Text('Usa questo telefono come telecamera'),style:OutlinedButton.styleFrom(padding:const EdgeInsets.all(15),foregroundColor:cyan,side:const BorderSide(color:cyan))),const SizedBox(height:10),OutlinedButton.icon(onPressed:()=>Navigator.of(context).push(MaterialPageRoute(builder:(_)=>const ConnectionSetupScreen())),icon:const Icon(Icons.link_rounded),label:const Text('Configura collegamento tra telefoni'),style:OutlinedButton.styleFrom(padding:const EdgeInsets.all(15),foregroundColor:violet,side:const BorderSide(color:violet))),const SizedBox(height:18),const InfoCard(title:'Compatibilità',body:'Telefoni Android come telecamere richiedono un’app sender dedicata. Per Tapo, lo streaming dipende dal modello e dal supporto RTSP/ONVIF.')]);
- Widget _events()=>ListView(padding:const EdgeInsets.all(18),children:[const Text('Eventi recenti',style:TextStyle(fontSize:26,fontWeight:FontWeight.w800)),const SizedBox(height:5),const Text('Gli eventi reali appariranno qui quando i dispositivi saranno collegati.',style:TextStyle(color:muted)),const SizedBox(height:20),const InfoCard(title:'Nessun evento registrato',body:'Il registro è vuoto. Non vengono creati falsi eventi di movimento, connessione o allarme.'),const SizedBox(height:14),OutlinedButton.icon(onPressed:()=>Navigator.of(context).push(MaterialPageRoute(builder:(_)=>const ConnectionSetupScreen())),icon:const Icon(Icons.link_rounded),label:const Text('Configura un dispositivo'))]);
+ Widget _events()=>FutureBuilder<List<Map<String,String>>>(
+   future: EventStore.load(),
+   builder:(context,snapshot){
+     final events=snapshot.data??<Map<String,String>>[];
+     return ListView(padding:const EdgeInsets.all(18),children:[
+       const Text('Eventi recenti',style:TextStyle(fontSize:26,fontWeight:FontWeight.w800)),
+       const SizedBox(height:5),
+       const Text('Registro locale persistente · nessun evento simulato.',style:TextStyle(color:muted)),
+       const SizedBox(height:20),
+       if(snapshot.connectionState==ConnectionState.waiting)
+         const Center(child:Padding(padding:EdgeInsets.all(24),child:CircularProgressIndicator()))
+       else if(events.isEmpty)
+         const InfoCard(title:'Nessun evento registrato',body:'Gli eventi reali appariranno quando avvii una sessione video. Il registro resta sul dispositivo e non contiene video né password.')
+       else ...events.map((event)=>_storedEvent(event)),
+       const SizedBox(height:12),
+       Row(children:[
+         Expanded(child:OutlinedButton.icon(onPressed:()=>setState((){}),icon:const Icon(Icons.refresh_rounded),label:const Text('Aggiorna'))),
+         const SizedBox(width:10),
+         Expanded(child:TextButton.icon(onPressed:()async{await EventStore.clear();if(mounted)setState((){});},icon:const Icon(Icons.delete_outline_rounded),label:const Text('Cancella registro'))),
+       ]),
+       const SizedBox(height:12),
+       OutlinedButton.icon(onPressed:()=>Navigator.of(context).push(MaterialPageRoute(builder:(_)=>const ConnectionSetupScreen())),icon:const Icon(Icons.link_rounded),label:const Text('Configura un dispositivo')),
+     ]);
+   });
+ Widget _storedEvent(Map<String,String> event){
+   final parsed=DateTime.tryParse(event['time']??'');
+   final timestamp=parsed==null?'':parsed.toLocal().toString().split('.').first;
+   final title=event['title']??'Evento';
+   final detail=event['detail']??'';
+   final color=title.contains('interrotta')?red:(title.contains('collegato')?green:cyan);
+   return Container(margin:const EdgeInsets.only(bottom:10),padding:const EdgeInsets.all(14),decoration:BoxDecoration(color:panel,borderRadius:BorderRadius.circular(16)),child:Row(children:[
+     Container(width:42,height:42,decoration:BoxDecoration(color:color.withValues(alpha:.12),borderRadius:BorderRadius.circular(13)),child:Icon(Icons.history_rounded,color:color)),
+     const SizedBox(width:12),
+     Expanded(child:Column(crossAxisAlignment:CrossAxisAlignment.start,children:[
+       Text(title,style:const TextStyle(fontWeight:FontWeight.w700)),
+       const SizedBox(height:4),
+       Text(detail,style:const TextStyle(color:muted,fontSize:11)),
+       if(timestamp.isNotEmpty) Padding(padding:const EdgeInsets.only(top:4),child:Text(timestamp,style:const TextStyle(color:muted,fontSize:9))),
+     ])),
+   ]));
+ }
  Widget _settings()=>ListView(padding:const EdgeInsets.all(18),children:[const Text('Impostazioni',style:TextStyle(fontSize:26,fontWeight:FontWeight.w800)),const SizedBox(height:5),const Text('Privacy, rete e configurazione.',style:TextStyle(color:muted)),const SizedBox(height:20),_settingRow(Icons.wifi_rounded,'Rete locale','Non configurata',amber,()=>_notice('Rete locale','Il collegamento sicuro tra dispositivi deve ancora essere implementato.')),_settingRow(Icons.notifications_active_outlined,'Notifiche','Demo',cyan,()=>_notice('Notifiche','Le notifiche push saranno attivate quando il backend sarà configurato.')),_settingRow(Icons.lock_outline_rounded,'Privacy e sicurezza','Configurazione iniziale',violet,()=>_notice('Privacy','Questa interfaccia non invia video né dati a server remoti.')),_settingRow(Icons.info_outline_rounded,'Versione','0.2.0 · Preview',muted,()=>_notice('SENTINEL ONE','Anteprima dell’interfaccia. Funzioni reali ancora in sviluppo.')),const SizedBox(height:18),const InfoCard(title:'Roadmap',body:'1. Streaming video reale\n2. App sender per telefoni Android\n3. Connessione locale autenticata\n4. Integrazione Tapo compatibile\n5. Ricostruzione reale della casa in 3D')]);
  Widget _settingRow(IconData icon,String title,String subtitle,Color color,VoidCallback onTap)=>Container(margin:const EdgeInsets.only(bottom:9),child:Material(color:panel,borderRadius:BorderRadius.circular(16),child:ListTile(onTap:onTap,leading:Icon(icon,color:color),title:Text(title,style:const TextStyle(fontWeight:FontWeight.w700,fontSize:13)),subtitle:Text(subtitle,style:const TextStyle(color:muted,fontSize:11)),trailing:const Icon(Icons.chevron_right_rounded,color:muted))));
  Widget _bottomNav()=>Container(padding:const EdgeInsets.fromLTRB(10,8,10,8),decoration:BoxDecoration(color:bg,border:Border(top:BorderSide(color:Colors.white.withValues(alpha: .06)))),child:Row(children:[_navItem(0,Icons.grid_view_rounded,'Home'),_navItem(1,Icons.videocam_rounded,'Dispositivi'),_navItem(2,Icons.receipt_long_rounded,'Eventi'),_navItem(3,Icons.tune_rounded,'Impostazioni')]));
