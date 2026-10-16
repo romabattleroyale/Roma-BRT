@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'camera_sender_screen.dart';
+import 'local_viewer_screen.dart';
 
 const _bg = Color(0xFF080B12);
 const _panel = Color(0xFF111824);
@@ -103,11 +104,9 @@ class _ConnectionSetupScreenState extends State<ConnectionSetupScreen>
       ),
       const SizedBox(height: 18),
       FilledButton.icon(
-        onPressed: _role == _Role.camera
-          ? () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => const CameraSenderScreen()))
-          : () => Navigator.of(context).pop(),
-        icon: Icon(_role == _Role.camera ? Icons.videocam_rounded : Icons.arrow_back_rounded),
-        label: Text(_role == _Role.camera ? 'Apri anteprima telecamera' : 'Torna al centro dispositivi'),
+        onPressed: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => _role == _Role.camera ? CameraSenderScreen(remote: _remoteMode) : LocalViewerScreen(remote: _remoteMode))),
+        icon: Icon(_role == _Role.camera ? Icons.videocam_rounded : Icons.tv_rounded),
+        label: Text(_role == _Role.camera ? 'Configura trasmissione' : 'Configura ricezione video'),
         style: FilledButton.styleFrom(backgroundColor: _violet, foregroundColor: Colors.white, padding: const EdgeInsets.symmetric(vertical: 16)),
       ),
       const SizedBox(height: 8),
