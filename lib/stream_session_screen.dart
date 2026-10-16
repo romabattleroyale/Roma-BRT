@@ -20,6 +20,9 @@ class _StreamSessionScreenState extends State<StreamSessionScreen> {
   static const bg = Color(0xFF080B12), panel = Color(0xFF111824), cyan = Color(0xFF48E5F2), violet = Color(0xFF9B7BFF), muted = Color(0xFF8D9AAF);
   final url = TextEditingController();
   final room = TextEditingController();
+  final turnUrls = TextEditingController();
+  final turnUsername = TextEditingController();
+  final turnCredential = TextEditingController();
   final video = RTCVideoRenderer();
   final pendingIce = <RTCIceCandidate>[];
   WebSocket? socket;
@@ -69,7 +72,10 @@ class _StreamSessionScreenState extends State<StreamSessionScreen> {
       final endpoint = Uri.parse(server.endsWith('/') ? server + 'signal/' + code : server + '/signal/' + code);
       socket = await WebSocket.connect(endpoint.toString()).timeout(const Duration(seconds: 12));
       subscription = socket!.listen((data) => _handle(data),
-        onDone: () { _status('Servizio disconnesso'); if (mounted) setState(() => linked = false); },
+        onDone: () async {
+          await _cleanup();
+          if (mounted) setState(() { busy = false; linked = false; status = 'Servizio disconnesso'; });
+        },
         onError: (Object e) => _error('Errore WebSocket: $e'));
       await _createPeer();
       if (isCamera) {
@@ -95,9 +101,17 @@ class _StreamSessionScreenState extends State<StreamSessionScreen> {
   }
 
   Future<void> _createPeer() async {
-    peer = await createPeerConnection({'sdpSemantics': 'unified-plan', 'iceServers': [
-      {'urls': 'stun:stun.l.google.com:19302'}
-    ]});
+    final iceServers = <Map<String, dynamic>>[
+      {'urls': 'stun:stun.l.google.com:19302'},
+    ];
+    final urls = turnUrls.text.split(',').map((value) => value.trim()).where((value) => value.isNotEmpty).toList();
+    if (urls.isNotEmpty) {
+      final server = <String, dynamic>{'urls': urls};
+      if (turnUsername.text.trim().isNotEmpty) server['username'] = turnUsername.text.trim();
+      if (turnCredential.text.isNotEmpty) server['credential'] = turnCredential.text;
+      iceServers.add(server);
+    }
+    peer = await createPeerConnection({'sdpSemantics': 'unified-plan', 'iceServers': iceServers});
     peer!.onIceCandidate = (candidate) {
       if (candidate.candidate != null && candidate.candidate!.isNotEmpty) {
         _send({'type': 'ice', 'candidate': candidate.toMap()});
@@ -257,6 +271,16 @@ class _StreamSessionScreenState extends State<StreamSessionScreen> {
         _field('Server di segnalazione', url, hint: 'wss://tuo-server.example'),
         const SizedBox(height: 12),
         _field('Codice stanza', room, hint: '8 caratteri', uppercase: true),
+        const SizedBox(height: 18),
+        const Text('Relay TURN (facoltativo)', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w800, fontSize: 14)),
+        const SizedBox(height: 6),
+        const Text('Necessario su alcune reti, soprattutto per accesso remoto. Inserisci dati del tuo provider TURN; separa più URL con virgole.', style: TextStyle(color: muted, fontSize: 11, height: 1.4)),
+        const SizedBox(height: 10),
+        _field('URL TURN', turnUrls, hint: 'turn:host:3478, turns:host:5349'),
+        const SizedBox(height: 10),
+        _field('Nome utente TURN', turnUsername, hint: 'Nome utente'),
+        const SizedBox(height: 10),
+        _field('Credenziale TURN', turnCredential, hint: 'Password o token'),
         if (isCamera) Align(alignment: Alignment.centerRight, child: TextButton.icon(onPressed: () { room.text = _newCode(); setState(() {}); }, icon: const Icon(Icons.refresh_rounded), label: const Text('Nuovo codice'))),
         if (error != null) Container(margin: const EdgeInsets.only(top: 12), padding: const EdgeInsets.all(12),
           decoration: BoxDecoration(color: const Color(0xFF351923), borderRadius: BorderRadius.circular(12)),
