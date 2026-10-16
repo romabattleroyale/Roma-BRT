@@ -54,6 +54,8 @@ class MainActivity : ComponentActivity() {
     private val cameraExecutor: ExecutorService = Executors.newSingleThreadExecutor()
     private val captureActive = AtomicBoolean(false)
     private var imageCapture: ImageCapture? = null
+    private var cameraProvider: ProcessCameraProvider? = null
+    private var lensFacing by mutableIntStateOf(CameraSelector.LENS_FACING_BACK)
     private var role by mutableStateOf("monitor")
     private var status by mutableStateOf("Pronto per collegare i dispositivi")
     private var connectedName by mutableStateOf<String?>(null)
@@ -81,7 +83,8 @@ class MainActivity : ComponentActivity() {
                     onRole = { role = it; stopSearching() },
                     onStart = { startPairing() },
                     onConnect = { endpoint -> requestPair(endpoint) },
-                    onStop = { stopSearching() }
+                    onStop = { stopSearching() },
+                    onSwitchCamera = { switchCamera() }
                 )
             }
         }
@@ -201,12 +204,14 @@ class MainActivity : ComponentActivity() {
         providerFuture.addListener({
             try {
                 val provider = providerFuture.get()
+                cameraProvider = provider
                 val capture = ImageCapture.Builder()
                     .setCaptureMode(ImageCapture.CAPTURE_MODE_MINIMIZE_LATENCY)
                     .setTargetResolution(Size(640, 480))
                     .build()
                 provider.unbindAll()
-                provider.bindToLifecycle(this, CameraSelector.DEFAULT_BACK_CAMERA, capture)
+                val selector = CameraSelector.Builder().requireLensFacing(lensFacing).build()
+                provider.bindToLifecycle(this, selector, capture)
                 imageCapture = capture
                 captureActive.set(true)
                 status = "Fotocamera attiva · invio video"
@@ -272,8 +277,22 @@ class MainActivity : ComponentActivity() {
         }
     }
 
+    private fun switchCamera() {
+        if (role != "camera" || activeEndpoint == null) {
+            status = "Collega prima il monitor per cambiare fotocamera"
+            return
+        }
+        lensFacing = if (lensFacing == CameraSelector.LENS_FACING_BACK) CameraSelector.LENS_FACING_FRONT else CameraSelector.LENS_FACING_BACK
+        stopCameraCapture()
+        status = if (lensFacing == CameraSelector.LENS_FACING_FRONT) "Passaggio alla fotocamera anteriore…" else "Passaggio alla fotocamera posteriore…"
+        startCameraCapture()
+    }
+
     private fun stopCameraCapture() {
         captureActive.set(false)
+        imageCapture?.let { capture ->
+            try { cameraProvider?.unbind(capture) } catch (_: Exception) { }
+        }
         imageCapture = null
     }
 
@@ -321,7 +340,8 @@ private fun Dashboard(
     onRole: (String) -> Unit,
     onStart: () -> Unit,
     onConnect: (String) -> Unit,
-    onStop: () -> Unit
+    onStop: () -> Unit,
+    onSwitchCamera: () -> Unit
 ) {
     Box(Modifier.fillMaxSize().background(Brush.verticalGradient(listOf(Color(0xFF10182A), Night, Color(0xFF070910))))) {
         Column(
@@ -367,6 +387,11 @@ private fun Dashboard(
                 }
             }
             if (role == "camera") {
+                if (connectedName != null) {
+                    OutlinedButton(onClick = onSwitchCamera, modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(14.dp)) {
+                        Text("Cambia fotocamera")
+                    }
+                }
                 Text("DISPOSITIVI TROVATI", color = Muted, fontSize = 11.sp, letterSpacing = 1.4.sp)
                 if (discovered.isEmpty()) {
                     Card(colors = CardDefaults.cardColors(containerColor = Color(0xFF0E1420)), shape = RoundedCornerShape(18.dp)) {
