@@ -33,7 +33,8 @@ class Room:
     lock: asyncio.Lock = field(default_factory=asyncio.Lock)
 
 
-rooms: dict[str, Room] = defaultdict(Room)
+rooms: dict[str, Room] = {}
+rooms_lock = asyncio.Lock()
 # Basic per-IP connection throttling for the public prototype relay.
 ATTEMPTS_PER_MINUTE = 30
 connection_attempts: dict[str, deque[float]] = defaultdict(deque)
@@ -127,14 +128,18 @@ async def handler(peer: ServerConnection) -> None:
             await peer.close(code=1008, reason="Invalid room code")
             return
 
-        room = rooms[room_code]
-        async with room.lock:
-            if len(room.peers) >= MAX_PEERS_PER_ROOM:
-                await peer.close(code=1013, reason="Room is full")
-                return
-            room.peers.add(peer)
-            joined_room = True
-            peers = tuple(p for p in room.peers if p is not peer)
+        async with rooms_lock:
+            room = rooms.get(room_code)
+            if room is None:
+                room = Room()
+                rooms[room_code] = room
+            async with room.lock:
+                if len(room.peers) >= MAX_PEERS_PER_ROOM:
+                    await peer.close(code=1013, reason="Room is full")
+                    return
+                room.peers.add(peer)
+                joined_room = True
+                peers = tuple(p for p in room.peers if p is not peer)
 
         await send_json(peer, {"type": "ready", "peers": len(peers), "iceServers": ice_server_config()})
         for other in peers:
@@ -161,13 +166,18 @@ async def handler(peer: ServerConnection) -> None:
     except ConnectionClosed:
         pass
     finally:
-        if joined_room and room_code in rooms:
-            room = rooms[room_code]
-            async with room.lock:
-                room.peers.discard(peer)
-                remaining = tuple(room.peers)
-                if not room.peers:
-                    rooms.pop(room_code, None)
+        if joined_room:
+            remaining: tuple[ServerConnection, ...] = ()
+            async with rooms_lock:
+                room = rooms.get(room_code)
+                if room is not None:
+                    async with room.lock:
+                        room.peers.discard(peer)
+                        remaining = tuple(room.peers)
+                        # The map lock prevents a new join from retaining a
+                        # Room object just before the last peer removes it.
+                        if not room.peers and rooms.get(room_code) is room:
+                            rooms.pop(room_code, None)
             for other in remaining:
                 try:
                     await send_json(other, {"type": "peer_left"})
