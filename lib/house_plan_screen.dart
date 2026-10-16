@@ -48,7 +48,7 @@ class _HousePlanScreenState extends State<HousePlanScreen> {
   }
 
   Future<void> _addAt(Offset point, Size size) async {
-    final nameController = TextEditingController(text: 'Telecamera \${_markers.length + 1}');
+    final nameController = TextEditingController(text: 'Telecamera ${_markers.length + 1}');
     final name = await showDialog<String>(
       context: context,
       builder: (dialogContext) => AlertDialog(
