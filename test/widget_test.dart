@@ -12,6 +12,19 @@ void main() {
     SharedPreferences.setMockInitialValues({});
   });
 
+  test('concurrent event writes do not overwrite one another', () async {
+    await Future.wait([
+      EventStore.record('Evento A', 'Primo'),
+      EventStore.record('Evento B', 'Secondo'),
+      EventStore.record('Evento C', 'Terzo'),
+    ]);
+
+    final events = await EventStore.load();
+    expect(events, hasLength(3));
+    expect(events.map((event) => event['title']).toSet(),
+        {'Evento A', 'Evento B', 'Evento C'});
+  });
+
   test('event history skips a malformed entry and keeps valid events', () async {
     SharedPreferences.setMockInitialValues({
       'sentinel_one_security_events_v1': [
