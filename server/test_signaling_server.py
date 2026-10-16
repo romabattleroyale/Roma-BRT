@@ -96,7 +96,9 @@ class SignalingRelayTests(unittest.IsolatedAsyncioTestCase):
         with patch.dict("os.environ", {"SIGNAL_TOKEN": "secret-for-tests"}):
             async with connect(self.url, additional_headers={"Authorization": "Bearer secret-for-tests"}) as peer:
                 ready = json.loads(await peer.recv())
-                self.assertEqual(ready, {"type": "ready", "peers": 0})
+                self.assertEqual(ready["type"], "ready")
+                self.assertEqual(ready["peers"], 0)
+                self.assertTrue(ready["iceServers"])
 
     async def test_third_peer_is_rejected(self):
         async with connect(self.url) as first:
