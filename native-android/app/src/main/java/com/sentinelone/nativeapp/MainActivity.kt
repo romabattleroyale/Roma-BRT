@@ -35,6 +35,14 @@ import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import io.github.sceneview.SceneView
+import io.github.sceneview.rememberEngine
+import io.github.sceneview.rememberModelLoader
+import io.github.sceneview.rememberCameraManipulator
+import io.github.sceneview.node.CubeNode
+import io.github.sceneview.node.SphereNode
+import io.github.sceneview.math.Position
+import io.github.sceneview.math.Size as SceneSize
 import com.google.android.gms.nearby.Nearby
 import com.google.android.gms.nearby.connection.*
 import java.io.ByteArrayOutputStream
@@ -556,79 +564,73 @@ private fun EmptyStateCard(title: String, subtitle: String, panel: Color, primar
 
 @Composable
 private fun HouseModel3D(panel: Color, accent: Color, selectedRoom: String, onRoomSelected: (String) -> Unit, isDark: Boolean) {
-    var rotation by remember { mutableFloatStateOf(0f) }
-    val transition = androidx.compose.animation.core.rememberInfiniteTransition(label = "houseGlow")
-    val pulse by transition.animateFloat(initialValue = 0.45f, targetValue = 0.95f, animationSpec = androidx.compose.animation.core.infiniteRepeatable(animation = androidx.compose.animation.core.tween(1400), repeatMode = androidx.compose.animation.core.RepeatMode.Reverse), label = "cameraPulse")
-    val wallFront = if (isDark) Color(0xFF26364B) else Color(0xFFD3DEEA)
-    val wallSide = if (isDark) Color(0xFF1B283A) else Color(0xFFBBCBDB)
-    val floorColor = if (isDark) Color(0xFF172638) else Color(0xFFE5EDF5)
+    val engine = rememberEngine()
+    val modelLoader = rememberModelLoader(engine)
+    val wall = if (isDark) Color(0xFF61738B) else Color(0xFF9DAFC2)
+    val floor = if (isDark) Color(0xFF253448) else Color(0xFFD7E1EB)
+    val onlineGreen = Color(0xFF35E59A)
+    val offlineRed = Color(0xFFFF5964)
+    var basement by remember { mutableStateOf(false) }
+    var cameras by remember { mutableStateOf(true) }
     Card(colors = CardDefaults.cardColors(containerColor = panel), shape = RoundedCornerShape(24.dp), border = androidx.compose.foundation.BorderStroke(1.dp, accent.copy(alpha = 0.22f))) {
         Column(Modifier.fillMaxWidth().padding(12.dp)) {
             Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-                Text("CASA · PIANO PRINCIPALE", Modifier.weight(1f), color = if (isDark) Color(0xFFB5C5D8) else Color(0xFF53647B), fontSize = 9.sp, letterSpacing = 1.sp)
-                Text("3D PREVIEW", color = accent, fontSize = 9.sp, fontWeight = FontWeight.Bold)
+                Column(Modifier.weight(1f)) {
+                    Text(if (basement) "CASA · SEMINTERRATO" else "CASA · PIANO PRINCIPALE", color = if (isDark) Color(0xFFB5C5D8) else Color(0xFF53647B), fontSize = 9.sp, letterSpacing = 1.sp)
+                    Text("SCENA 3D · FILAMENT", color = accent, fontSize = 10.sp, fontWeight = FontWeight.Bold)
+                }
+                Surface(color = Color(0xFF12372D), shape = RoundedCornerShape(50)) {
+                    Text("● ONLINE", Modifier.padding(horizontal = 9.dp, vertical = 6.dp), color = onlineGreen, fontSize = 9.sp, fontWeight = FontWeight.Bold)
+                }
             }
-            androidx.compose.foundation.Canvas(
-                modifier = Modifier.fillMaxWidth().height(218.dp)
-                    .pointerInput(Unit) {
-                        androidx.compose.foundation.gestures.detectDragGestures { change, dragAmount ->
-                            change.consume()
-                            rotation += dragAmount.x * 0.012f
-                        }
+            Box(Modifier.fillMaxWidth().height(290.dp).padding(top = 8.dp).background(if (isDark) Color(0xFF090F19) else Color(0xFFEAF0F6), RoundedCornerShape(18.dp))) {
+                SceneView(
+                    modifier = Modifier.fillMaxSize(),
+                    engine = engine,
+                    modelLoader = modelLoader,
+                    cameraManipulator = rememberCameraManipulator()
+                ) {
+                    CubeNode(size = SceneSize(4.2f), position = Position(y = -0.14f), color = floor)
+                    CubeNode(size = SceneSize(0.12f), position = Position(x = -1.8f, y = 0.55f), color = wall)
+                    CubeNode(size = SceneSize(0.12f), position = Position(x = 1.8f, y = 0.55f), color = wall)
+                    CubeNode(size = SceneSize(0.12f), position = Position(y = 0.55f, z = -1.8f), color = wall)
+                    CubeNode(size = SceneSize(0.12f), position = Position(y = 0.55f, z = 1.8f), color = wall)
+                    CubeNode(size = SceneSize(0.10f), position = Position(x = -0.55f, y = 0.55f), color = wall)
+                    CubeNode(size = SceneSize(0.10f), position = Position(x = 0.65f, y = 0.55f, z = -0.35f), color = wall)
+                    CubeNode(size = SceneSize(0.48f), position = Position(x = -1.0f, y = 0.12f, z = -0.75f), color = if (selectedRoom == "Soggiorno") accent else wall)
+                    CubeNode(size = SceneSize(0.34f), position = Position(x = 1.0f, y = 0.10f, z = -0.7f), color = if (selectedRoom == "Cucina") accent else wall)
+                    CubeNode(size = SceneSize(0.40f), position = Position(x = 1.0f, y = 0.12f, z = 0.95f), color = if (selectedRoom == "Camera") accent else wall)
+                    if (cameras) {
+                        SphereNode(radius = 0.10f, position = Position(x = -1.6f, y = 1.05f, z = -1.55f), color = offlineRed)
+                        SphereNode(radius = 0.10f, position = Position(x = 1.55f, y = 1.05f, z = -1.55f), color = offlineRed)
+                        SphereNode(radius = 0.10f, position = Position(x = 1.55f, y = 1.05f, z = 1.55f), color = offlineRed)
                     }
-            ) {
-                val w = size.width
-                val h = size.height
-                val cx = w * 0.50f + kotlin.math.sin(rotation) * w * 0.035f
-                val top = h * 0.12f
-                val left = cx - w * 0.28f
-                val right = cx + w * 0.27f
-                val midX = cx + w * 0.015f
-                val yTop = top + kotlin.math.cos(rotation) * 4f
-                val yMid = h * 0.49f
-                val yBottom = h * 0.83f
-                val depth = w * 0.17f
-                val pFloor = androidx.compose.ui.graphics.Path().apply {
-                    moveTo(left, yMid); lineTo(midX, yMid - depth * 0.42f); lineTo(right, yMid); lineTo(midX, yBottom); close()
+                    if (basement) {
+                        CubeNode(size = SceneSize(3.2f), position = Position(y = -1.15f), color = if (isDark) Color(0xFF182333) else Color(0xFFCAD5E1))
+                        CubeNode(size = SceneSize(0.10f), position = Position(y = -0.72f, z = -1.35f), color = wall)
+                        CubeNode(size = SceneSize(0.10f), position = Position(x = -1.35f, y = -0.72f), color = wall)
+                        SphereNode(radius = 0.09f, position = Position(x = -1.2f, y = -0.55f, z = -1.2f), color = offlineRed)
+                    }
                 }
-                drawPath(pFloor, floorColor)
-                val frontWall = androidx.compose.ui.graphics.Path().apply {
-                    moveTo(left, yMid); lineTo(midX, yMid - depth * 0.42f); lineTo(midX, yTop); lineTo(left, yTop + depth * 0.48f); close()
-                }
-                val sideWall = androidx.compose.ui.graphics.Path().apply {
-                    moveTo(midX, yMid - depth * 0.42f); lineTo(right, yMid); lineTo(right, yTop + depth * 0.48f); lineTo(midX, yTop); close()
-                }
-                drawPath(frontWall, wallFront)
-                drawPath(sideWall, wallSide)
-                val roof = androidx.compose.ui.graphics.Path().apply {
-                    moveTo(left - 8f, yTop + depth * 0.48f); lineTo(midX, yTop - depth * 0.30f); lineTo(right + 8f, yTop + depth * 0.48f); lineTo(midX, yMid - depth * 0.42f); close()
-                }
-                drawPath(roof, if (isDark) Color(0xFF31465F) else Color(0xFFB5C6D8))
-                // Front wall room divisions and luminous windows
-                val wallLine = if (isDark) Color(0xFF60758E) else Color(0xFF8EA3B8)
-                drawLine(wallLine, androidx.compose.ui.geometry.Offset(left, yTop + depth * 0.48f), androidx.compose.ui.geometry.Offset(left, yMid), 2f)
-                drawLine(wallLine, androidx.compose.ui.geometry.Offset(left, yMid), androidx.compose.ui.geometry.Offset(midX, yMid - depth * 0.42f), 2f)
-                drawLine(wallLine, androidx.compose.ui.geometry.Offset(midX, yMid - depth * 0.42f), androidx.compose.ui.geometry.Offset(midX, yTop), 2f)
-                drawLine(wallLine, androidx.compose.ui.geometry.Offset(midX, yTop), androidx.compose.ui.geometry.Offset(left, yTop + depth * 0.48f), 2f)
-                drawLine(wallLine, androidx.compose.ui.geometry.Offset(midX, yTop), androidx.compose.ui.geometry.Offset(right, yTop + depth * 0.48f), 2f)
-                drawLine(wallLine, androidx.compose.ui.geometry.Offset(midX, yMid - depth * 0.42f), androidx.compose.ui.geometry.Offset(right, yMid), 2f)
-                drawLine(wallLine, androidx.compose.ui.geometry.Offset(right, yTop + depth * 0.48f), androidx.compose.ui.geometry.Offset(right, yMid), 2f)
-                val windowGlow = accent.copy(alpha = pulse)
-                drawRoundRect(windowGlow, androidx.compose.ui.geometry.Offset(left + 18f, yTop + 29f), androidx.compose.ui.geometry.Size(20f, 27f), androidx.compose.ui.geometry.CornerRadius(4f))
-                drawRoundRect(windowGlow.copy(alpha = pulse * 0.65f), androidx.compose.ui.geometry.Offset(midX + 19f, yTop + 29f), androidx.compose.ui.geometry.Size(20f, 27f), androidx.compose.ui.geometry.CornerRadius(4f))
-                drawRoundRect(if (selectedRoom == "Soggiorno") accent.copy(alpha = 0.30f) else wallLine.copy(alpha = 0.45f), androidx.compose.ui.geometry.Offset(left + 12f, yMid + 14f), androidx.compose.ui.geometry.Size(w * 0.12f, h * 0.12f), androidx.compose.ui.geometry.CornerRadius(5f))
-                drawRoundRect(if (selectedRoom == "Cucina") accent.copy(alpha = 0.35f) else wallLine.copy(alpha = 0.45f), androidx.compose.ui.geometry.Offset(midX + 13f, yMid + 9f), androidx.compose.ui.geometry.Size(w * 0.11f, h * 0.12f), androidx.compose.ui.geometry.CornerRadius(5f))
-                // Camera markers with soft glow
-                val cam1 = androidx.compose.ui.geometry.Offset(left + w * 0.10f, yTop + 17f)
-                val cam2 = androidx.compose.ui.geometry.Offset(right - w * 0.06f, yTop + 23f)
-                drawCircle(accent.copy(alpha = 0.14f), 15f, cam1)
-                drawCircle(accent.copy(alpha = pulse), 5f, cam1)
-                drawCircle(Violet.copy(alpha = 0.18f), 15f, cam2)
-                drawCircle(Violet.copy(alpha = pulse), 5f, cam2)
-                // Ground shadow and orientation cue
-                drawLine(accent.copy(alpha = 0.30f), androidx.compose.ui.geometry.Offset(left - 12f, yBottom + 7f), androidx.compose.ui.geometry.Offset(right + 14f, yBottom + 7f), 1.5f)
             }
-            Text("Modello dimostrativo · trascina per ruotare", Modifier.padding(top = 3.dp), color = if (isDark) Color(0xFF8292A9) else Color(0xFF65758A), fontSize = 9.sp)
+            Text("Scena 3D renderizzata da Filament · trascina per orbitare", Modifier.padding(top = 6.dp), color = if (isDark) Color(0xFF8292A9) else Color(0xFF65758A), fontSize = 9.sp)
+            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(7.dp)) {
+                listOf("Soggiorno", "Cucina", "Camera").forEach { room ->
+                    val selected = selectedRoom == room
+                    Surface(onClick = { onRoomSelected(room) }, color = if (selected) Color(0xFF17343E) else if (isDark) Color(0xFF172131) else Color(0xFFE8EEF5), shape = RoundedCornerShape(11.dp), border = androidx.compose.foundation.BorderStroke(1.dp, if (selected) accent else Color.Transparent)) {
+                        Text(room, Modifier.padding(horizontal = 9.dp, vertical = 8.dp), color = if (selected) accent else if (isDark) Color(0xFFB5C5D8) else Color(0xFF53647B), fontSize = 10.sp, fontWeight = FontWeight.SemiBold)
+                    }
+                }
+            }
+            Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                TextButton(onClick = { basement = !basement }) { Text(if (basement) "Piano principale" else "Seminterrato") }
+                Spacer(Modifier.weight(1f))
+                TextButton(onClick = { cameras = !cameras }) { Text(if (cameras) "Nascondi telecamere" else "Mostra telecamere") }
+            }
+            Row(horizontalArrangement = Arrangement.spacedBy(12.dp), verticalAlignment = Alignment.CenterVertically) {
+                Row(verticalAlignment = Alignment.CenterVertically) { Box(Modifier.size(8.dp).background(onlineGreen, RoundedCornerShape(50))); Spacer(Modifier.width(5.dp)); Text("Online", color = if (isDark) Color(0xFFB5C5D8) else Color(0xFF53647B), fontSize = 10.sp) }
+                Row(verticalAlignment = Alignment.CenterVertically) { Box(Modifier.size(8.dp).background(offlineRed, RoundedCornerShape(50))); Spacer(Modifier.width(5.dp)); Text("Offline / non collegata", color = if (isDark) Color(0xFFB5C5D8) else Color(0xFF53647B), fontSize = 10.sp) }
+            }
         }
     }
 }
