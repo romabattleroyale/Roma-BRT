@@ -109,8 +109,8 @@ class _StreamSessionScreenState extends State<StreamSessionScreen> {
           if (readyCompleter != null && !readyCompleter!.isCompleted) readyCompleter!.completeError(e);
           _error('Errore WebSocket: $e');
         });
-      unawaited(EventStore.record('Sessione avviata', isCamera ? 'Telefono impostato come telecamera' : 'Monitor in attesa della telecamera'));
       await readyCompleter!.future.timeout(const Duration(seconds: 8));
+      unawaited(EventStore.record('Sessione avviata', isCamera ? 'Telefono impostato come telecamera' : 'Monitor in attesa della telecamera'));
       await _createPeer();
       if (isCamera) {
         localStream = await navigator.mediaDevices.getUserMedia({
