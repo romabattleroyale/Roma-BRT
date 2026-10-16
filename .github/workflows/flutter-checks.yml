@@ -1,17 +1,31 @@
-name: Flutter checks
+name: Flutter checks and Android APK
 on:
   push:
     branches: [main]
   pull_request:
     branches: [main]
 jobs:
-  test:
+  test-and-build:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
       - uses: subosito/flutter-action@v2
         with:
           channel: stable
-      - run: flutter pub get
-      - run: flutter analyze
-      - run: flutter test
+      - name: Install Flutter dependencies
+        run: flutter pub get
+      - name: Analyze Dart code
+        run: flutter analyze
+      - name: Run widget tests
+        run: flutter test
+      - name: Generate Android platform files
+        run: flutter create --platforms=android --org com.sentinelone .
+      - name: Build release APK
+        run: flutter build apk --release
+      - name: Upload APK artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: sentinel-one-android-apk
+          path: build/app/outputs/flutter-apk/app-release.apk
+          if-no-files-found: error
+          retention-days: 14
