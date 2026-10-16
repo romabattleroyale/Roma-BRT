@@ -61,10 +61,26 @@ class _CustomRelaySessionScreenState extends State<CustomRelaySessionScreen> {
       if (widget.remote && base.scheme != 'wss') {
         throw const FormatException('Per la modalità Internet è obbligatorio WSS/TLS');
       }
-      final client = SentinelStreamTransport(server: base, room: room.text.trim().toUpperCase(), role: widget.cameraRole ? SentinelStreamRole.camera : SentinelStreamRole.viewer, token: token.text,
-        onStatus: (s) { if (mounted) setState(() => status = s); },
-        onError: (e) { if (mounted) setState(() => error = e.toString()); },
-        onFrame: (bytes) { if (mounted && !widget.cameraRole) setState(() => frame = bytes); });
+      late final SentinelStreamTransport client;
+      client = SentinelStreamTransport(
+        server: base,
+        room: room.text.trim().toUpperCase(),
+        role: widget.cameraRole ? SentinelStreamRole.camera : SentinelStreamRole.viewer,
+        token: token.text,
+        onStatus: (s) {
+          if (!mounted) return;
+          setState(() => status = s);
+          if (s == 'Trasporto disconnesso' || s == 'Errore trasporto') {
+            unawaited(_handleUnexpectedDisconnect(client));
+          }
+        },
+        onError: (e) {
+          if (mounted) setState(() => error = e.toString());
+        },
+        onFrame: (bytes) {
+          if (mounted && !widget.cameraRole) setState(() => frame = bytes);
+        },
+      );
       await client.connect();
       transport = client;
       if (widget.cameraRole) await _startCamera();
@@ -74,6 +90,19 @@ class _CustomRelaySessionScreenState extends State<CustomRelaySessionScreen> {
       final old = transport; transport = null; await old?.close();
       if (mounted) setState(() { busy = false; error = e.toString(); status = 'Non collegato'; });
     }
+  }
+
+  Future<void> _handleUnexpectedDisconnect(SentinelStreamTransport client) async {
+    // Ignore late callbacks from a session that the user has already replaced.
+    if (!identical(transport, client)) return;
+    transport = null;
+    await _stopCamera();
+    if (!mounted) return;
+    setState(() {
+      busy = false;
+      frame = null;
+      status = 'Connessione interrotta · puoi riprovare';
+    });
   }
 
   Future<void> _startCamera() async {
