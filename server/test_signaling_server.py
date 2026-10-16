@@ -48,7 +48,7 @@ class PairingTests(unittest.IsolatedAsyncioTestCase):
         await camera_ws.close()
 
     async def test_unknown_ticket_is_rejected(self):
-        response = await self.client.post("/pair/consume", json={"ticket": "not-a-real-ticket"})
+        response = await self.client.post("/pair/consume", json={"ticket": "this-is-an-unknown-ticket-with-enough-length"})
         self.assertEqual(response.status, 410)
 
     async def test_health_endpoint(self):
