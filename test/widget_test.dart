@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:sentinel_one/event_store.dart';
 import 'package:sentinel_one/house_plan_screen.dart';
 import 'package:sentinel_one/main.dart';
 
@@ -9,6 +10,19 @@ void main() {
 
   setUp(() {
     SharedPreferences.setMockInitialValues({});
+  });
+
+  test('event history skips a malformed entry and keeps valid events', () async {
+    SharedPreferences.setMockInitialValues({
+      'sentinel_one_security_events_v1': [
+        '{invalid json',
+        '{"title":"Video collegato","detail":"Trasmissione attiva","time":"2026-10-16T12:00:00.000"}',
+      ],
+    });
+
+    final events = await EventStore.load();
+    expect(events, hasLength(1));
+    expect(events.single['title'], 'Video collegato');
   });
 
   testWidgets('SENTINEL ONE dashboard renders', (tester) async {
