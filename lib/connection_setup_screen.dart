@@ -92,8 +92,8 @@ class _ConnectionSetupScreenState extends State<ConnectionSetupScreen>
           ]),
           const SizedBox(height: 10),
           Text(_remoteMode
-            ? 'Per la modalità remota configura un endpoint WSS pubblico e distribuisci il relay JPEG con TLS e autenticazione. Non è un servizio pronto all'uso finché il server non è pubblicato.'
-            : 'Il video usa il relay JPEG personalizzato. Inserisci l'indirizzo WebSocket del relay; per una prova in rete locale puoi usare un server raggiungibile da entrambi i telefoni.',
+            ? "Per la modalità remota configura un endpoint WSS pubblico e distribuisci il relay JPEG con TLS e autenticazione. Non è un servizio pronto all'uso finché il server non è pubblicato."
+            : "Il video usa il relay JPEG personalizzato. Inserisci l'indirizzo WebSocket del relay; per una prova in rete locale puoi usare un server raggiungibile da entrambi i telefoni.",
             style: const TextStyle(color: _muted, height: 1.5, fontSize: 12)),
           const SizedBox(height: 14),
           const Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
