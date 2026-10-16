@@ -7,6 +7,9 @@ short-lived room credentials before using outside a trusted test network.
 from __future__ import annotations
 
 import asyncio
+import base64
+import hashlib
+import hmac
 import json
 import os
 import re
@@ -48,12 +51,25 @@ def ice_server_config() -> list[dict[str, object]]:
     turn_urls = [item.strip() for item in os.getenv("TURN_URLS", "").split(",") if item.strip()]
     if turn_urls:
         server: dict[str, object] = {"urls": turn_urls}
-        username = os.getenv("TURN_USERNAME", "").strip()
-        credential = os.getenv("TURN_CREDENTIAL", "")
-        if username:
+        username_prefix = os.getenv("TURN_USERNAME", "sentinel").strip() or "sentinel"
+        shared_secret = os.getenv("TURN_SHARED_SECRET", "")
+        if shared_secret:
+            # Coturn REST API credentials expire; never send the shared secret to clients.
+            ttl = max(300, min(86400, int(os.getenv("TURN_TTL_SECONDS", "3600"))))
+            username = f"{int(time.time()) + ttl}:{username_prefix}"
+            credential = base64.b64encode(
+                hmac.new(shared_secret.encode("utf-8"), username.encode("utf-8"), hashlib.sha1).digest()
+            ).decode("ascii")
             server["username"] = username
-        if credential:
             server["credential"] = credential
+        else:
+            # Static credentials remain available for TURN providers that do not support REST auth.
+            username = os.getenv("TURN_USERNAME", "").strip()
+            credential = os.getenv("TURN_CREDENTIAL", "")
+            if username:
+                server["username"] = username
+            if credential:
+                server["credential"] = credential
         servers.append(server)
     return servers
 
