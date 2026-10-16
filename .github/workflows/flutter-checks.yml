@@ -1,7 +1,6 @@
 name: Flutter checks and Android APK
 
-# Keep only the newest validation for a branch/PR; stale commits otherwise
-# consume runners while newer fixes wait in the queue.
+# Cancel stale runs so newer fixes do not wait behind obsolete commits.
 concurrency:
   group: flutter-checks-${{ github.event.pull_request.number || github.ref }}
   cancel-in-progress: true
@@ -11,6 +10,9 @@ on:
     branches: [main]
   pull_request:
     branches: [main]
+  # Run a full APK build on demand from any selected branch.
+  workflow_dispatch:
+
 jobs:
   test-and-build:
     runs-on: ubuntu-latest
@@ -19,6 +21,8 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: '3.12'
+          cache: pip
+          cache-dependency-path: server/requirements.txt
       - name: Install signaling server dependencies
         run: python -m pip install -r server/requirements.txt
       - name: Test signaling relay
@@ -26,19 +30,26 @@ jobs:
       - uses: subosito/flutter-action@v2
         with:
           channel: stable
+          cache: true
       - name: Install Flutter dependencies
         run: flutter pub get
       - name: Analyze Dart code
         run: flutter analyze
       - name: Run widget tests
         run: flutter test
+      # Pull requests get fast feedback. APK generation is reserved for main
+      # pushes or an explicit workflow_dispatch run on the selected branch.
       - name: Generate Android platform files
+        if: github.event_name != 'pull_request'
         run: flutter create --platforms=android --org com.sentinelone .
       - name: Configure Android native resources
+        if: github.event_name != 'pull_request'
         run: python3 tool/configure_android.py
       - name: Build release APK
+        if: github.event_name != 'pull_request'
         run: flutter build apk --release --split-per-abi --target-platform android-arm64
       - name: Verify Android APK architecture
+        if: github.event_name != 'pull_request'
         run: |
           APK=build/app/outputs/flutter-apk/app-arm64-v8a-release.apk
           test -s "$APK"
@@ -49,6 +60,7 @@ jobs:
           echo "Arm64 APK size: $SIZE bytes"
           test "$SIZE" -lt 125829120
       - name: Upload APK artifact
+        if: github.event_name != 'pull_request'
         uses: actions/upload-artifact@v4
         with:
           name: sentinel-one-android-apk
