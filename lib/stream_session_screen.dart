@@ -397,7 +397,7 @@ class _StreamSessionScreenState extends State<StreamSessionScreen> {
           OutlinedButton.icon(
             onPressed: recording ? _stopRecording : _toggleRecording,
             icon: Icon(recording ? Icons.stop_circle_outlined : Icons.fiber_manual_record_rounded),
-            label: Text(recording ? 'Ferma e salva registrazione' : 'Avvia registrazione locale'),
+            label: Text(recording ? 'Ferma e salva registrazione' : 'Avvia registrazione locale · beta'),
             style: OutlinedButton.styleFrom(
               foregroundColor: recording ? const Color(0xFFFF6B80) : cyan,
               side: BorderSide(color: recording ? const Color(0xFFFF6B80) : cyan),
