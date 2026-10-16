@@ -17,6 +17,7 @@ import androidx.camera.core.ImageCaptureException
 import androidx.camera.core.ImageProxy
 import androidx.camera.lifecycle.ProcessCameraProvider
 import androidx.compose.foundation.Image
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -590,26 +591,26 @@ private fun HouseModel3D(panel: Color, accent: Color, selectedRoom: String, onRo
                     modelLoader = modelLoader,
                     cameraManipulator = rememberCameraManipulator()
                 ) {
-                    CubeNode(size = SceneSize(4.2f), position = Position(y = -0.14f), color = floor)
-                    CubeNode(size = SceneSize(0.12f), position = Position(x = -1.8f, y = 0.55f), color = wall)
-                    CubeNode(size = SceneSize(0.12f), position = Position(x = 1.8f, y = 0.55f), color = wall)
-                    CubeNode(size = SceneSize(0.12f), position = Position(y = 0.55f, z = -1.8f), color = wall)
-                    CubeNode(size = SceneSize(0.12f), position = Position(y = 0.55f, z = 1.8f), color = wall)
-                    CubeNode(size = SceneSize(0.10f), position = Position(x = -0.55f, y = 0.55f), color = wall)
-                    CubeNode(size = SceneSize(0.10f), position = Position(x = 0.65f, y = 0.55f, z = -0.35f), color = wall)
-                    CubeNode(size = SceneSize(0.48f), position = Position(x = -1.0f, y = 0.12f, z = -0.75f), color = if (selectedRoom == "Soggiorno") accent else wall)
-                    CubeNode(size = SceneSize(0.34f), position = Position(x = 1.0f, y = 0.10f, z = -0.7f), color = if (selectedRoom == "Cucina") accent else wall)
-                    CubeNode(size = SceneSize(0.40f), position = Position(x = 1.0f, y = 0.12f, z = 0.95f), color = if (selectedRoom == "Camera") accent else wall)
+                    CubeNode(size = SceneSize(4.2f), position = Position(y = -0.14f))
+                    CubeNode(size = SceneSize(0.12f), position = Position(x = -1.8f, y = 0.55f))
+                    CubeNode(size = SceneSize(0.12f), position = Position(x = 1.8f, y = 0.55f))
+                    CubeNode(size = SceneSize(0.12f), position = Position(y = 0.55f, z = -1.8f))
+                    CubeNode(size = SceneSize(0.12f), position = Position(y = 0.55f, z = 1.8f))
+                    CubeNode(size = SceneSize(0.10f), position = Position(x = -0.55f, y = 0.55f))
+                    CubeNode(size = SceneSize(0.10f), position = Position(x = 0.65f, y = 0.55f, z = -0.35f))
+                    CubeNode(size = SceneSize(0.48f), position = Position(x = -1.0f, y = 0.12f, z = -0.75f))
+                    CubeNode(size = SceneSize(0.34f), position = Position(x = 1.0f, y = 0.10f, z = -0.7f))
+                    CubeNode(size = SceneSize(0.40f), position = Position(x = 1.0f, y = 0.12f, z = 0.95f))
                     if (cameras) {
-                        SphereNode(radius = 0.10f, position = Position(x = -1.6f, y = 1.05f, z = -1.55f), color = offlineRed)
-                        SphereNode(radius = 0.10f, position = Position(x = 1.55f, y = 1.05f, z = -1.55f), color = offlineRed)
-                        SphereNode(radius = 0.10f, position = Position(x = 1.55f, y = 1.05f, z = 1.55f), color = offlineRed)
+                        SphereNode(radius = 0.10f, position = Position(x = -1.6f, y = 1.05f, z = -1.55f))
+                        SphereNode(radius = 0.10f, position = Position(x = 1.55f, y = 1.05f, z = -1.55f))
+                        SphereNode(radius = 0.10f, position = Position(x = 1.55f, y = 1.05f, z = 1.55f))
                     }
                     if (basement) {
-                        CubeNode(size = SceneSize(3.2f), position = Position(y = -1.15f), color = if (isDark) Color(0xFF182333) else Color(0xFFCAD5E1))
-                        CubeNode(size = SceneSize(0.10f), position = Position(y = -0.72f, z = -1.35f), color = wall)
-                        CubeNode(size = SceneSize(0.10f), position = Position(x = -1.35f, y = -0.72f), color = wall)
-                        SphereNode(radius = 0.09f, position = Position(x = -1.2f, y = -0.55f, z = -1.2f), color = offlineRed)
+                        CubeNode(size = SceneSize(3.2f), position = Position(y = -1.15f))
+                        CubeNode(size = SceneSize(0.10f), position = Position(y = -0.72f, z = -1.35f))
+                        CubeNode(size = SceneSize(0.10f), position = Position(x = -1.35f, y = -0.72f))
+                        SphereNode(radius = 0.09f, position = Position(x = -1.2f, y = -0.55f, z = -1.2f))
                     }
                 }
             }
