@@ -11,6 +11,7 @@ import json
 import os
 import re
 import secrets
+from urllib.parse import parse_qs, urlsplit
 from collections import defaultdict
 from dataclasses import dataclass, field
 
@@ -38,8 +39,13 @@ async def send_json(peer: ServerConnection, payload: dict) -> None:
 async def handler(peer: ServerConnection) -> None:
     room_code = ""
     try:
-        path = peer.request.path
-        parts = path.strip("/").split("/")
+        request = urlsplit(peer.request.path)
+        parts = request.path.strip("/").split("/")
+        required_token = os.getenv("SIGNAL_TOKEN", "").strip()
+        supplied_token = parse_qs(request.query).get("token", [""])[0]
+        if required_token and not secrets.compare_digest(supplied_token, required_token):
+            await peer.close(code=1008, reason="Invalid signaling token")
+            return
         if len(parts) != 2 or parts[0] != "signal":
             await peer.close(code=1008, reason="Invalid signaling path")
             return

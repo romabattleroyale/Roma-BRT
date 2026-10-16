@@ -20,6 +20,7 @@ class _StreamSessionScreenState extends State<StreamSessionScreen> {
   static const bg = Color(0xFF080B12), panel = Color(0xFF111824), cyan = Color(0xFF48E5F2), violet = Color(0xFF9B7BFF), muted = Color(0xFF8D9AAF);
   final url = TextEditingController();
   final room = TextEditingController();
+  final signalToken = TextEditingController();
   final turnUrls = TextEditingController();
   final turnUsername = TextEditingController();
   final turnCredential = TextEditingController();
@@ -62,6 +63,9 @@ class _StreamSessionScreenState extends State<StreamSessionScreen> {
     if (!RegExp(r'^[A-Z2-9]{6,10}$').hasMatch(code)) {
       _error('Il codice stanza deve avere 6–10 caratteri: A–Z e 2–9.'); return;
     }
+    if (widget.remote && signalToken.text.trim().isEmpty) {
+      _error('Per l’accesso remoto inserisci il token configurato sul server.'); return;
+    }
     if (widget.remote && !server.startsWith('wss://')) {
       _error('Fuori casa è richiesto wss:// con TLS. Non usare ws:// su Internet.'); return;
     }
@@ -69,7 +73,8 @@ class _StreamSessionScreenState extends State<StreamSessionScreen> {
     peerPresent = false; offerSent = false; creatingOffer = false; localTracksReady = false; pendingIce.clear();
     try {
       await video.initialize();
-      final endpoint = Uri.parse(server.endsWith('/') ? server + 'signal/' + code : server + '/signal/' + code);
+      final baseEndpoint = Uri.parse(server.endsWith('/') ? server + 'signal/' + code : server + '/signal/' + code);
+      final endpoint = signalToken.text.trim().isEmpty ? baseEndpoint : baseEndpoint.replace(queryParameters: {'token': signalToken.text.trim()});
       socket = await WebSocket.connect(endpoint.toString()).timeout(const Duration(seconds: 12));
       subscription = socket!.listen((data) => _handle(data),
         onDone: () async {
@@ -271,6 +276,8 @@ class _StreamSessionScreenState extends State<StreamSessionScreen> {
         _field('Server di segnalazione', url, hint: 'wss://tuo-server.example'),
         const SizedBox(height: 12),
         _field('Codice stanza', room, hint: '8 caratteri', uppercase: true),
+        const SizedBox(height: 10),
+        _field('Token di accesso (remoto)', signalToken, hint: widget.remote ? 'Token configurato sul server' : 'Lascia vuoto per test locale'),
         const SizedBox(height: 18),
         const Text('Relay TURN (facoltativo)', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w800, fontSize: 14)),
         const SizedBox(height: 6),
