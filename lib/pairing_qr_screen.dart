@@ -89,7 +89,7 @@ class _PairingQrScreenState extends State<PairingQrScreen> {
             Container(padding: const EdgeInsets.all(14), decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(18)),
               child: QrImageView(data: _payload, version: QrVersions.auto, size: 230)),
             const SizedBox(height: 16),
-            Text('Codice \${_room.text}', style: const TextStyle(color: _cyan, fontWeight: FontWeight.w800, letterSpacing: 2)),
+            Text('Codice ${_room.text}', style: const TextStyle(color: _cyan, fontWeight: FontWeight.w800, letterSpacing: 2)),
             const SizedBox(height: 12),
             OutlinedButton.icon(onPressed: () => setState(() { _room.text = _newRoom(); _message = null; }),
               icon: const Icon(Icons.refresh_rounded), label: const Text('Genera nuovo codice')),
