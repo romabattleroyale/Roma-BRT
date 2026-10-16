@@ -7,6 +7,8 @@ Android-first home-security command center built with Flutter.
 - Device list and event log start empty; no fake connected cameras or fake alarm events are presented.
 - WebRTC camera-to-viewer session flow is implemented in the app: camera capture, viewer receive-only track, SDP offer/answer and ICE exchange through the signaling WebSocket.
 - Protection remains marked as not configured until real devices are linked.
+- Actual session lifecycle events are stored locally on-device (up to 100 entries), and the user can clear the history.
+- The camera role includes experimental local MP4 recording and an in-app recording library; Android MediaRecorder support must be validated on a physical device.
 
 ## Product requirement: local and remote viewing
 SENTINEL ONE must support viewing cameras both at home and away from home:
