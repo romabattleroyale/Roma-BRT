@@ -571,7 +571,7 @@ class _StreamSessionScreenState extends State<StreamSessionScreen> {
           label: Text(busy ? 'Connessione…' : (socket == null ? (isCamera ? 'Avvia telecamera' : 'Collega al video') : 'Termina sessione')),
           style: FilledButton.styleFrom(backgroundColor: violet, foregroundColor: Colors.white, padding: const EdgeInsets.symmetric(vertical: 16))),
         const SizedBox(height: 12),
-        const Text('La rete locale richiede un server raggiungibile via Wi-Fi. Fuori casa servono un server WSS pubblicato e, per alcune reti, un relay TURN. Non inserire dati sensibili in server non verificati.', style: TextStyle(color: muted, fontSize: 11, height: 1.45)),
+        const Text('Il server WSS preconfigurato scambia solo i messaggi di segnalazione: non trasporta il video. Sullo stesso Wi-Fi WebRTC tenta una connessione video diretta tra i telefoni; alcune reti possono comunque richiedere TURN. Usa solo servizi di segnalazione fidati.', style: TextStyle(color: muted, fontSize: 11, height: 1.45)),
         TextButton.icon(onPressed: () => Clipboard.setData(ClipboardData(text: room.text)), icon: const Icon(Icons.copy_rounded), label: const Text('Copia codice stanza')),
       ]),
     );
