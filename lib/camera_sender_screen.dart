@@ -1,5 +1,5 @@
-import 'package:camera/camera.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_webrtc/flutter_webrtc.dart';
 
 const _bg = Color(0xFF080B12);
 const _panel = Color(0xFF111824);
@@ -15,87 +15,89 @@ class CameraSenderScreen extends StatefulWidget {
 
 class _CameraSenderScreenState extends State<CameraSenderScreen>
     with WidgetsBindingObserver {
-  CameraController? _controller;
+  final RTCVideoRenderer _renderer = RTCVideoRenderer();
+  MediaStream? _stream;
   bool _loading = true;
+  bool _frontCamera = false;
   String? _error;
-  List<CameraDescription> _cameras = const [];
-  int _selectedCamera = 0;
 
   @override
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
-    _initializeCamera();
+    _startPreview();
   }
 
-  Future<void> _initializeCamera() async {
+  Future<void> _startPreview() async {
     if (mounted) setState(() { _loading = true; _error = null; });
     try {
-      _cameras = await availableCameras();
-      if (_cameras.isEmpty) {
-        throw CameraException('no-camera', 'Nessuna fotocamera disponibile.');
+      await _renderer.initialize();
+      final stream = await navigator.mediaDevices.getUserMedia({
+        'audio': false,
+        'video': {
+          'facingMode': _frontCamera ? 'user' : 'environment',
+          'width': {'ideal': 1280},
+          'height': {'ideal': 720},
+          'frameRate': {'ideal': 24, 'max': 30},
+        },
+      });
+      if (!mounted) {
+        for (final track in stream.getTracks()) {
+          await track.stop();
+        }
+        await stream.dispose();
+        return;
       }
-      _selectedCamera = _selectedCamera.clamp(0, _cameras.length - 1).toInt();
-      final controller = CameraController(
-        _cameras[_selectedCamera], ResolutionPreset.veryHigh, enableAudio: false);
-      _controller = controller;
-      await controller.initialize();
-      if (!mounted) { await controller.dispose(); return; }
+      _stream = stream;
+      _renderer.srcObject = stream;
       setState(() => _loading = false);
-    } on CameraException catch (e) {
-      if (mounted) setState(() { _loading = false; _error = _cameraError(e); });
     } catch (e) {
       if (mounted) setState(() {
         _loading = false;
-        _error = 'Impossibile avviare la fotocamera: ' + e.toString();
+        _error = 'Impossibile avviare la fotocamera. Controlla i permessi Android e riprova.\n\nDettaglio: $e';
       });
     }
   }
 
-  String _cameraError(CameraException e) {
-    switch (e.code) {
-      case 'CameraAccessDenied':
-        return 'Permesso fotocamera negato. Consenti l’accesso nelle impostazioni Android.';
-      case 'CameraAccessDeniedWithoutPrompt':
-        return 'Accesso fotocamera bloccato. Abilitalo dalle impostazioni Android.';
-      case 'no-camera':
-        return e.description ?? 'Nessuna fotocamera disponibile.';
-      default:
-        return e.description ?? 'Errore fotocamera (' + e.code + ').';
+  Future<void> _stopPreview() async {
+    final stream = _stream;
+    _stream = null;
+    _renderer.srcObject = null;
+    if (stream != null) {
+      for (final track in stream.getTracks()) {
+        await track.stop();
+      }
+      await stream.dispose();
     }
   }
 
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
-    final controller = _controller;
-    if (state == AppLifecycleState.inactive || state == AppLifecycleState.paused) {
-      if (controller != null) {
-        _controller = null;
-        controller.dispose();
-      }
+    if (state == AppLifecycleState.inactive ||
+        state == AppLifecycleState.paused ||
+        state == AppLifecycleState.detached) {
+      _stopPreview();
     } else if (state == AppLifecycleState.resumed) {
-      _initializeCamera();
+      _startPreview();
     }
   }
 
   Future<void> _switchCamera() async {
-    if (_cameras.length < 2) return;
-    await _controller?.dispose();
-    _controller = null;
-    _selectedCamera = (_selectedCamera + 1) % _cameras.length;
-    await _initializeCamera();
+    setState(() => _frontCamera = !_frontCamera);
+    await _stopPreview();
+    await _startPreview();
   }
 
   @override
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
-    _controller?.dispose();
+    _stopPreview();
+    _renderer.dispose();
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
-    final controller = _controller;
     final size = MediaQuery.sizeOf(context);
     final previewHeight = (size.height * .48).clamp(320.0, 560.0);
     return Scaffold(
@@ -131,72 +133,56 @@ class _CameraSenderScreenState extends State<CameraSenderScreen>
                                   style: const TextStyle(color: Colors.white)),
                               const SizedBox(height: 16),
                               FilledButton(
-                                onPressed: _initializeCamera,
+                                onPressed: _startPreview,
                                 child: const Text('Riprova'),
                               ),
                             ],
                           ),
                         ),
                       )
-                    : controller != null && controller.value.isInitialized
-                        ? Stack(
-                            fit: StackFit.expand,
-                            children: [
-                              // Fill the tall preview area without distorting the image.
-                              // Any crop is limited to the edges, never a stretch.
-                              ClipRect(
-                                child: SizedBox.expand(
-                                  child: FittedBox(
-                                    fit: BoxFit.cover,
-                                    alignment: Alignment.center,
-                                    child: SizedBox(
-                                      width: controller.value.previewSize!.height,
-                                      height: controller.value.previewSize!.width,
-                                      child: CameraPreview(controller),
-                                    ),
-                                  ),
-                                ),
-                              ),
-                              Positioned(
-                                top: 12,
-                                left: 12,
-                                child: Container(
-                                  padding: const EdgeInsets.symmetric(
-                                      horizontal: 11, vertical: 7),
-                                  decoration: BoxDecoration(
-                                    color: Colors.black.withValues(alpha: .72),
-                                    borderRadius: BorderRadius.circular(20),
-                                  ),
-                                  child: const Row(
-                                    mainAxisSize: MainAxisSize.min,
-                                    children: [
-                                      Icon(Icons.circle, color: _green, size: 8),
-                                      SizedBox(width: 7),
-                                      Text('ANTEPRIMA LOCALE',
-                                          style: TextStyle(
-                                            color: Colors.white,
-                                            fontSize: 10,
-                                            fontWeight: FontWeight.bold,
-                                          )),
-                                    ],
-                                  ),
-                                ),
-                              ),
-                              if (_cameras.length > 1)
-                                Positioned(
-                                  right: 12,
-                                  bottom: 12,
-                                  child: IconButton.filled(
-                                    tooltip: 'Cambia fotocamera',
-                                    onPressed: _switchCamera,
-                                    icon: const Icon(Icons.cameraswitch_rounded),
-                                  ),
-                                ),
-                            ],
-                          )
-                        : const Center(
-                            child: Text('Fotocamera non disponibile'),
+                    : Stack(
+                        fit: StackFit.expand,
+                        children: [
+                          RTCVideoView(
+                            _renderer,
+                            objectFit: RTCVideoViewObjectFit.RTCVideoViewObjectFitCover,
                           ),
+                          Positioned(
+                            top: 12,
+                            left: 12,
+                            child: Container(
+                              padding: const EdgeInsets.symmetric(
+                                  horizontal: 11, vertical: 7),
+                              decoration: BoxDecoration(
+                                color: Colors.black.withValues(alpha: .72),
+                                borderRadius: BorderRadius.circular(20),
+                              ),
+                              child: const Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Icon(Icons.circle, color: _green, size: 8),
+                                  SizedBox(width: 7),
+                                  Text('ANTEPRIMA LOCALE',
+                                      style: TextStyle(
+                                        color: Colors.white,
+                                        fontSize: 10,
+                                        fontWeight: FontWeight.bold,
+                                      )),
+                                ],
+                              ),
+                            ),
+                          ),
+                          Positioned(
+                            right: 12,
+                            bottom: 12,
+                            child: IconButton.filled(
+                              tooltip: 'Cambia fotocamera',
+                              onPressed: _switchCamera,
+                              icon: const Icon(Icons.cameraswitch_rounded),
+                            ),
+                          ),
+                        ],
+                      ),
           ),
           const SizedBox(height: 18),
           const Text(
@@ -209,7 +195,7 @@ class _CameraSenderScreenState extends State<CameraSenderScreen>
           ),
           const SizedBox(height: 8),
           const Text(
-            'Anteprima dal vivo sul dispositivo. Il collegamento video con gli altri telefoni è il prossimo passaggio.',
+            'L’anteprima usa ora il motore multimediale WebRTC, la base tecnica per trasmettere il flusso a un secondo dispositivo.',
             style: TextStyle(color: _muted, height: 1.5),
           ),
           const SizedBox(height: 16),
@@ -226,7 +212,7 @@ class _CameraSenderScreenState extends State<CameraSenderScreen>
                 SizedBox(width: 12),
                 Expanded(
                   child: Text(
-                    'Privacy: per ora il video resta su questo telefono. La condivisione richiederà associazione sicura e trasporto video protetto.',
+                    'Il video resta su questo telefono: il pairing e lo scambio WebRTC con un ricevitore non sono ancora attivi. Non lasciare questa schermata aperta pensando che stia già trasmettendo.',
                     style: TextStyle(color: _muted, height: 1.45, fontSize: 12),
                   ),
                 ),
