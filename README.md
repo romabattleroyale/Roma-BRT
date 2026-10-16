@@ -1,55 +1,45 @@
 # SENTINEL ONE
-Android-first home-security command center built with Flutter.
 
-## Current state
-- Premium dark dashboard with violet/cyan accents.
-- Illustrative home plan with camera markers.
-- Camera/device list, demo event log, settings and interactive protection switch.
-- WebRTC camera-to-viewer session flow is implemented in the app: camera capture, viewer receive-only track, SDP offer/answer and ICE exchange through the signaling WebSocket.
-- UI labels demo states explicitly.
+App Android Flutter per associare un secondo telefono come telecamera e visualizzare il flusso via WebRTC.
 
-## Product requirement: local and remote viewing
-SENTINEL ONE must support viewing cameras both at home and away from home:
-- **Local mode:** prefer a direct connection over the home Wi-Fi/LAN when the viewer and camera phone are on the same network.
-- **Remote mode:** allow an authenticated viewer to connect over the internet, including when the viewer uses mobile data.
-- **Secure pairing:** each camera phone must be explicitly paired with the user's account or home, and access must be revocable.
-- **Transport security:** use encrypted connections and short-lived credentials; do not expose an unauthenticated camera stream to the public internet.
-- **Connectivity:** use WebRTC for live video where appropriate, a secure signaling service for pairing/session setup, and a TURN relay when direct peer-to-peer connectivity is blocked by NAT or carrier networks.
-- **Privacy and resilience:** clearly show connection status, avoid recording by default, and never label a demo state as a real camera state.
+## Associazione QR implementata
 
-Remote viewing is a core requirement, not an optional later add-on. Local Wi-Fi alone cannot provide access from outside the home. The remote signaling/relay service and Android permissions must be configured and tested before this can be considered a functioning security system.
+1. Sul telefono da usare come telecamera apri **Dispositivi → Mostra QR per associare un telefono**.
+2. Sul telefono monitor apri **Dispositivi → Scansiona QR di una telecamera** e inquadra il QR.
+3. Il monitor consuma un ticket monouso, valido 3 minuti. Il server rilascia credenziali separate per telecamera e monitor; il token amministrativo non viene inserito nel QR.
+4. Sul telefono telecamera premi **Avvia questa telecamera**. La sessione WebRTC parte automaticamente su entrambi i dispositivi.
 
-## Current limitations
-The app now contains the WebRTC session flow and a signaling relay development service, but **end-to-end streaming has not yet been verified on two physical phones**. No signaling service is deployed for the app, so the server address must be configured before a session can connect. The default local address is a placeholder and must be replaced with the host running the relay. Remote access still needs a published WSS endpoint, authenticated pairing, TURN infrastructure and security hardening. Push notifications, persistent event storage, Tapo RTSP/ONVIF integration and real AR/3D reconstruction are not implemented. The dashboard's plan, device states and event list remain illustrative/demo data; do not rely on this build as a security system.
+Il servizio di segnalazione usa HTTPS/WSS su Render. Il QR non contiene le credenziali di sessione a lungo termine. Le associazioni scadono dopo 24 ore e possono essere rigenerate mostrando un nuovo QR. I ticket sono monouso e il servizio applica un limite basilare alle richieste per IP.
 
-## Deploy the signaling relay (Render blueprint)
+## Limiti importanti da non confondere con un prodotto finito
 
-A starter deployment blueprint is provided in `render.yaml`. In Render, create a new Blueprint from this repository and confirm the `sentinel-one-signaling` web service. The blueprint generates a `SIGNAL_TOKEN` secret and binds the relay to the platform-assigned port. After deployment:
+- L’associazione QR e il flusso WebRTC sono collegati nel codice, ma non posso dichiarare verificato il video end-to-end finché non viene eseguito un test su due telefoni fisici.
+- Il servizio Render gratuito può andare in sleep; non è adatto a un sistema di sicurezza affidabile 24/7.
+- La configurazione attuale usa STUN pubblico. Alcune reti mobili, router e NAT richiedono un server TURN; senza TURN la connessione può non riuscire. Il fallback TURN non è ancora provisionato automaticamente.
+- La schermata dashboard non mostra più telecamere o eventi inventati. Il conteggio resta a zero finché non esiste un collegamento reale; l’elenco dei dispositivi non è ancora persistito tra riavvii.
+- Mancano ancora gestione utenti/casa, revoca persistente, notifiche push, registrazione eventi e integrazioni Tapo/RTSP/ONVIF. Non usare questa build come unico sistema di sicurezza.
 
-1. Copy the service's public hostname from Render; use it in the app as `wss://YOUR-SERVICE.onrender.com` (do not append `/signal/...`; the app adds that path itself).
-2. In Render's environment settings, reveal/copy the generated `SIGNAL_TOKEN` and enter it in the app's remote token field on both phones.
-3. Use the same room code on both phones. Camera and viewer must use the same signaling hostname and token.
-4. Test with both phones first on the same Wi-Fi. If signaling connects but WebRTC stays disconnected, configure a TURN provider in both sessions.
+## Servizio di segnalazione
 
-This only deploys the signaling relay; it does not automatically configure the mobile app or provision TURN. The free service may sleep when idle and is suitable only for a prototype, not a dependable security product. Do not treat a successful server deployment as proof that video works until the two-phone test succeeds.
+Il server usa `server/signaling_server.py` e una singola porta HTTP per:
+- `GET /health` stato servizio
+- `POST /pair/create` creazione ticket QR e credenziale telecamera
+- `POST /pair/consume` consumo monouso del ticket e credenziale monitor
+- `GET /signal/{room}` WebSocket autenticato per SDP/ICE WebRTC
 
-## Build
-Flutter and Android SDK:
+Il relay trasporta solo messaggi di segnalazione, non il video. Il video viaggia attraverso WebRTC tra i telefoni. Le credenziali per stanza vengono conservate in memoria: un riavvio del servizio invalida le associazioni in corso. Per uso reale servono storage condiviso, protezioni anti-abuso più robuste, monitoraggio, TURN e test di sicurezza.
+
+Il servizio pubblicato atteso dall’app è `https://sentinel-one-signaling.onrender.com` / `wss://sentinel-one-signaling.onrender.com`. La variabile `PUBLIC_SERVER` può sovrascrivere l’indirizzo WSS restituito dall’API.
+
+## Test e build
+
 ```sh
+python -m pip install -r server/requirements.txt
+python -m unittest discover -s server -p 'test_*.py'
 flutter pub get
 flutter analyze
 flutter test
 flutter build apk --release
 ```
-The GitHub Actions workflow checks the code and builds an APK artifact. Configure Android signing before distributing a signed release.
 
-
-## Connection setup UI
-Choose whether this phone is the camera or monitor, then select local Wi-Fi or remote access. The next screen lets you enter the signaling server and room code, explicitly start the camera or connect the viewer, and see connection status. Local mode still requires a signaling server reachable from both phones; remote mode requires `wss://`.
-
-
-## WebRTC signaling service (development foundation)
-
-A minimal WebSocket relay is available in `server/signaling_server.py`. It relays only WebRTC SDP offers/answers and ICE candidates; it does **not** carry video. The service currently uses short room codes as a development join mechanism and is **not production-secure** on its own.
-
-For remote deployment, set the environment variable `SIGNAL_TOKEN` to a long random secret and enter the same token in the app. The relay validates it using a constant-time comparison. The token is a basic shared-secret gate, not full user/account authentication. Before production use, add short-lived per-room credentials, WSS/TLS termination, origin/access controls, rate limiting and monitoring. Remote access also needs TURN credentials and a deployment endpoint. The Flutter app connects to this WebSocket protocol, but the included service is only a development relay. It is not deployed automatically by the GitHub Actions build and is not safe to expose publicly as-is.
+La workflow GitHub Actions esegue i test server, l’analisi Flutter e produce un APK come artifact quando la build termina con successo.

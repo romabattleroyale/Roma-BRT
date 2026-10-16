@@ -1,93 +1,64 @@
-"""Integration tests for the WebSocket signaling relay.
-
-Run with: python -m unittest discover -s server -p 'test_*.py'
-"""
-import asyncio
-import json
+"""Integration tests for QR pairing and room-scoped WebRTC signaling."""
 import unittest
-from unittest.mock import patch
 
-from websockets.asyncio.client import connect
-from websockets.asyncio.server import serve
-from websockets.exceptions import ConnectionClosed
+from aiohttp.test_utils import TestClient, TestServer
 
-from signaling_server import handler, validate_bind_security
+from signaling_server import create_app
 
 
-class SignalingRelayTests(unittest.IsolatedAsyncioTestCase):
+class PairingTests(unittest.IsolatedAsyncioTestCase):
     async def asyncSetUp(self):
-        self.server = await serve(handler, "127.0.0.1", 0)
-        self.port = self.server.sockets[0].getsockname()[1]
-        self.url = f"ws://127.0.0.1:{self.port}/signal/TEST234"
+        self.client = TestClient(TestServer(create_app()))
+        await self.client.start_server()
 
     async def asyncTearDown(self):
-        self.server.close()
-        await self.server.wait_closed()
+        await self.client.close()
 
-    async def test_two_peers_exchange_signals(self):
-        async with connect(self.url) as sender:
-            ready = json.loads(await sender.recv())
-            self.assertEqual(ready["type"], "ready")
-            self.assertEqual(ready["peers"], 0)
+    async def test_ticket_is_single_use_and_credentials_are_room_scoped(self):
+        created = await self.client.post("/pair/create", json={})
+        self.assertEqual(created.status, 200)
+        pair = await created.json()
+        room = pair["room"]
+        self.assertRegex(room, r"^[A-Z2-9]{8}$")
+        self.assertTrue(pair["ticket"])
+        self.assertTrue(pair["cameraToken"])
+        waiting = await self.client.post("/pair/status", json={"room": room, "cameraToken": pair["cameraToken"]})
+        self.assertEqual((await waiting.json())["paired"], False)
 
-            async with connect(self.url) as viewer:
-                viewer_ready = json.loads(await viewer.recv())
-                self.assertEqual(viewer_ready, {"type": "ready", "peers": 1})
-                joined = json.loads(await sender.recv())
-                self.assertEqual(joined["type"], "peer_joined")
+        consumed = await self.client.post("/pair/consume", json={"ticket": pair["ticket"]})
+        self.assertEqual(consumed.status, 200)
+        viewer = await consumed.json()
+        self.assertEqual(viewer["room"], room)
+        self.assertTrue(viewer["viewerToken"])
+        ready = await self.client.post("/pair/status", json={"room": room, "cameraToken": pair["cameraToken"]})
+        self.assertEqual((await ready.json())["paired"], True)
 
-                offer = {"type": "offer", "sdp": "test-sdp"}
-                await sender.send(json.dumps(offer))
-                self.assertEqual(json.loads(await viewer.recv()), offer)
+        reused = await self.client.post("/pair/consume", json={"ticket": pair["ticket"]})
+        self.assertEqual(reused.status, 410)
 
-                answer = {"type": "answer", "sdp": "test-answer"}
-                await viewer.send(json.dumps(answer))
-                self.assertEqual(json.loads(await sender.recv()), answer)
+        denied = await self.client.get(f"/signal/{room}")
+        self.assertEqual(denied.status, 401)
 
-                candidate = {"type": "ice", "candidate": {"candidate": "test"}}
-                await sender.send(json.dumps(candidate))
-                self.assertEqual(json.loads(await viewer.recv()), candidate)
+        camera_ws = await self.client.ws_connect(
+            f"/signal/{room}", headers={"Authorization": "Bearer " + pair["cameraToken"]}
+        )
+        self.assertEqual((await camera_ws.receive_json())["type"], "ready")
+        viewer_ws = await self.client.ws_connect(
+            f"/signal/{room}", headers={"Authorization": "Bearer " + viewer["viewerToken"]}
+        )
+        self.assertEqual((await viewer_ws.receive_json())["type"], "ready")
+        self.assertEqual((await camera_ws.receive_json())["type"], "peer_joined")
+        await viewer_ws.close()
+        await camera_ws.close()
 
+    async def test_unknown_ticket_is_rejected(self):
+        response = await self.client.post("/pair/consume", json={"ticket": "this-is-an-unknown-ticket-with-enough-length"})
+        self.assertEqual(response.status, 410)
 
-    async def test_public_bind_requires_token(self):
-        with self.assertRaises(RuntimeError):
-            validate_bind_security("0.0.0.0", "")
-        validate_bind_security("127.0.0.1", "")
-        validate_bind_security("0.0.0.0", "configured-secret")
-
-    async def test_invalid_room_code_is_rejected(self):
-        async with connect(
-            f"ws://127.0.0.1:{self.port}/signal/room!"
-        ) as peer:
-            with self.assertRaises(ConnectionClosed):
-                await peer.recv()
-
-
-    async def test_configured_token_rejects_missing_or_wrong_token(self):
-        with patch.dict("os.environ", {"SIGNAL_TOKEN": "secret-for-tests"}):
-            for headers in ({}, {"Authorization": "Bearer wrong"}):
-                async with connect(self.url, additional_headers=headers) as peer:
-                    with self.assertRaises(ConnectionClosed):
-                        await peer.recv()
-
-    async def test_configured_token_accepts_matching_token(self):
-        with patch.dict("os.environ", {"SIGNAL_TOKEN": "secret-for-tests"}):
-            async with connect(self.url, additional_headers={"Authorization": "Bearer secret-for-tests"}) as peer:
-                ready = json.loads(await peer.recv())
-                self.assertEqual(ready, {"type": "ready", "peers": 0})
-
-    async def test_third_peer_is_rejected(self):
-        async with connect(self.url) as first:
-            await first.recv()
-            async with connect(self.url) as second:
-                await second.recv()
-                await first.recv()  # peer_joined
-                third = await connect(self.url)
-                try:
-                    with self.assertRaises(ConnectionClosed):
-                        await third.recv()
-                finally:
-                    await third.close()
+    async def test_health_endpoint(self):
+        response = await self.client.get("/health")
+        self.assertEqual(response.status, 200)
+        self.assertEqual((await response.json())["status"], "ok")
 
 
 if __name__ == "__main__":

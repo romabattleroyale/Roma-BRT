@@ -9,9 +9,14 @@ import 'package:flutter_webrtc/flutter_webrtc.dart';
 enum StreamRole { camera, viewer }
 
 class StreamSessionScreen extends StatefulWidget {
-  const StreamSessionScreen({super.key, required this.role, required this.remote});
+  const StreamSessionScreen({super.key, required this.role, required this.remote, this.initialServer, this.initialRoom, this.initialToken, this.autoStart = false, this.pairedSession = false});
   final StreamRole role;
   final bool remote;
+  final String? initialServer;
+  final String? initialRoom;
+  final String? initialToken;
+  final bool autoStart;
+  final bool pairedSession;
   @override
   State<StreamSessionScreen> createState() => _StreamSessionScreenState();
 }
@@ -39,9 +44,13 @@ class _StreamSessionScreenState extends State<StreamSessionScreen> {
   @override
   void initState() {
     super.initState();
-    url.text = widget.remote ? 'wss://INSERISCI-IL-TUO-SERVER' : 'ws://192.168.1.10:8765';
-    room.text = _newCode();
+    url.text = widget.initialServer ?? (widget.remote ? 'wss://sentinel-one-signaling.onrender.com' : 'ws://192.168.1.10:8765');
+    room.text = widget.initialRoom ?? _newCode();
+    signalToken.text = widget.initialToken ?? '';
     video.initialize();
+    if (widget.autoStart) {
+      WidgetsBinding.instance.addPostFrameCallback((_) { if (mounted) _start(); });
+    }
   }
 
   String _newCode() {
@@ -283,22 +292,24 @@ class _StreamSessionScreenState extends State<StreamSessionScreen> {
         const SizedBox(height: 8),
         Text(isCamera ? 'Avvia la sessione e condividi il codice con il monitor. Il video parte quando il secondo dispositivo si collega.' : 'Inserisci lo stesso server e codice del telefono telecamera. Il video apparirà dopo la negoziazione WebRTC.', style: const TextStyle(color: muted, height: 1.45)),
         const SizedBox(height: 18),
-        _field('Server di segnalazione', url, hint: 'wss://tuo-server.example'),
-        const SizedBox(height: 12),
-        _field('Codice stanza', room, hint: '8 caratteri', uppercase: true),
-        const SizedBox(height: 10),
-        _field('Token di accesso (remoto)', signalToken, hint: widget.remote ? 'Token configurato sul server' : 'Lascia vuoto per test locale'),
-        const SizedBox(height: 18),
-        const Text('Relay TURN (facoltativo)', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w800, fontSize: 14)),
-        const SizedBox(height: 6),
-        const Text('Necessario su alcune reti, soprattutto per accesso remoto. Inserisci dati del tuo provider TURN; separa più URL con virgole.', style: TextStyle(color: muted, fontSize: 11, height: 1.4)),
-        const SizedBox(height: 10),
-        _field('URL TURN', turnUrls, hint: 'turn:host:3478, turns:host:5349'),
-        const SizedBox(height: 10),
-        _field('Nome utente TURN', turnUsername, hint: 'Nome utente'),
-        const SizedBox(height: 10),
-        _field('Credenziale TURN', turnCredential, hint: 'Password o token'),
-        if (isCamera) Align(alignment: Alignment.centerRight, child: TextButton.icon(onPressed: () { room.text = _newCode(); setState(() {}); }, icon: const Icon(Icons.refresh_rounded), label: const Text('Nuovo codice'))),
+        if (!widget.pairedSession) ...[
+          _field('Server di segnalazione', url, hint: 'wss://tuo-server.example'),
+          const SizedBox(height: 12),
+          _field('Codice stanza', room, hint: '8 caratteri', uppercase: true),
+          const SizedBox(height: 10),
+          _field('Token di accesso (remoto)', signalToken, hint: widget.remote ? 'Token configurato sul server' : 'Lascia vuoto per test locale'),
+          const SizedBox(height: 18),
+          const Text('Relay TURN (facoltativo)', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w800, fontSize: 14)),
+          const SizedBox(height: 6),
+          const Text('Necessario su alcune reti, soprattutto per accesso remoto. Inserisci dati del tuo provider TURN; separa più URL con virgole.', style: TextStyle(color: muted, fontSize: 11, height: 1.4)),
+          const SizedBox(height: 10),
+          _field('URL TURN', turnUrls, hint: 'turn:host:3478, turns:host:5349'),
+          const SizedBox(height: 10),
+          _field('Nome utente TURN', turnUsername, hint: 'Nome utente'),
+          const SizedBox(height: 10),
+          _field('Credenziale TURN', turnCredential, hint: 'Password o token'),
+        ],
+        if (isCamera && !widget.pairedSession) Align(alignment: Alignment.centerRight, child: TextButton.icon(onPressed: () { room.text = _newCode(); setState(() {}); }, icon: const Icon(Icons.refresh_rounded), label: const Text('Nuovo codice'))),
         if (error != null) Container(margin: const EdgeInsets.only(top: 12), padding: const EdgeInsets.all(12),
           decoration: BoxDecoration(color: const Color(0xFF351923), borderRadius: BorderRadius.circular(12)),
           child: Text(error!, style: const TextStyle(color: Color(0xFFFFA6B5), height: 1.4))),
@@ -308,8 +319,10 @@ class _StreamSessionScreenState extends State<StreamSessionScreen> {
           label: Text(busy ? 'Connessione…' : (socket == null ? (isCamera ? 'Avvia telecamera' : 'Collega al video') : 'Termina sessione')),
           style: FilledButton.styleFrom(backgroundColor: violet, foregroundColor: Colors.white, padding: const EdgeInsets.symmetric(vertical: 16))),
         const SizedBox(height: 12),
-        const Text('La rete locale richiede un server raggiungibile via Wi-Fi. Fuori casa servono un server WSS pubblicato e, per alcune reti, un relay TURN. Non inserire dati sensibili in server non verificati.', style: TextStyle(color: muted, fontSize: 11, height: 1.45)),
-        TextButton.icon(onPressed: () => Clipboard.setData(ClipboardData(text: room.text)), icon: const Icon(Icons.copy_rounded), label: const Text('Copia codice stanza')),
+        if (!widget.pairedSession) ...[
+          const Text('La rete locale richiede un server raggiungibile via Wi-Fi. Fuori casa servono un server WSS pubblicato e, per alcune reti, un relay TURN. Non inserire dati sensibili in server non verificati.', style: TextStyle(color: muted, fontSize: 11, height: 1.45)),
+          TextButton.icon(onPressed: () => Clipboard.setData(ClipboardData(text: room.text)), icon: const Icon(Icons.copy_rounded), label: const Text('Copia codice stanza')),
+        ]
       ]),
     );
   }

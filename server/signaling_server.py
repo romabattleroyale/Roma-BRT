@@ -1,124 +1,210 @@
-"""Minimal WebSocket signaling relay for SENTINEL ONE WebRTC sessions.
+"""SENTINEL ONE signaling and short-lived QR pairing service.
 
-This service exchanges SDP/ICE only; media travels over WebRTC, not through
-this process. Deploy behind HTTPS/WSS with authentication, rate limiting and
-short-lived room credentials before using outside a trusted test network.
+WebRTC media is peer-to-peer; this service handles pairing and SDP/ICE only.
 """
 from __future__ import annotations
 
 import asyncio
+import hashlib
 import json
 import os
 import re
 import secrets
-from urllib.parse import urlsplit
+import time
 from collections import defaultdict
 from dataclasses import dataclass, field
+from urllib.parse import urlsplit
 
-from websockets.asyncio.server import ServerConnection, serve
-from websockets.exceptions import ConnectionClosed
+from aiohttp import web, WSMsgType
 
 ROOM_RE = re.compile(r"^[A-Z2-9]{6,10}$")
 MAX_MESSAGE_BYTES = 64 * 1024
 MAX_PEERS_PER_ROOM = 2
+PAIR_TTL_SECONDS = 180
+ROOM_TTL_SECONDS = 24 * 60 * 60
 
 
 @dataclass
 class Room:
-    peers: set[ServerConnection] = field(default_factory=set)
+    camera_token_hash: str
+    viewer_token_hash: str
+    expires_at: float
+    peers: set[web.WebSocketResponse] = field(default_factory=set)
     lock: asyncio.Lock = field(default_factory=asyncio.Lock)
 
 
-rooms: dict[str, Room] = defaultdict(Room)
+@dataclass
+class PairTicket:
+    room: str
+    camera_token: str
+    expires_at: float
 
 
-async def send_json(peer: ServerConnection, payload: dict) -> None:
-    await peer.send(json.dumps(payload, separators=(",", ":")))
+rooms: dict[str, Room] = {}
+tickets: dict[str, PairTicket] = {}
+rate_windows: dict[str, list[float]] = defaultdict(list)
 
 
-async def handler(peer: ServerConnection) -> None:
-    room_code = ""
+def _hash(value: str) -> str:
+    return hashlib.sha256(value.encode("utf-8")).hexdigest()
+
+
+def _new_room() -> str:
+    alphabet = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789"
+    while True:
+        code = "".join(secrets.choice(alphabet) for _ in range(8))
+        if code not in rooms:
+            return code
+
+
+def _rate_limit(request: web.Request, key: str, limit: int = 20) -> None:
+    now = time.monotonic()
+    entries = [stamp for stamp in rate_windows[key] if now - stamp < 60]
+    if len(entries) >= limit:
+        raise web.HTTPTooManyRequests(text="Troppe richieste. Riprova tra poco.")
+    entries.append(now)
+    rate_windows[key] = entries
+
+
+async def create_pair(request: web.Request) -> web.Response:
+    _rate_limit(request, "create:" + (request.remote or "unknown"), 10)
+    now = time.time()
+    for code in [code for code, room in rooms.items() if room.expires_at <= now]:
+        rooms.pop(code, None)
+    for ticket in [key for key, item in tickets.items() if item.expires_at <= now]:
+        tickets.pop(ticket, None)
+    room_code = _new_room()
+    camera_token = secrets.token_urlsafe(32)
+    ticket = secrets.token_urlsafe(32)
+    rooms[room_code] = Room(
+        camera_token_hash=_hash(camera_token),
+        viewer_token_hash="",
+        expires_at=now + ROOM_TTL_SECONDS,
+    )
+    tickets[_hash(ticket)] = PairTicket(room_code, camera_token, now + PAIR_TTL_SECONDS)
+    return web.json_response({
+        "room": room_code,
+        "ticket": ticket,
+        "cameraToken": camera_token,
+        "expiresIn": PAIR_TTL_SECONDS,
+        "server": request.app["public_server"],
+    })
+
+
+async def consume_pair(request: web.Request) -> web.Response:
+    _rate_limit(request, "consume:" + (request.remote or "unknown"), 30)
     try:
-        request = urlsplit(peer.request.path)
-        parts = request.path.strip("/").split("/")
-        required_token = os.getenv("SIGNAL_TOKEN", "").strip()
-        authorization = peer.request.headers.get("Authorization", "")
-        supplied_token = authorization.removeprefix("Bearer ").strip() if authorization.startswith("Bearer ") else ""
-        if required_token and not secrets.compare_digest(supplied_token, required_token):
-            await peer.close(code=1008, reason="Invalid signaling token")
-            return
-        if len(parts) != 2 or parts[0] != "signal":
-            await peer.close(code=1008, reason="Invalid signaling path")
-            return
-        room_code = parts[1].upper()
-        if not ROOM_RE.fullmatch(room_code):
-            await peer.close(code=1008, reason="Invalid room code")
-            return
+        body = await request.json()
+    except (json.JSONDecodeError, web.HTTPBadRequest):
+        raise web.HTTPBadRequest(text="Richiesta non valida.")
+    ticket = body.get("ticket") if isinstance(body, dict) else None
+    if not isinstance(ticket, str) or len(ticket) < 20:
+        raise web.HTTPBadRequest(text="Codice QR non valido.")
+    pair = tickets.pop(_hash(ticket), None)
+    if pair is None or pair.expires_at <= time.time():
+        raise web.HTTPGone(text="QR scaduto o già utilizzato. Genera un nuovo codice dal telefono telecamera.")
+    room = rooms.get(pair.room)
+    if room is None or room.expires_at <= time.time() or room.viewer_token_hash:
+        raise web.HTTPGone(text="Associazione non più disponibile. Genera un nuovo QR.")
+    viewer_token = secrets.token_urlsafe(32)
+    room.viewer_token_hash = _hash(viewer_token)
+    return web.json_response({
+        "room": pair.room,
+        "viewerToken": viewer_token,
+        "expiresIn": int(room.expires_at - time.time()),
+        "server": request.app["public_server"],
+    })
 
-        room = rooms[room_code]
-        async with room.lock:
-            if len(room.peers) >= MAX_PEERS_PER_ROOM:
-                await peer.close(code=1013, reason="Room is full")
-                return
-            room.peers.add(peer)
-            peers = tuple(p for p in room.peers if p is not peer)
 
-        await send_json(peer, {"type": "ready", "peers": len(peers)})
-        for other in peers:
-            await send_json(other, {"type": "peer_joined"})
+async def pair_status(request: web.Request) -> web.Response:
+    try:
+        body = await request.json()
+    except (json.JSONDecodeError, web.HTTPBadRequest):
+        raise web.HTTPBadRequest(text="Richiesta non valida.")
+    room_code = body.get("room") if isinstance(body, dict) else None
+    camera_token = body.get("cameraToken") if isinstance(body, dict) else None
+    if not isinstance(room_code, str) or not ROOM_RE.fullmatch(room_code):
+        raise web.HTTPBadRequest(text="Stanza non valida.")
+    room = rooms.get(room_code)
+    if room is None or room.expires_at <= time.time():
+        raise web.HTTPGone(text="Associazione scaduta.")
+    if not isinstance(camera_token, str) or not secrets.compare_digest(_hash(camera_token), room.camera_token_hash):
+        raise web.HTTPUnauthorized(text="Credenziale telecamera non valida.")
+    return web.json_response({"paired": bool(room.viewer_token_hash)})
 
-        async for raw in peer:
-            if not isinstance(raw, str) or len(raw.encode("utf-8")) > MAX_MESSAGE_BYTES:
-                await peer.close(code=1009, reason="Message too large")
-                break
-            try:
-                message = json.loads(raw)
-            except json.JSONDecodeError:
-                await peer.close(code=1007, reason="Invalid JSON")
-                break
-            if not isinstance(message, dict) or message.get("type") not in {
-                "offer", "answer", "ice", "hangup"
-            }:
-                await send_json(peer, {"type": "error", "message": "Unsupported signal"})
-                continue
-            async with room.lock:
-                recipients = tuple(p for p in room.peers if p is not peer)
-            for other in recipients:
-                await send_json(other, message)
-    except ConnectionClosed:
-        pass
-    finally:
-        if room_code in rooms:
-            room = rooms[room_code]
-            async with room.lock:
-                room.peers.discard(peer)
-                remaining = tuple(room.peers)
-                if not room.peers:
-                    rooms.pop(room_code, None)
-            for other in remaining:
+
+async def websocket_signal(request: web.Request) -> web.StreamResponse:
+    code = request.match_info.get("room", "").upper()
+    if not ROOM_RE.fullmatch(code):
+        raise web.HTTPBadRequest(text="Codice stanza non valido.")
+    room = rooms.get(code)
+    if room is None or room.expires_at <= time.time():
+        raise web.HTTPGone(text="Associazione scaduta. Scansiona un nuovo QR.")
+    authorization = request.headers.get("Authorization", "")
+    supplied = authorization.removeprefix("Bearer ").strip() if authorization.startswith("Bearer ") else ""
+    supplied_hash = _hash(supplied) if supplied else ""
+    if not (secrets.compare_digest(supplied_hash, room.camera_token_hash) or
+            (room.viewer_token_hash and secrets.compare_digest(supplied_hash, room.viewer_token_hash))):
+        raise web.HTTPUnauthorized(text="Credenziale di associazione non valida.")
+
+    ws = web.WebSocketResponse(max_msg_size=MAX_MESSAGE_BYTES, heartbeat=20)
+    await ws.prepare(request)
+    async with room.lock:
+        if len(room.peers) >= MAX_PEERS_PER_ROOM:
+            await ws.close(code=1013, message=b"Room is full")
+            return ws
+        room.peers.add(ws)
+        peers = tuple(peer for peer in room.peers if peer is not ws)
+    await ws.send_json({"type": "ready", "peers": len(peers)})
+    for other in peers:
+        await other.send_json({"type": "peer_joined"})
+    try:
+        async for message in ws:
+            if message.type == WSMsgType.TEXT:
                 try:
-                    await send_json(other, {"type": "peer_left"})
-                except ConnectionClosed:
-                    pass
+                    payload = json.loads(message.data)
+                except json.JSONDecodeError:
+                    await ws.close(code=1007, message=b"Invalid JSON")
+                    break
+                if not isinstance(payload, dict) or payload.get("type") not in {"offer", "answer", "ice", "hangup"}:
+                    await ws.send_json({"type": "error", "message": "Unsupported signal"})
+                    continue
+                async with room.lock:
+                    recipients = tuple(peer for peer in room.peers if peer is not ws)
+                for other in recipients:
+                    await other.send_json(payload)
+            elif message.type in (WSMsgType.ERROR, WSMsgType.CLOSE, WSMsgType.CLOSED):
+                break
+    finally:
+        async with room.lock:
+            room.peers.discard(ws)
+            remaining = tuple(room.peers)
+        for other in remaining:
+            try:
+                await other.send_json({"type": "peer_left"})
+            except (ConnectionError, RuntimeError):
+                pass
+    return ws
 
 
-def validate_bind_security(host: str, token: str) -> None:
-    if host not in {"127.0.0.1", "localhost", "::1"} and not token.strip():
-        raise RuntimeError("SIGNAL_TOKEN must be configured before binding the signaling service to a non-loopback interface")
+async def health(request: web.Request) -> web.Response:
+    return web.json_response({"service": "sentinel-one-signaling", "status": "ok"})
 
 
-async def main() -> None:
-    host = os.getenv("SIGNAL_HOST", "127.0.0.1")
-    # Platforms such as Render provide PORT dynamically; keep SIGNAL_PORT for local use.
-    port = int(os.getenv("PORT", os.getenv("SIGNAL_PORT", "8765")))
-    validate_bind_security(host, os.getenv("SIGNAL_TOKEN", ""))
-    async with serve(
-        handler, host, port, max_size=MAX_MESSAGE_BYTES,
-        ping_interval=20, ping_timeout=20,
-    ):
-        print(f"SENTINEL ONE signaling listening on {host}:{port}")
-        await asyncio.Future()
+def create_app() -> web.Application:
+    app = web.Application(client_max_size=16 * 1024)
+    app["public_server"] = os.getenv(
+        "PUBLIC_SERVER", "wss://sentinel-one-signaling.onrender.com"
+    ).rstrip("/")
+    app.router.add_get("/health", health)
+    app.router.add_post("/pair/create", create_pair)
+    app.router.add_post("/pair/consume", consume_pair)
+    app.router.add_post("/pair/status", pair_status)
+    app.router.add_get("/signal/{room}", websocket_signal)
+    return app
 
 
 if __name__ == "__main__":
-    asyncio.run(main())
+    host = os.getenv("SIGNAL_HOST", "127.0.0.1")
+    port = int(os.getenv("PORT", os.getenv("SIGNAL_PORT", "8765")))
+    web.run_app(create_app(), host=host, port=port, print=lambda msg: print(msg))
