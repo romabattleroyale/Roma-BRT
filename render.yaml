@@ -1,0 +1,11 @@
+services:
+  - type: web
+    name: sentinel-one-signaling
+    runtime: docker
+    plan: free
+    dockerfilePath: ./Dockerfile
+    envVars:
+      - key: SIGNAL_HOST
+        value: 0.0.0.0
+      - key: SIGNAL_TOKEN
+        generateValue: true
