@@ -96,6 +96,10 @@ class _CustomRelaySessionScreenState extends State<CustomRelaySessionScreen> {
     // Ignore late callbacks from a session that the user has already replaced.
     if (!identical(transport, client)) return;
     transport = null;
+    // Close the failed socket as well as releasing the camera. On a socket
+    // error, onDone is not guaranteed to follow onError, so leaving the
+    // subscription alive here can leak a stale session.
+    await client.close();
     await _stopCamera();
     if (!mounted) return;
     setState(() {
