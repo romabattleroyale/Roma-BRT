@@ -5,27 +5,34 @@ import 'package:shared_preferences/shared_preferences.dart';
 class EventStore {
   static const _storageKey = 'sentinel_one_security_events_v1';
   static const _maxEvents = 100;
+  static Future<void> _writeQueue = Future<void>.value();
 
-  static Future<void> record(String title, String detail) async {
-    try {
-      final prefs = await SharedPreferences.getInstance();
-      final events = prefs.getStringList(_storageKey) ?? <String>[];
-      events.insert(0, jsonEncode(<String, String>{
-        'title': title,
-        'detail': detail,
-        'time': DateTime.now().toIso8601String(),
-      }));
-      if (events.length > _maxEvents) {
-        events.removeRange(_maxEvents, events.length);
+  static Future<void> record(String title, String detail) {
+    // Serialize read-modify-write operations so concurrent WebRTC callbacks
+    // cannot overwrite one another's events.
+    _writeQueue = _writeQueue.then((_) async {
+      try {
+        final prefs = await SharedPreferences.getInstance();
+        final events = prefs.getStringList(_storageKey) ?? <String>[];
+        events.insert(0, jsonEncode(<String, String>{
+          'title': title,
+          'detail': detail,
+          'time': DateTime.now().toIso8601String(),
+        }));
+        if (events.length > _maxEvents) {
+          events.removeRange(_maxEvents, events.length);
+        }
+        await prefs.setStringList(_storageKey, events);
+      } catch (_) {
+        // Event logging must never interrupt camera or monitor operation.
       }
-      await prefs.setStringList(_storageKey, events);
-    } catch (_) {
-      // Event logging must never interrupt camera or monitor operation.
-    }
+    });
+    return _writeQueue;
   }
 
   static Future<List<Map<String, String>>> load() async {
     try {
+      await _writeQueue;
       final prefs = await SharedPreferences.getInstance();
       final stored = prefs.getStringList(_storageKey) ?? <String>[];
       final events = <Map<String, String>>[];
@@ -50,10 +57,13 @@ class EventStore {
     }
   }
 
-  static Future<void> clear() async {
-    try {
-      final prefs = await SharedPreferences.getInstance();
-      await prefs.remove(_storageKey);
-    } catch (_) {}
+  static Future<void> clear() {
+    _writeQueue = _writeQueue.then((_) async {
+      try {
+        final prefs = await SharedPreferences.getInstance();
+        await prefs.remove(_storageKey);
+      } catch (_) {}
+    });
+    return _writeQueue;
   }
 }
