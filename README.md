@@ -22,6 +22,17 @@ Remote viewing is a core requirement, not an optional later add-on. Local Wi-Fi 
 ## Current limitations
 The app now contains the WebRTC session flow and a signaling relay development service, but **end-to-end streaming has not yet been verified on two physical phones**. No signaling service is deployed for the app, so the server address must be configured before a session can connect. The default local address is a placeholder and must be replaced with the host running the relay. Remote access still needs a published WSS endpoint, authenticated pairing, TURN infrastructure and security hardening. Push notifications, persistent event storage, Tapo RTSP/ONVIF integration and real AR/3D reconstruction are not implemented. The dashboard's plan, device states and event list remain illustrative/demo data; do not rely on this build as a security system.
 
+## Deploy the signaling relay (Render blueprint)
+
+A starter deployment blueprint is provided in `render.yaml`. In Render, create a new Blueprint from this repository and confirm the `sentinel-one-signaling` web service. The blueprint generates a `SIGNAL_TOKEN` secret and binds the relay to the platform-assigned port. After deployment:
+
+1. Copy the service's public hostname from Render; use it in the app as `wss://YOUR-SERVICE.onrender.com` (do not append `/signal/...`; the app adds that path itself).
+2. In Render's environment settings, reveal/copy the generated `SIGNAL_TOKEN` and enter it in the app's remote token field on both phones.
+3. Use the same room code on both phones. Camera and viewer must use the same signaling hostname and token.
+4. Test with both phones first on the same Wi-Fi. If signaling connects but WebRTC stays disconnected, configure a TURN provider in both sessions.
+
+This only deploys the signaling relay; it does not automatically configure the mobile app or provision TURN. The free service may sleep when idle and is suitable only for a prototype, not a dependable security product. Do not treat a successful server deployment as proof that video works until the two-phone test succeeds.
+
 ## Build
 Flutter and Android SDK:
 ```sh
