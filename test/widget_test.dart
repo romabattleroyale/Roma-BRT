@@ -22,12 +22,17 @@ void main() {
     await tester.pumpWidget(const MaterialApp(home: HousePlanScreen()));
     await tester.pumpAndSettle();
 
-    final plan = find.byType(AspectRatio);
+    // Scroll the ListView normally instead of ensureVisible(AspectRatio): the
+    // latter can trigger a Flutter test build-scope assertion during animated
+    // scrolling on this screen.
+    await tester.drag(find.byType(ListView), const Offset(0, -500));
+    await tester.pumpAndSettle();
+
+    final plan = find.byType(GestureDetector).first;
     expect(plan, findsOneWidget);
-    await tester.ensureVisible(plan);
-    await tester.pumpAndSettle();
-    await tester.tapAt(tester.getCenter(plan));
-    await tester.pumpAndSettle();
+    await tester.tap(plan);
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 300));
 
     expect(find.text('Aggiungi punto telecamera'), findsOneWidget);
     await tester.enterText(find.byType(TextField), 'Ingresso');
