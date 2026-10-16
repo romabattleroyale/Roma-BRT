@@ -9,6 +9,8 @@ import 'package:mobile_scanner/mobile_scanner.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:qr_flutter/qr_flutter.dart';
 import 'event_store.dart';
+import 'pairing_payload.dart';
+import 'signaling_config.dart';
 
 enum StreamRole { camera, viewer }
 
@@ -60,7 +62,10 @@ class _StreamSessionScreenState extends State<StreamSessionScreen> {
   @override
   void initState() {
     super.initState();
-    url.text = widget.remote ? 'wss://sentinel-one-signaling.onrender.com' : 'ws://192.168.1.10:8765';
+    // Use the managed WSS signaling relay in both modes. On the same Wi-Fi, WebRTC
+    // can still establish a direct media path; this avoids requiring a separate
+    // laptop/server on the home network just to exchange SDP and ICE.
+    url.text = defaultSignalingServerUrl;
     room.text = _newCode();
     _rendererReady = video.initialize();
   }
@@ -407,22 +412,15 @@ class _StreamSessionScreenState extends State<StreamSessionScreen> {
     );
     if (!mounted || scanned == null) return;
     try {
-      final decoded = jsonDecode(scanned);
-      if (decoded is! Map<String, dynamic>) throw const FormatException();
-      final scannedServer = decoded['server'];
-      final scannedRoom = decoded['room'];
-      if (scannedServer is! String || scannedRoom is! String) throw const FormatException();
-      final parsedServer = Uri.tryParse(scannedServer);
-      final normalizedRoom = scannedRoom.toUpperCase();
-      if (parsedServer == null ||
-          !(parsedServer.scheme == 'ws' || parsedServer.scheme == 'wss') ||
-          parsedServer.host.isEmpty ||
-          normalizedRoom.length < 6 || normalizedRoom.length > 10 ||
-          !RegExp(r'^[A-Z2-9]{6,10}$').hasMatch(normalizedRoom)) {
-        throw const FormatException();
-      }
-      setState(() { url.text = scannedServer; room.text = normalizedRoom; error = null; });
-    } catch (_) { _error('QR non valido. Scansiona il codice generato da SENTINEL ONE.'); }
+      final pairing = PairingPayload.parse(scanned);
+      setState(() {
+        url.text = pairing.server.toString();
+        room.text = pairing.room;
+        error = null;
+      });
+    } on FormatException {
+      _error('QR non valido. Scansiona il codice generato da SENTINEL ONE.');
+    }
   }
 
   void _scheduleReconnect() {
