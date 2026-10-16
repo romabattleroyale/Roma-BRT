@@ -172,5 +172,24 @@ class SignalingRelayTests(unittest.IsolatedAsyncioTestCase):
                     await third.close()
 
 
+    async def test_stream_route_forwards_binary_frames(self):
+        """The main server must route /stream rooms to the JPEG relay."""
+        camera_url = f"ws://127.0.0.1:{self.port}/stream/STREAM23"
+        viewer_url = camera_url
+        async with connect(camera_url) as camera:
+            await camera.send(json.dumps({"type": "join", "role": "camera"}))
+            camera_ready = json.loads(await camera.recv())
+            self.assertEqual(camera_ready["type"], "ready")
+            self.assertFalse(camera_ready["peerPresent"])
+            async with connect(viewer_url) as viewer:
+                await viewer.send(json.dumps({"type": "join", "role": "viewer"}))
+                viewer_ready = json.loads(await viewer.recv())
+                self.assertTrue(viewer_ready["peerPresent"])
+                self.assertEqual(json.loads(await camera.recv())["type"], "peer_joined")
+                frame = b"\\xff\\xd8relay-route-test\\xff\\xd9"
+                await camera.send(frame)
+                self.assertEqual(await asyncio.wait_for(viewer.recv(), 1), frame)
+
+
 if __name__ == "__main__":
     unittest.main()
