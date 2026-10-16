@@ -54,12 +54,13 @@ class _HousePlanScreenState extends State<HousePlanScreen> {
       builder: (dialogContext) => AlertDialog(
         backgroundColor: _panel,
         title: const Text('Aggiungi punto telecamera'),
-        content: TextField(
+        content: TextFormField(
+          initialValue: markerName,
           autofocus: true,
           maxLength: 32,
           decoration: const InputDecoration(labelText: 'Nome / posizione'),
           onChanged: (value) => markerName = value,
-          onSubmitted: (value) => Navigator.pop(dialogContext, value.trim()),
+          onFieldSubmitted: (value) => Navigator.pop(dialogContext, value.trim()),
         ),
         actions: [
           TextButton(onPressed: () => Navigator.pop(dialogContext), child: const Text('Annulla')),
@@ -118,11 +119,12 @@ class _HousePlanScreenState extends State<HousePlanScreen> {
         builder: (dialogContext) => AlertDialog(
           backgroundColor: _panel,
           title: const Text('Rinomina punto'),
-          content: TextField(
+          content: TextFormField(
+            initialValue: renamed,
             autofocus: true,
             maxLength: 32,
             onChanged: (value) => renamed = value,
-            onSubmitted: (value) => Navigator.pop(dialogContext, value.trim()),
+            onFieldSubmitted: (value) => Navigator.pop(dialogContext, value.trim()),
           ),
           actions: [
             TextButton(onPressed: () => Navigator.pop(dialogContext), child: const Text('Annulla')),
