@@ -81,8 +81,11 @@ class _CustomRelaySessionScreenState extends State<CustomRelaySessionScreen> {
           if (mounted && !widget.cameraRole) setState(() => frame = bytes);
         },
       );
-      await client.connect();
+      // Publish the active client before connecting so an immediate server
+      // close cannot race ahead of the identity check in the disconnect handler.
       transport = client;
+      await client.connect();
+      if (!identical(transport, client)) return;
       if (widget.cameraRole) await _startCamera();
       if (mounted) setState(() { busy = false; });
     } catch (e) {
