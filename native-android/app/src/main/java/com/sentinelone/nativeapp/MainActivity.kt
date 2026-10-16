@@ -2,12 +2,21 @@ package com.sentinelone.nativeapp
 
 import android.Manifest
 import android.content.pm.PackageManager
+import android.graphics.Bitmap
+import android.graphics.BitmapFactory
 import android.os.Build
 import android.os.Bundle
+import android.util.Size
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
+import androidx.camera.core.CameraSelector
+import androidx.camera.core.ImageCapture
+import androidx.camera.core.ImageCaptureException
+import androidx.camera.core.ImageProxy
+import androidx.camera.lifecycle.ProcessCameraProvider
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -19,15 +28,20 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.google.android.gms.nearby.Nearby
 import com.google.android.gms.nearby.connection.*
-import com.google.android.gms.tasks.Task
+import java.io.ByteArrayOutputStream
+import java.util.concurrent.ExecutorService
+import java.util.concurrent.Executors
+import java.util.concurrent.atomic.AtomicBoolean
 
 private const val SERVICE_ID = "com.sentinelone.nativeapp.camera-link"
 private const val PERMISSION_REQUEST = 401
+private const val MAX_FRAME_BYTES = 28 * 1024
 
 private val Night = Color(0xFF080B13)
 private val Panel = Color(0xFF111827)
@@ -37,11 +51,17 @@ private val Muted = Color(0xFF9BA8BC)
 
 class MainActivity : ComponentActivity() {
     private lateinit var connections: ConnectionsClient
+    private val cameraExecutor: ExecutorService = Executors.newSingleThreadExecutor()
+    private val captureActive = AtomicBoolean(false)
+    private var imageCapture: ImageCapture? = null
     private var role by mutableStateOf("monitor")
     private var status by mutableStateOf("Pronto per collegare i dispositivi")
     private var connectedName by mutableStateOf<String?>(null)
     private var discovered by mutableStateOf<List<Pair<String, String>>>(emptyList())
     private var working by mutableStateOf(false)
+    private var remoteFrame by mutableStateOf<Bitmap?>(null)
+    private var sentFrames by mutableIntStateOf(0)
+    private var receivedFrames by mutableIntStateOf(0)
     private var activeEndpoint: String? = null
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -50,20 +70,14 @@ class MainActivity : ComponentActivity() {
         setContent {
             MaterialTheme(
                 colorScheme = darkColorScheme(
-                    primary = Cyan,
-                    secondary = Violet,
-                    background = Night,
-                    surface = Panel,
-                    onBackground = Color.White,
-                    onSurface = Color.White
+                    primary = Cyan, secondary = Violet, background = Night,
+                    surface = Panel, onBackground = Color.White, onSurface = Color.White
                 )
             ) {
                 Dashboard(
-                    role = role,
-                    status = status,
-                    connectedName = connectedName,
-                    discovered = discovered,
-                    working = working,
+                    role = role, status = status, connectedName = connectedName,
+                    discovered = discovered, working = working, remoteFrame = remoteFrame,
+                    sentFrames = sentFrames, receivedFrames = receivedFrames,
                     onRole = { role = it; stopSearching() },
                     onStart = { startPairing() },
                     onConnect = { endpoint -> requestPair(endpoint) },
@@ -74,19 +88,18 @@ class MainActivity : ComponentActivity() {
     }
 
     private fun requiredPermissions(): Array<String> {
-        val result = mutableListOf(
-            Manifest.permission.BLUETOOTH_SCAN,
-            Manifest.permission.BLUETOOTH_CONNECT,
-            Manifest.permission.BLUETOOTH_ADVERTISE,
-            Manifest.permission.NEARBY_WIFI_DEVICES
-        )
-        if (Build.VERSION.SDK_INT <= 32) {
+        val result = mutableListOf<String>()
+        if (Build.VERSION.SDK_INT >= 31) {
+            result += Manifest.permission.BLUETOOTH_SCAN
+            result += Manifest.permission.BLUETOOTH_CONNECT
+            result += Manifest.permission.BLUETOOTH_ADVERTISE
+        } else {
+            result += Manifest.permission.BLUETOOTH
+            result += Manifest.permission.BLUETOOTH_ADMIN
             result += Manifest.permission.ACCESS_FINE_LOCATION
-            if (Build.VERSION.SDK_INT <= 30) {
-                result += Manifest.permission.BLUETOOTH
-                result += Manifest.permission.BLUETOOTH_ADMIN
-            }
         }
+        if (Build.VERSION.SDK_INT >= 33) result += Manifest.permission.NEARBY_WIFI_DEVICES
+        if (role == "camera") result += Manifest.permission.CAMERA
         return result.toTypedArray()
     }
 
@@ -96,32 +109,24 @@ class MainActivity : ComponentActivity() {
         }
         if (missing.isNotEmpty()) {
             ActivityCompat.requestPermissions(this, missing.toTypedArray(), PERMISSION_REQUEST)
-            status = "Autorizza i dispositivi nelle vicinanze, poi premi di nuovo"
+            status = "Concedi i permessi richiesti e premi di nuovo"
             return
         }
-
         discovered = emptyList()
         connectedName = null
         activeEndpoint = null
         working = true
         status = if (role == "monitor") "Monitor visibile agli altri telefoni" else "Ricerca del monitor nelle vicinanze…"
-
         if (role == "monitor") {
-            val options = AdvertisingOptions.Builder()
-                .setStrategy(Strategy.P2P_POINT_TO_POINT)
-                .build()
             connections.startAdvertising(
-                "SENTINEL ONE · Monitor",
-                SERVICE_ID,
-                lifecycleCallback,
-                options
+                "SENTINEL ONE · Monitor", SERVICE_ID, lifecycleCallback,
+                AdvertisingOptions.Builder().setStrategy(Strategy.P2P_POINT_TO_POINT).build()
             ).addOnFailureListener { fail("Avvio monitor non riuscito: ${it.localizedMessage}") }
         } else {
-            val options = DiscoveryOptions.Builder()
-                .setStrategy(Strategy.P2P_POINT_TO_POINT)
-                .build()
-            connections.startDiscovery(SERVICE_ID, discoveryCallback, options)
-                .addOnFailureListener { fail("Ricerca non riuscita: ${it.localizedMessage}") }
+            connections.startDiscovery(
+                SERVICE_ID, discoveryCallback,
+                DiscoveryOptions.Builder().setStrategy(Strategy.P2P_POINT_TO_POINT).build()
+            ).addOnFailureListener { fail("Ricerca non riuscita: ${it.localizedMessage}") }
         }
     }
 
@@ -149,12 +154,12 @@ class MainActivity : ComponentActivity() {
             runOnUiThread {
                 if (result.status.isSuccess) {
                     activeEndpoint = endpointId
-                    connectedName = discovered.firstOrNull { it.first == endpointId }?.second
-                        ?: "SENTINEL ONE"
-                    status = "Dispositivi collegati"
+                    connectedName = discovered.firstOrNull { it.first == endpointId }?.second ?: "SENTINEL ONE"
+                    status = if (role == "camera") "Collegato · avvio fotocamera…" else "Collegato · in attesa del video"
                     working = false
                     connections.stopDiscovery()
                     connections.stopAdvertising()
+                    if (role == "camera") startCameraCapture()
                 } else {
                     status = "Collegamento non riuscito (codice ${result.status.statusCode})"
                     working = false
@@ -166,6 +171,7 @@ class MainActivity : ComponentActivity() {
             runOnUiThread {
                 if (activeEndpoint == endpointId) activeEndpoint = null
                 connectedName = null
+                stopCameraCapture()
                 status = "Dispositivo disconnesso"
                 working = false
             }
@@ -174,9 +180,101 @@ class MainActivity : ComponentActivity() {
 
     private val payloadCallback = object : PayloadCallback() {
         override fun onPayloadReceived(endpointId: String, payload: Payload) {
-            // The link is established first; live camera payloads are the next implementation layer.
+            if (payload.type != Payload.Type.BYTES) return
+            val bytes = payload.asBytes() ?: return
+            val bitmap = BitmapFactory.decodeByteArray(bytes, 0, bytes.size) ?: return
+            runOnUiThread {
+                remoteFrame = bitmap
+                receivedFrames += 1
+                status = "Video in ricezione · frame $receivedFrames"
+            }
         }
         override fun onPayloadTransferUpdate(endpointId: String, update: PayloadTransferUpdate) = Unit
+    }
+
+    private fun startCameraCapture() {
+        if (ContextCompat.checkSelfPermission(this, Manifest.permission.CAMERA) != PackageManager.PERMISSION_GRANTED) {
+            status = "Permesso fotocamera mancante: autorizza e ricollega"
+            return
+        }
+        val providerFuture = ProcessCameraProvider.getInstance(this)
+        providerFuture.addListener({
+            try {
+                val provider = providerFuture.get()
+                val capture = ImageCapture.Builder()
+                    .setCaptureMode(ImageCapture.CAPTURE_MODE_MINIMIZE_LATENCY)
+                    .setTargetResolution(Size(640, 480))
+                    .build()
+                provider.unbindAll()
+                provider.bindToLifecycle(this, CameraSelector.DEFAULT_BACK_CAMERA, capture)
+                imageCapture = capture
+                captureActive.set(true)
+                status = "Fotocamera attiva · invio video"
+                captureNextFrame()
+            } catch (e: Exception) {
+                fail("Fotocamera non avviata: ${e.localizedMessage}")
+            }
+        }, ContextCompat.getMainExecutor(this))
+    }
+
+    private fun captureNextFrame() {
+        if (!captureActive.get()) return
+        val capture = imageCapture ?: return
+        capture.takePicture(cameraExecutor, object : ImageCapture.OnImageCapturedCallback() {
+            override fun onCaptureSuccess(image: ImageProxy) {
+                try {
+                    val buffer = image.planes.firstOrNull()?.buffer
+                    if (buffer != null) {
+                        val bytes = ByteArray(buffer.remaining())
+                        buffer.get(bytes)
+                        val compressed = compressForNearby(bytes)
+                        val endpoint = activeEndpoint
+                        if (compressed != null && endpoint != null && captureActive.get()) {
+                            connections.sendPayload(endpoint, Payload.fromBytes(compressed))
+                                .addOnSuccessListener { runOnUiThread { sentFrames += 1 } }
+                                .addOnFailureListener { fail("Invio frame fallito: ${it.localizedMessage}") }
+                        }
+                    }
+                } catch (e: Exception) {
+                    fail("Errore frame: ${e.localizedMessage}")
+                } finally {
+                    image.close()
+                    if (captureActive.get()) android.os.Handler(mainLooper).postDelayed({ captureNextFrame() }, 500L)
+                }
+            }
+
+            override fun onError(exception: ImageCaptureException) {
+                fail("Acquisizione frame fallita: ${exception.localizedMessage}")
+                if (captureActive.get()) android.os.Handler(mainLooper).postDelayed({ captureNextFrame() }, 1000L)
+            }
+        })
+    }
+
+    private fun compressForNearby(source: ByteArray): ByteArray? {
+        val bitmap = BitmapFactory.decodeByteArray(source, 0, source.size) ?: return null
+        try {
+            val scaled = Bitmap.createScaledBitmap(bitmap, 320, 240, true)
+            try {
+                var quality = 45
+                var output: ByteArray
+                do {
+                    val stream = ByteArrayOutputStream()
+                    scaled.compress(Bitmap.CompressFormat.JPEG, quality, stream)
+                    output = stream.toByteArray()
+                    quality -= 5
+                } while (output.size > MAX_FRAME_BYTES && quality >= 20)
+                return output.takeIf { it.size <= MAX_FRAME_BYTES }
+            } finally {
+                if (scaled !== bitmap) scaled.recycle()
+            }
+        } finally {
+            bitmap.recycle()
+        }
+    }
+
+    private fun stopCameraCapture() {
+        captureActive.set(false)
+        imageCapture = null
     }
 
     private fun requestPair(endpointId: String) {
@@ -188,10 +286,14 @@ class MainActivity : ComponentActivity() {
 
     private fun stopSearching() {
         if (!::connections.isInitialized) return
+        stopCameraCapture()
         connections.stopDiscovery()
         connections.stopAdvertising()
+        connections.stopAllEndpoints()
+        activeEndpoint = null
+        connectedName = null
         working = false
-        if (connectedName == null) status = "Ricerca interrotta"
+        status = "Ricerca interrotta"
     }
 
     private fun fail(message: String) {
@@ -199,8 +301,9 @@ class MainActivity : ComponentActivity() {
     }
 
     override fun onDestroy() {
-        stopSearching()
+        stopCameraCapture()
         connections.stopAllEndpoints()
+        cameraExecutor.shutdown()
         super.onDestroy()
     }
 }
@@ -212,29 +315,21 @@ private fun Dashboard(
     connectedName: String?,
     discovered: List<Pair<String, String>>,
     working: Boolean,
+    remoteFrame: Bitmap?,
+    sentFrames: Int,
+    receivedFrames: Int,
     onRole: (String) -> Unit,
     onStart: () -> Unit,
     onConnect: (String) -> Unit,
     onStop: () -> Unit
 ) {
-    Box(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(Brush.verticalGradient(listOf(Color(0xFF10182A), Night, Color(0xFF070910))))
-    ) {
+    Box(Modifier.fillMaxSize().background(Brush.verticalGradient(listOf(Color(0xFF10182A), Night, Color(0xFF070910))))) {
         Column(
-            modifier = Modifier.fillMaxSize().statusBarsPadding().navigationBarsPadding()
-                .padding(horizontal = 22.dp, vertical = 18.dp),
-            verticalArrangement = Arrangement.spacedBy(18.dp)
+            modifier = Modifier.fillMaxSize().statusBarsPadding().navigationBarsPadding().padding(horizontal = 22.dp, vertical = 18.dp),
+            verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
             Row(verticalAlignment = Alignment.CenterVertically) {
-                Box(
-                    Modifier.size(48.dp).background(
-                        Brush.linearGradient(listOf(Cyan, Violet)),
-                        RoundedCornerShape(15.dp)
-                    ),
-                    contentAlignment = Alignment.Center
-                ) {
+                Box(Modifier.size(48.dp).background(Brush.linearGradient(listOf(Cyan, Violet)), RoundedCornerShape(15.dp)), contentAlignment = Alignment.Center) {
                     Text("S", color = Night, fontSize = 27.sp, fontWeight = FontWeight.Black)
                 }
                 Spacer(Modifier.width(13.dp))
@@ -244,19 +339,13 @@ private fun Dashboard(
                 }
                 Text("NATIVE", color = Cyan, fontSize = 10.sp, fontWeight = FontWeight.Bold)
             }
-
-            Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                Text("La tua casa.", fontSize = 31.sp, fontWeight = FontWeight.Bold)
-                Text("Sotto controllo.", fontSize = 31.sp, fontWeight = FontWeight.Bold, color = Cyan)
-                Text("Collega due telefoni senza configurazioni manuali.", color = Muted, fontSize = 14.sp)
+            Column(verticalArrangement = Arrangement.spacedBy(5.dp)) {
+                Text("La tua casa.", fontSize = 30.sp, fontWeight = FontWeight.Bold)
+                Text("Sotto controllo.", fontSize = 30.sp, fontWeight = FontWeight.Bold, color = Cyan)
+                Text("Connessione diretta tra dispositivi Android.", color = Muted, fontSize = 13.sp)
             }
-
-            Card(
-                colors = CardDefaults.cardColors(containerColor = Panel.copy(alpha = 0.96f)),
-                shape = RoundedCornerShape(24.dp),
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                Column(Modifier.padding(18.dp), verticalArrangement = Arrangement.spacedBy(15.dp)) {
+            Card(colors = CardDefaults.cardColors(containerColor = Panel.copy(alpha = 0.96f)), shape = RoundedCornerShape(24.dp), modifier = Modifier.fillMaxWidth()) {
+                Column(Modifier.padding(18.dp), verticalArrangement = Arrangement.spacedBy(14.dp)) {
                     Text("CONFIGURA QUESTO TELEFONO", color = Muted, fontSize = 11.sp, letterSpacing = 1.3.sp)
                     Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                         RoleCard("TELECAMERA", "Invia il video", role == "camera", Modifier.weight(1f)) { onRole("camera") }
@@ -266,36 +355,24 @@ private fun Dashboard(
                         Box(Modifier.size(9.dp).background(if (connectedName != null) Cyan else Violet, RoundedCornerShape(50)))
                         Column(Modifier.weight(1f)) {
                             Text(if (connectedName != null) "COLLEGAMENTO ATTIVO" else "STATO CONNESSIONE", fontSize = 11.sp, color = Muted)
-                            Text(connectedName ?: status, fontSize = 14.sp, fontWeight = FontWeight.Medium)
+                            Text(connectedName ?: status, fontSize = 13.sp, fontWeight = FontWeight.Medium)
                         }
                     }
-                    Button(
-                        onClick = onStart,
-                        modifier = Modifier.fillMaxWidth().height(52.dp),
-                        shape = RoundedCornerShape(15.dp),
-                        colors = ButtonDefaults.buttonColors(containerColor = Cyan, contentColor = Night)
-                    ) {
+                    Button(onClick = onStart, modifier = Modifier.fillMaxWidth().height(52.dp), shape = RoundedCornerShape(15.dp), colors = ButtonDefaults.buttonColors(containerColor = Cyan, contentColor = Night)) {
                         Text(if (working) "RICERCA IN CORSO…" else if (role == "monitor") "RENDi VISIBILE IL MONITOR" else "CERCA IL MONITOR", fontWeight = FontWeight.Bold)
                     }
                     if (working || connectedName != null) {
-                        OutlinedButton(onClick = onStop, modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(14.dp)) {
-                            Text("Interrompi ricerca")
-                        }
+                        OutlinedButton(onClick = onStop, modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(14.dp)) { Text("Interrompi / scollega") }
                     }
                 }
             }
-
             if (role == "camera") {
                 Text("DISPOSITIVI TROVATI", color = Muted, fontSize = 11.sp, letterSpacing = 1.4.sp)
                 if (discovered.isEmpty()) {
                     Card(colors = CardDefaults.cardColors(containerColor = Color(0xFF0E1420)), shape = RoundedCornerShape(18.dp)) {
-                        Row(Modifier.fillMaxWidth().padding(16.dp), verticalAlignment = Alignment.CenterVertically) {
-                            Text("⌕", color = Cyan, fontSize = 25.sp)
-                            Spacer(Modifier.width(12.dp))
-                            Column {
-                                Text("Nessun monitor ancora", fontWeight = FontWeight.SemiBold)
-                                Text("Apri SENTINEL ONE sull'altro telefono e rendilo visibile.", color = Muted, fontSize = 12.sp)
-                            }
+                        Column(Modifier.fillMaxWidth().padding(16.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                            Text("Nessun monitor ancora", fontWeight = FontWeight.SemiBold)
+                            Text("Apri l'app sull'altro telefono e rendi visibile il monitor.", color = Muted, fontSize = 12.sp)
                         }
                     }
                 } else {
@@ -314,15 +391,24 @@ private fun Dashboard(
                     }
                 }
             } else {
-                Card(colors = CardDefaults.cardColors(containerColor = Color(0xFF0E1420)), shape = RoundedCornerShape(18.dp)) {
-                    Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(5.dp)) {
-                        Text("PRIVACY FIRST", color = Cyan, fontSize = 11.sp, fontWeight = FontWeight.Bold, letterSpacing = 1.2.sp)
-                        Text("Il nuovo collegamento usa la comunicazione diretta tra dispositivi nelle vicinanze. Non richiede un server Render per la fase di abbinamento.", fontSize = 13.sp, color = Muted)
+                if (remoteFrame != null) {
+                    Card(colors = CardDefaults.cardColors(containerColor = Color.Black), shape = RoundedCornerShape(20.dp), modifier = Modifier.fillMaxWidth()) {
+                        Column {
+                            Image(bitmap = remoteFrame.asImageBitmap(), contentDescription = "Video live dalla telecamera", modifier = Modifier.fillMaxWidth().heightIn(min = 180.dp, max = 320.dp))
+                            Text("LIVE • $receivedFrames frame ricevuti", color = Cyan, fontSize = 11.sp, modifier = Modifier.padding(12.dp))
+                        }
+                    }
+                } else {
+                    Card(colors = CardDefaults.cardColors(containerColor = Color(0xFF0E1420)), shape = RoundedCornerShape(18.dp)) {
+                        Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(5.dp)) {
+                            Text("MONITOR LIVE", color = Cyan, fontSize = 11.sp, fontWeight = FontWeight.Bold, letterSpacing = 1.2.sp)
+                            Text("Il flusso apparirà qui quando la telecamera sarà collegata.", fontSize = 13.sp, color = Muted)
+                        }
                     }
                 }
             }
-            Spacer(Modifier.weight(1f, fill = false))
-            Text("PROTOTIPO NATIVO ANDROID • ABBINAMENTO DIRETTO", color = Color(0xFF68758B), fontSize = 9.sp, letterSpacing = 1.sp)
+            Text(if (role == "camera") "FRAME INVIATI: $sentFrames" else "FRAME RICEVUTI: $receivedFrames", color = Muted, fontSize = 10.sp, letterSpacing = 1.sp)
+            Text("SENTINEL ONE • PROTOTIPO NATIVO", color = Color(0xFF68758B), fontSize = 9.sp, letterSpacing = 1.sp)
         }
     }
 }
@@ -330,8 +416,7 @@ private fun Dashboard(
 @Composable
 private fun RoleCard(title: String, subtitle: String, selected: Boolean, modifier: Modifier = Modifier, onClick: () -> Unit) {
     Surface(
-        onClick = onClick,
-        modifier = modifier.height(82.dp),
+        onClick = onClick, modifier = modifier.height(82.dp),
         color = if (selected) Color(0xFF17323A) else Color(0xFF0B111C),
         shape = RoundedCornerShape(16.dp),
         border = androidx.compose.foundation.BorderStroke(1.dp, if (selected) Cyan else Color(0xFF283348))
