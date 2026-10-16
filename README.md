@@ -35,3 +35,10 @@ The GitHub Actions workflow checks the code and builds an APK artifact. Configur
 
 ## Connection setup UI
 The app now includes an explicit connection setup screen for choosing the intended camera/viewer workflow and understanding local vs remote requirements. This is setup guidance only: it does not establish a session or transmit video until a signaling service and WebRTC transport are implemented and configured.
+
+
+## WebRTC signaling service (development foundation)
+
+A minimal WebSocket relay is available in `server/signaling_server.py`. It relays only WebRTC SDP offers/answers and ICE candidates; it does **not** carry video. The service currently uses short room codes as a development join mechanism and is **not production-secure** on its own.
+
+Before deployment or use outside a trusted test environment, add authenticated short-lived room tokens, WSS/TLS termination, origin/access controls, rate limiting and monitoring. Remote access also needs TURN credentials and a deployment endpoint. The Flutter app does not yet connect to this service, so cross-device streaming is not enabled in the current APK.
