@@ -10,6 +10,7 @@ Android-first home-security command center built with Flutter.
 - Actual session lifecycle events are stored locally on-device (up to 100 entries), and the user can clear the history.
 - The camera role includes experimental local MP4 recording and an in-app recording library; Android MediaRecorder support must be validated on a physical device.
 - A VLC-backed RTSP player can open compatible local IP camera streams, including Tapo/EZVIZ models only when the specific model/firmware exposes RTSP. This is not vendor-cloud integration.
+- IP camera profiles can be saved, selected and deleted; the stream URL (which may contain camera credentials) is stored using Android's encrypted secure-storage facility rather than plain preferences.
 - For an open RTSP stream, optional on-device image-difference analysis can log motion events and show local Android notifications. It runs only while that screen is active and is a basic detector, not a certified alarm system.
 
 ## Product requirement: local and remote viewing
