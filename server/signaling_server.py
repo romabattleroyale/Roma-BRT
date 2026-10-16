@@ -219,7 +219,7 @@ async def main() -> None:
     port = int(os.getenv("PORT", os.getenv("SIGNAL_PORT", "8765")))
     validate_bind_security(host, os.getenv("SIGNAL_TOKEN", ""))
     async with serve(
-        handler, host, port, max_size=MAX_MESSAGE_BYTES,
+        handler, host, port, max_size=1024 * 1024,
         ping_interval=20, ping_timeout=20,
     ):
         print(f"SENTINEL ONE signaling listening on {host}:{port}")
