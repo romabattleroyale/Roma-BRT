@@ -1,8 +1,9 @@
-"""Minimal WebSocket signaling relay for SENTINEL ONE WebRTC sessions.
+"""WebSocket signaling and custom JPEG-frame relay for SENTINEL ONE.
 
-This service exchanges SDP/ICE only; media travels over WebRTC, not through
-this process. Deploy behind HTTPS/WSS with authentication, rate limiting and
-short-lived room credentials before using outside a trusted test network.
+The legacy /signal/<ROOM> route exchanges SDP/ICE for WebRTC sessions.
+The /stream/<ROOM> route forwards binary JPEG frames through the custom relay.
+Deploy behind HTTPS/WSS with authentication, rate limiting and short-lived
+room credentials before using outside a trusted test network.
 """
 from __future__ import annotations
 
