@@ -60,17 +60,22 @@ async def stream_handler(peer: ServerConnection, room_code: str) -> None:
             return
         role = hello["role"]
 
+        duplicate_role = False
         async with stream_rooms_lock:
             room = stream_rooms.setdefault(room_code, StreamRoom())
             async with room.lock:
                 if getattr(room, role) is not None:
-                    await peer.close(code=1013, reason="Role already connected")
-                    if room.camera is None and room.viewer is None:
-                        stream_rooms.pop(room_code, None)
-                    return
-                setattr(room, role, peer)
-                joined = True
-                other = room.viewer if role == "camera" else room.camera
+                    duplicate_role = True
+                    other = None
+                else:
+                    setattr(room, role, peer)
+                    joined = True
+                    other = room.viewer if role == "camera" else room.camera
+        # Never wait for a WebSocket close handshake while holding either room
+        # lock: a slow duplicate client must not block legitimate joins/leaves.
+        if duplicate_role:
+            await peer.close(code=1013, reason="Role already connected")
+            return
         await send_control(peer, {"type": "ready", "role": role, "peerPresent": other is not None})
         if other is not None:
             await send_control(other, {"type": "peer_joined", "role": role})
