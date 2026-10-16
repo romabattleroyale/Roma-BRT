@@ -30,6 +30,10 @@ class _StreamSessionScreenState extends State<StreamSessionScreen> {
   final turnCredential = TextEditingController();
   final video = RTCVideoRenderer();
   final pendingIce = <RTCIceCandidate>[];
+  // Signals can arrive immediately after the WebSocket joins a room, before
+  // the native peer connection and the viewer transceiver have been created.
+  final pendingSignals = <Map<String, dynamic>>[];
+  bool signalingReady = false;
   WebSocket? socket;
   RTCPeerConnection? peer;
   MediaStream? localStream;
@@ -85,7 +89,8 @@ class _StreamSessionScreenState extends State<StreamSessionScreen> {
       _error('Fuori casa è richiesto wss:// con TLS. Non usare ws:// su Internet.'); return;
     }
     setState(() { busy = true; linked = false; error = null; status = 'Connessione al servizio…'; });
-    peerPresent = false; offerSent = false; creatingOffer = false; localTracksReady = false; pendingIce.clear();
+    peerPresent = false; offerSent = false; creatingOffer = false; localTracksReady = false;
+    signalingReady = false; pendingIce.clear(); pendingSignals.clear(); wasConnected = false;
     try {
       await video.initialize();
       final baseEndpoint = Uri.parse(server.endsWith('/') ? server + 'signal/' + code : server + '/signal/' + code);
@@ -128,6 +133,14 @@ class _StreamSessionScreenState extends State<StreamSessionScreen> {
         await peer!.addTransceiver(kind: RTCRtpMediaType.RTCRtpMediaTypeVideo,
           init: RTCRtpTransceiverInit(direction: TransceiverDirection.RecvOnly));
         _status('In attesa della telecamera · codice $code');
+      }
+      // Start processing SDP/ICE only after the peer and role-specific tracks
+      // or transceiver exist. This prevents early signals being discarded.
+      signalingReady = true;
+      final queuedSignals = List<Map<String, dynamic>>.from(pendingSignals);
+      pendingSignals.clear();
+      for (final queued in queuedSignals) {
+        await _handle(jsonEncode(queued));
       }
       // A signaling socket is not a live video connection. Only onConnectionState
       // may mark the session as linked once WebRTC reaches Connected.
@@ -234,7 +247,12 @@ class _StreamSessionScreenState extends State<StreamSessionScreen> {
   Future<void> _handle(dynamic raw) async {
     try {
       final message = jsonDecode(raw as String) as Map<String, dynamic>;
-      switch (message['type']) {
+      final type = message['type'];
+      if (!signalingReady && (type == 'offer' || type == 'answer' || type == 'ice')) {
+        pendingSignals.add(message);
+        return;
+      }
+      switch (type) {
         case 'ready':
           final configuredIce = message['iceServers'];
           if (configuredIce is List) {
@@ -363,6 +381,9 @@ class _StreamSessionScreenState extends State<StreamSessionScreen> {
       await subscription?.cancel();
     }
     subscription = null;
+    signalingReady = false;
+    pendingSignals.clear();
+    pendingIce.clear();
     _send({'type': 'hangup'});
     await socket?.close(); socket = null;
     final p = peer; peer = null;
