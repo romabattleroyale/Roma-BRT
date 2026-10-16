@@ -93,12 +93,12 @@ class _ConnectionSetupScreenState extends State<ConnectionSetupScreen>
           const SizedBox(height: 10),
           Text(_remoteMode
             ? 'Prima di collegare il video, SENTINEL ONE deve disporre di un servizio di segnalazione autenticato e di un relay TURN configurato.'
-            : 'La stessa Wi-Fi è il punto di partenza, ma per il video serve comunque instaurare una sessione tra mittente e ricevitore. Al momento la sessione non è ancora implementata.',
+            : 'La sessione video WebRTC è integrata nell’app. Per usarla serve un server di segnalazione raggiungibile sulla rete locale; inserirai l’indirizzo nella schermata successiva.',
             style: const TextStyle(color: _muted, height: 1.5, fontSize: 12)),
           const SizedBox(height: 14),
           const Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
             Icon(Icons.lock_outline_rounded, color: _cyan, size: 19), SizedBox(width: 9),
-            Expanded(child: Text('Nessun flusso video viene aperto o condiviso da questa schermata. L’accesso sarà abilitato solo dopo pairing autenticato e trasporto cifrato.', style: TextStyle(color: _muted, height: 1.45, fontSize: 11))),
+            Expanded(child: Text('La schermata successiva apre la sessione video solo quando avvii esplicitamente la telecamera o colleghi il monitor. Usa solo un server di segnalazione fidato.', style: TextStyle(color: _muted, height: 1.45, fontSize: 11))),
           ]),
         ]),
       ),

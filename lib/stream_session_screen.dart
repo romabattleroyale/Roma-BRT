@@ -27,6 +27,7 @@ class _StreamSessionScreenState extends State<StreamSessionScreen> {
   MediaStream? localStream;
   StreamSubscription? subscription;
   bool busy = false, linked = false;
+  bool peerPresent = false, offerSent = false, creatingOffer = false, localTracksReady = false;
   String status = 'Non collegato';
   String? error;
   bool get isCamera => widget.role == StreamRole.camera;
@@ -61,7 +62,8 @@ class _StreamSessionScreenState extends State<StreamSessionScreen> {
     if (widget.remote && !server.startsWith('wss://')) {
       _error('Fuori casa è richiesto wss:// con TLS. Non usare ws:// su Internet.'); return;
     }
-    setState(() { busy = true; error = null; status = 'Connessione al servizio…'; });
+    setState(() { busy = true; linked = false; error = null; status = 'Connessione al servizio…'; });
+    peerPresent = false; offerSent = false; creatingOffer = false; localTracksReady = false; pendingIce.clear();
     try {
       await video.initialize();
       final endpoint = Uri.parse(server.endsWith('/') ? server + 'signal/' + code : server + '/signal/' + code);
@@ -76,6 +78,8 @@ class _StreamSessionScreenState extends State<StreamSessionScreen> {
           'video': {'facingMode': 'environment', 'width': {'ideal': 1280}, 'height': {'ideal': 720}, 'frameRate': {'ideal': 24, 'max': 30}}
         });
         for (final track in localStream!.getTracks()) { await peer!.addTrack(track, localStream!); }
+        localTracksReady = true;
+        await _maybeCreateOffer();
         video.srcObject = localStream;
         _status('Telecamera pronta · codice $code');
       } else {
@@ -127,16 +131,13 @@ class _StreamSessionScreenState extends State<StreamSessionScreen> {
       final message = jsonDecode(raw as String) as Map<String, dynamic>;
       switch (message['type']) {
         case 'ready':
-          _status((message['peers'] as num? ?? 0) > 0 ? 'Dispositivo trovato' : 'Stanza pronta · attendo il secondo telefono');
+          peerPresent = (message['peers'] as num? ?? 0) > 0;
+          _status(peerPresent ? 'Dispositivo trovato' : 'Stanza pronta · attendo il secondo telefono');
+          if (peerPresent) await _maybeCreateOffer();
           break;
         case 'peer_joined':
-          if (isCamera && await peer!.getRemoteDescription() == null) {
-            final offer = await peer!.createOffer();
-            await peer!.setLocalDescription(offer);
-            final local = await peer!.getLocalDescription();
-            _send({'type': 'offer', 'sdp': local?.sdp, 'descriptionType': local?.type ?? 'offer'});
-            _status('Offerta inviata · negoziazione in corso');
-          }
+          peerPresent = true;
+          if (isCamera) await _maybeCreateOffer();
           break;
         case 'offer':
           if (!isCamera) {
@@ -168,13 +169,34 @@ class _StreamSessionScreenState extends State<StreamSessionScreen> {
           }
           break;
         case 'peer_left':
+          peerPresent = false;
+          offerSent = false;
+          pendingIce.clear();
           _status('L’altro dispositivo si è disconnesso');
+          if (mounted) setState(() => linked = false);
           break;
         case 'error':
           _error(message['message']?.toString() ?? 'Errore del server');
           break;
       }
     } catch (e) { _error('Messaggio di segnalazione non valido: $e'); }
+  }
+
+  Future<void> _maybeCreateOffer() async {
+    if (!isCamera || !peerPresent || !localTracksReady || offerSent || creatingOffer || peer == null) return;
+    creatingOffer = true;
+    try {
+      if (await peer!.getRemoteDescription() != null) return;
+      final offer = await peer!.createOffer();
+      await peer!.setLocalDescription(offer);
+      final local = await peer!.getLocalDescription();
+      if (local?.sdp == null) throw StateError('SDP locale non disponibile');
+      _send({'type': 'offer', 'sdp': local!.sdp, 'descriptionType': local.type ?? 'offer'});
+      offerSent = true;
+      _status('Offerta inviata · negoziazione in corso');
+    } finally {
+      creatingOffer = false;
+    }
   }
 
   Future<void> _flushIce() async {
