@@ -23,6 +23,12 @@ android {
         }
     }
 
+    lint {
+        // Work around a crash in the bundled AndroidX Lifecycle lint detector
+        // (KaCallableMemberCall: class found, but interface expected).
+        disable += "NullSafeMutableLiveData"
+    }
+
     buildFeatures { compose = true }
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_17
