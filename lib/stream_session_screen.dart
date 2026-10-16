@@ -65,10 +65,8 @@ class _StreamSessionScreenState extends State<StreamSessionScreen> {
     if (!RegExp(r'^[A-Z2-9]{6,10}$').hasMatch(code)) {
       _error('Il codice stanza deve avere 6–10 caratteri: A–Z e 2–9.'); return;
     }
-    final usesConfiguredPublicRelay = Uri.tryParse(server)?.host == 'sentinel-one-signaling.onrender.com';
-    if ((widget.remote || usesConfiguredPublicRelay) && signalToken.text.trim().isEmpty) {
-      _error('Inserisci il token SIGNAL_TOKEN configurato sul servizio di segnalazione.'); return;
-    }
+    // Pairing uses the random room code and QR. A server-side SIGNAL_TOKEN is
+    // supported for private deployments, but is not required for the managed prototype relay.
     if (widget.remote && !server.startsWith('wss://')) {
       _error('Fuori casa è richiesto wss:// con TLS. Non usare ws:// su Internet.'); return;
     }
@@ -345,7 +343,7 @@ class _StreamSessionScreenState extends State<StreamSessionScreen> {
           ),
         ],
         const SizedBox(height: 10),
-        _field('Token di accesso (remoto)', signalToken, hint: widget.remote ? 'Token configurato sul server' : 'Lascia vuoto per test locale'),
+        _field('Token aggiuntivo (facoltativo)', signalToken, hint: 'Solo se il gestore del server lo richiede'),
         const SizedBox(height: 18),
         const Text('Relay TURN (facoltativo)', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w800, fontSize: 14)),
         const SizedBox(height: 6),
@@ -413,7 +411,7 @@ class _PairingQrScannerScreenState extends State<_PairingQrScannerScreen> {
       Align(alignment: Alignment.bottomCenter, child: Container(
         margin: const EdgeInsets.all(20), padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(color: Colors.black.withValues(alpha: .78), borderRadius: BorderRadius.circular(16)),
-        child: const Text('Inquadra il QR mostrato sul telefono telecamera. Il token va inserito separatamente.',
+        child: const Text('Inquadra il QR mostrato sul telefono telecamera. Il codice stanza autorizza l’abbinamento; non contiene password.',
           textAlign: TextAlign.center, style: TextStyle(color: Colors.white, height: 1.4)),
       )),
     ]),
