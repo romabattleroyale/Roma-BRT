@@ -29,6 +29,7 @@ class _StreamSessionScreenState extends State<StreamSessionScreen> {
   final turnUsername = TextEditingController();
   final turnCredential = TextEditingController();
   final video = RTCVideoRenderer();
+  late final Future<void> _rendererReady;
   final pendingIce = <RTCIceCandidate>[];
   // Signals can arrive immediately after the WebSocket joins a room, before
   // the native peer connection and the viewer transceiver have been created.
@@ -58,7 +59,7 @@ class _StreamSessionScreenState extends State<StreamSessionScreen> {
     super.initState();
     url.text = widget.remote ? 'wss://sentinel-one-signaling.onrender.com' : 'ws://192.168.1.10:8765';
     room.text = _newCode();
-    video.initialize();
+    _rendererReady = video.initialize();
   }
 
   String _newCode() {
@@ -92,7 +93,7 @@ class _StreamSessionScreenState extends State<StreamSessionScreen> {
     peerPresent = false; offerSent = false; creatingOffer = false; localTracksReady = false;
     signalingReady = false; pendingIce.clear(); pendingSignals.clear(); wasConnected = false;
     try {
-      await video.initialize();
+      await _rendererReady;
       final baseEndpoint = Uri.parse(server.endsWith('/') ? server + 'signal/' + code : server + '/signal/' + code);
       final token = signalToken.text.trim();
       final endpoint = baseEndpoint;
