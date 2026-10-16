@@ -52,6 +52,14 @@ jobs:
                       'android {\n    packaging { jniLibs { pickFirsts += setOf("lib/**/libc++_shared.so") } }',
                       1,
                   )
+              if 'isCoreLibraryDesugaringEnabled' not in source:
+                  source = source.replace(
+                      'compileOptions {',
+                      'compileOptions {\n        isCoreLibraryDesugaringEnabled = true',
+                      1,
+                  )
+              if 'coreLibraryDesugaring(' not in source:
+                  source += '\n\ndependencies {\n    coreLibraryDesugaring("com.android.tools:desugar_jdk_libs:2.1.4")\n}\n'
               kotlin.write_text(source)
           elif groovy.exists():
               source = groovy.read_text()
@@ -61,6 +69,14 @@ jobs:
                       "android {\n    packagingOptions { pickFirst 'lib/**/libc++_shared.so' }",
                       1,
                   )
+              if 'coreLibraryDesugaringEnabled' not in source:
+                  source = source.replace(
+                      'compileOptions {',
+                      'compileOptions {\n        coreLibraryDesugaringEnabled true',
+                      1,
+                  )
+              if 'coreLibraryDesugaring ' not in source:
+                  source += "\n\ndependencies {\n    coreLibraryDesugaring 'com.android.tools:desugar_jdk_libs:2.1.4'\n}\n"
               groovy.write_text(source)
           PY
       - name: Add Android camera permission
