@@ -37,7 +37,7 @@ class _CameraSenderScreenState extends State<CameraSenderScreen>
       }
       _selectedCamera = _selectedCamera.clamp(0, _cameras.length - 1).toInt();
       final controller = CameraController(
-        _cameras[_selectedCamera], ResolutionPreset.high, enableAudio: false);
+        _cameras[_selectedCamera], ResolutionPreset.veryHigh, enableAudio: false);
       _controller = controller;
       await controller.initialize();
       if (!mounted) { await controller.dispose(); return; }
@@ -100,7 +100,7 @@ class _CameraSenderScreenState extends State<CameraSenderScreen>
       appBar: AppBar(backgroundColor: _bg, title: const Text('Modalità telecamera')),
       body: ListView(padding: const EdgeInsets.all(18), children: [
         Container(
-          height: 390, clipBehavior: Clip.antiAlias,
+          height: 250, clipBehavior: Clip.antiAlias,
           decoration: BoxDecoration(
             color: _panel, borderRadius: BorderRadius.circular(24),
             border: Border.all(color: _cyan.withValues(alpha: .22))),
@@ -125,10 +125,10 @@ class _CameraSenderScreenState extends State<CameraSenderScreen>
                               child: CameraPreview(controller),
                             ),
                           ),
-                          Positioned(top: 14, left: 14, child: Container(
+                          Positioned(top: 12, left: 12, child: Container(
                             padding: const EdgeInsets.symmetric(horizontal: 11, vertical: 7),
                             decoration: BoxDecoration(
-                              color: Colors.black.withValues(alpha: .65),
+                              color: Colors.black.withValues(alpha: .72),
                               borderRadius: BorderRadius.circular(20)),
                             child: const Row(children: [
                               Icon(Icons.circle, color: _green, size: 8),
