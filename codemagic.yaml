@@ -8,6 +8,8 @@ workflows:
     scripts:
       - name: Generate Android project files
         script: flutter create --platforms=android --org com.sentinelone .
+      - name: Configure Android native resources
+        script: python3 tool/configure_android.py
       - name: Get Flutter packages
         script: flutter pub get
       - name: Analyze Dart code
