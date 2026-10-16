@@ -148,6 +148,11 @@ class SignalingRelayTests(unittest.IsolatedAsyncioTestCase):
                 try:
                     with self.assertRaises(ConnectionClosed):
                         await third.recv()
+                    # A rejected third peer must not make existing peers think
+                    # that someone left the room.
+                    offer = {"type": "offer", "sdp": "still-connected"}
+                    await first.send(json.dumps(offer))
+                    self.assertEqual(json.loads(await second.recv()), offer)
                 finally:
                     await third.close()
 
