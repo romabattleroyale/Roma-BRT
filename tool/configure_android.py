@@ -77,7 +77,11 @@ def configure_gradle() -> None:
 def configure_manifest() -> None:
     manifest = ANDROID / "src" / "main" / "AndroidManifest.xml"
     source = manifest.read_text(encoding="utf-8")
-    for permission in ("android.permission.INTERNET", "android.permission.CAMERA"):
+    for permission in (
+        "android.permission.INTERNET",
+        "android.permission.CAMERA",
+        "android.permission.POST_NOTIFICATIONS",
+    ):
         declaration = f'<uses-permission android:name="{permission}"'
         if declaration in source:
             continue
