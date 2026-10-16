@@ -279,13 +279,41 @@ class _StreamSessionScreenState extends State<StreamSessionScreen> {
       }
     };
     currentPeer.onTrack = (event) {
-      if (!identical(peer, currentPeer)) return;
-      if (!isCamera && event.streams.isNotEmpty) {
-        video.srcObject = event.streams.first;
-        _status('Video ricevuto');
-        if (mounted) setState(() {});
-      }
+      if (!identical(peer, currentPeer) || isCamera) return;
+      // Some WebRTC implementations deliver a track without an associated
+      // MediaStream. Handle both forms instead of leaving the viewer black.
+      unawaited(_attachRemoteTrack(currentPeer, event));
     };
+  }
+
+  Future<void> _attachRemoteTrack(
+    RTCPeerConnection sourcePeer,
+    RTCTrackEvent event,
+  ) async {
+    if (!identical(peer, sourcePeer) || isCamera) return;
+    try {
+      MediaStream stream;
+      if (event.streams.isNotEmpty) {
+        stream = event.streams.first;
+      } else {
+        final fallback = video.srcObject;
+        if (fallback is MediaStream) {
+          stream = fallback;
+        } else {
+          stream = await createLocalMediaStream('sentinel-remote');
+        }
+        final existingIds = stream.getTracks().map((track) => track.id).toSet();
+        if (!existingIds.contains(event.track.id)) {
+          await stream.addTrack(event.track);
+        }
+      }
+      if (!identical(peer, sourcePeer) || !mounted) return;
+      video.srcObject = stream;
+      _status('Video ricevuto');
+      setState(() {});
+    } catch (e) {
+      _error('Impossibile visualizzare la traccia video remota: $e');
+    }
   }
 
   void _send(Map<String, dynamic> value) {
