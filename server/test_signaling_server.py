@@ -14,11 +14,16 @@ from websockets.asyncio.client import connect
 from websockets.asyncio.server import serve
 from websockets.exceptions import ConnectionClosed
 
+import signaling_server
 from signaling_server import handler, ice_server_config, rooms, validate_bind_security
 
 
 class SignalingRelayTests(unittest.IsolatedAsyncioTestCase):
     async def asyncSetUp(self):
+        # IsolatedAsyncioTestCase creates a fresh event loop per test. Reset
+        # the module-level lock so it cannot remain bound to a previous loop.
+        rooms.clear()
+        signaling_server.rooms_lock = asyncio.Lock()
         self.server = await serve(handler, "127.0.0.1", 0)
         self.port = self.server.sockets[0].getsockname()[1]
         self.url = f"ws://127.0.0.1:{self.port}/signal/TEST234"
