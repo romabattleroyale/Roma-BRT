@@ -49,9 +49,10 @@ class SignalingRelayTests(unittest.IsolatedAsyncioTestCase):
                 self.assertEqual(json.loads(await viewer.recv()), candidate)
 
 
-    async def test_public_bind_requires_token(self):
-        with self.assertRaises(RuntimeError):
-            validate_bind_security("0.0.0.0", "")
+    async def test_public_bind_supports_random_room_code_pairing(self):
+        # Random room codes are the prototype pairing capability. An optional
+        # global token can still be enabled for private deployments.
+        validate_bind_security("0.0.0.0", "")
         validate_bind_security("127.0.0.1", "")
         validate_bind_security("0.0.0.0", "configured-secret")
 
