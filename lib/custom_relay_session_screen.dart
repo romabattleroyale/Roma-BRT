@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:convert';
+import 'dart:math' as math;
 import 'dart:typed_data';
 import 'package:camera/camera.dart';
 import 'package:flutter/material.dart';
@@ -19,7 +20,7 @@ class CustomRelaySessionScreen extends StatefulWidget {
 class _CustomRelaySessionScreenState extends State<CustomRelaySessionScreen> {
   static const bg = Color(0xFF080B12), panel = Color(0xFF111824), cyan = Color(0xFF48E5F2), violet = Color(0xFF9B7BFF), muted = Color(0xFF8D9AAF);
   final server = TextEditingController(text: defaultSignalingServerUrl);
-  final room = TextEditingController(text: 'SENTINEL');
+  final room = TextEditingController(text: _newRoomCode());
   final token = TextEditingController();
   CameraController? camera;
   SentinelStreamTransport? transport;
@@ -28,6 +29,12 @@ class _CustomRelaySessionScreenState extends State<CustomRelaySessionScreen> {
   String? error;
   bool busy = false, encoding = false;
   DateTime lastFrame = DateTime.fromMillisecondsSinceEpoch(0);
+
+  static String _newRoomCode() {
+    const alphabet = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+    final random = math.Random.secure();
+    return List.generate(8, (_) => alphabet[random.nextInt(alphabet.length)]).join();
+  }
 
   Future<void> connect() async {
     if (busy || transport != null) return;
@@ -73,9 +80,15 @@ class _CustomRelaySessionScreenState extends State<CustomRelaySessionScreen> {
     final yp = src.planes[0], up = src.planes[1], vp = src.planes[2];
     for (var y = 0; y < src.height; y++) {
       for (var x = 0; x < src.width; x++) {
-        final yy = yp.bytes[y * yp.bytesPerRow + x * yp.bytesPerPixel!];
-        final u = up.bytes[(y >> 1) * up.bytesPerRow + (x >> 1) * up.bytesPerPixel!] - 128;
-        final v = vp.bytes[(y >> 1) * vp.bytesPerRow + (x >> 1) * vp.bytesPerPixel!] - 128;
+        final yIndex = y * yp.bytesPerRow + x * (yp.bytesPerPixel ?? 1);
+        final uIndex = (y >> 1) * up.bytesPerRow + (x >> 1) * (up.bytesPerPixel ?? 1);
+        final vIndex = (y >> 1) * vp.bytesPerRow + (x >> 1) * (vp.bytesPerPixel ?? 1);
+        if (yIndex >= yp.bytes.length || uIndex >= up.bytes.length || vIndex >= vp.bytes.length) {
+          throw StateError('Buffer YUV incompleto');
+        }
+        final yy = yp.bytes[yIndex];
+        final u = up.bytes[uIndex] - 128;
+        final v = vp.bytes[vIndex] - 128;
         final c = (yy - 16).clamp(0, 255);
         out.setPixelRgb(x, y, (1.164*c + 1.596*v).round().clamp(0,255), (1.164*c - .392*u - .813*v).round().clamp(0,255), (1.164*c + 2.017*u).round().clamp(0,255));
       }
@@ -98,7 +111,7 @@ class _CustomRelaySessionScreenState extends State<CustomRelaySessionScreen> {
     TextField(controller: server, enabled: transport == null && !busy, style: const TextStyle(color: Colors.white), decoration: const InputDecoration(labelText: 'Server ws:// o wss://')),
     TextField(controller: room, enabled: transport == null && !busy, style: const TextStyle(color: Colors.white), decoration: const InputDecoration(labelText: 'Codice stanza (6–10 caratteri)')),
     TextField(controller: token, enabled: transport == null && !busy, obscureText: true, style: const TextStyle(color: Colors.white), decoration: const InputDecoration(labelText: 'Token facoltativo')),
-    if (widget.cameraRole) Padding(padding: const EdgeInsets.symmetric(vertical: 12), child: Container(color: Colors.white, padding: const EdgeInsets.all(8), child: QrImageView(data: jsonEncode({'server': server.text.trim(), 'room': room.text.trim().toUpperCase()}), size: 150))),
+    if (widget.cameraRole) Padding(padding: const EdgeInsets.symmetric(vertical: 12), child: Container(color: Colors.white, padding: const EdgeInsets.all(8), child: AnimatedBuilder(animation: Listenable.merge([server, room]), builder: (context, _) => QrImageView(data: jsonEncode({'server': server.text.trim(), 'room': room.text.trim().toUpperCase()}), size: 150)))),
     const SizedBox(height: 12), FilledButton(onPressed: busy ? null : (transport == null ? connect : disconnect), style: FilledButton.styleFrom(backgroundColor: violet), child: Text(busy ? 'Attendi…' : (transport == null ? 'Avvia relay personalizzato' : 'Termina sessione'))),
     const Text('Trasporto JPEG binario su WebSocket; non usa WebRTC. Solo video, senza audio. Per Internet serve WSS/TLS e il server /stream/<CODICE>.', style: TextStyle(color: muted, fontSize: 11)),
   ]));
