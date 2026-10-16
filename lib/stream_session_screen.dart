@@ -7,6 +7,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_webrtc/flutter_webrtc.dart';
 import 'package:mobile_scanner/mobile_scanner.dart';
 import 'package:qr_flutter/qr_flutter.dart';
+import 'event_store.dart';
 
 enum StreamRole { camera, viewer }
 
@@ -35,6 +36,7 @@ class _StreamSessionScreenState extends State<StreamSessionScreen> {
   bool busy = false, linked = false;
   bool peerPresent = false, offerSent = false, creatingOffer = false, localTracksReady = false;
   bool manuallyStopped = false;
+  bool wasConnected = false;
   int reconnectAttempts = 0;
   Timer? reconnectTimer;
   String status = 'Non collegato';
@@ -95,6 +97,7 @@ class _StreamSessionScreenState extends State<StreamSessionScreen> {
           _scheduleReconnect();
         },
         onError: (Object e) => _error('Errore WebSocket: $e'));
+      unawaited(EventStore.record('Sessione avviata', isCamera ? 'Telefono impostato come telecamera' : 'Monitor in attesa della telecamera'));
       await _createPeer();
       if (isCamera) {
         localStream = await navigator.mediaDevices.getUserMedia({
@@ -141,11 +144,15 @@ class _StreamSessionScreenState extends State<StreamSessionScreen> {
     peer!.onConnectionState = (state) {
       _status('WebRTC: ' + state.toString().split('.').last);
       if (state == RTCPeerConnectionState.RTCPeerConnectionStateConnected) {
+        if (!wasConnected) unawaited(EventStore.record('Video collegato', isCamera ? 'Trasmissione WebRTC attiva' : 'Flusso video ricevuto'));
+        wasConnected = true;
         reconnectAttempts = 0;
         if (mounted) setState(() => linked = true);
       } else if (state == RTCPeerConnectionState.RTCPeerConnectionStateFailed ||
           state == RTCPeerConnectionState.RTCPeerConnectionStateDisconnected ||
           state == RTCPeerConnectionState.RTCPeerConnectionStateClosed) {
+        if (wasConnected) unawaited(EventStore.record('Connessione video interrotta', state.toString().split('.').last));
+        wasConnected = false;
         if (mounted) setState(() => linked = false);
       }
     };
@@ -279,6 +286,7 @@ class _StreamSessionScreenState extends State<StreamSessionScreen> {
     reconnectTimer?.cancel();
     reconnectTimer = null;
     await _cleanup();
+    unawaited(EventStore.record('Sessione terminata', isCamera ? 'Trasmissione telecamera arrestata' : 'Monitor disconnesso'));
     if (mounted) setState(() { busy = false; linked = false; status = 'Sessione terminata'; });
   }
 
@@ -301,6 +309,7 @@ class _StreamSessionScreenState extends State<StreamSessionScreen> {
 
   @override
   void dispose() {
+    if (socket != null && !manuallyStopped) unawaited(EventStore.record('Sessione terminata', 'Schermata chiusa'));
     manuallyStopped = true;
     reconnectTimer?.cancel();
     subscription?.cancel(); socket?.close(); peer?.close(); peer?.dispose();
