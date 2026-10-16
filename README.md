@@ -20,18 +20,18 @@ SENTINEL ONE must support viewing cameras both at home and away from home:
 Remote viewing is a core requirement, not an optional later add-on. Local Wi-Fi alone cannot provide access from outside the home. The remote signaling/relay service and Android permissions must be configured and tested before this can be considered a functioning security system.
 
 ## Current limitations
-The app now contains the WebRTC session flow and a signaling relay development service, but **end-to-end streaming has not yet been verified on two physical phones**. The app now pre-fills the known development relay endpoint `wss://sentinel-one-signaling.onrender.com` in remote mode. The configured `SIGNAL_TOKEN` must be entered on both phones; it is intentionally not stored in the repository. The default local address `ws://192.168.1.10:8765` is only a LAN placeholder and must be replaced with the actual host running the relay. Remote access still needs end-to-end validation, TURN infrastructure, stronger per-device pairing and security hardening. Push notifications, persistent event storage, Tapo RTSP/ONVIF integration and real AR/3D reconstruction are not implemented. The dashboard's plan, device states and event list remain illustrative/demo data; do not rely on this build as a security system.
+The app now contains the WebRTC session flow and a signaling relay development service, but **end-to-end streaming has not yet been verified on two physical phones**. The app now pre-fills the known development relay endpoint `wss://sentinel-one-signaling.onrender.com` in remote mode. The QR pairs the phones using a random room code, so no shared server token is required for the prototype relay. A `SIGNAL_TOKEN` can still be configured for private deployments; if enabled, it must be entered on both phones. The code is a pairing capability, not full account authentication. The default local address `ws://192.168.1.10:8765` is only a LAN placeholder and must be replaced with the actual host running the relay. Remote access still needs end-to-end validation, TURN infrastructure, stronger per-device pairing and security hardening. Push notifications, persistent event storage, Tapo RTSP/ONVIF integration and real AR/3D reconstruction are not implemented. The dashboard's plan, device states and event list remain illustrative/demo data; do not rely on this build as a security system.
 
 ## Deploy the signaling relay (Render blueprint)
 
 A starter deployment blueprint is provided in `render.yaml`. In Render, create a new Blueprint from this repository and confirm the `sentinel-one-signaling` web service. The blueprint generates a `SIGNAL_TOKEN` secret and binds the relay to the platform-assigned port. After deployment:
 
 1. The current app default is `wss://sentinel-one-signaling.onrender.com`. Confirm the service is Live in Render before testing; do not append `/signal/...` because the app adds that path itself.
-2. In Render's environment settings, reveal/copy the generated `SIGNAL_TOKEN` and enter it in the token field on both phones. Never commit this value to GitHub or include it in a QR code.
-3. Use the same room code on both phones. Camera and viewer must use the same signaling hostname and token.
-4. Test with both phones first on the same Wi-Fi. If signaling connects but WebRTC stays disconnected, configure a TURN provider in both sessions.
+2. Open the app on the camera phone and show the pairing QR. On the monitor phone, scan it; no shared token needs to be copied for the prototype relay.
+3. Test with both phones first on the same Wi-Fi. For some carrier/NAT combinations, remote media also requires TURN credentials configured in the app.
+4. To revoke a pairing, stop the camera session and generate a new room code.
 
-This only deploys the signaling relay; it does not automatically configure the mobile app or provision TURN. The free service may sleep when idle and is suitable only for a prototype, not a dependable security product. Its hostname being configured does not prove that the relay is currently reachable or that media negotiation succeeds. Do not treat a successful server deployment as proof that video works until the two-phone test succeeds.
+This deploys only the signaling relay; it does not provision TURN or verify real-device video. The relay treats a random 8-character room code as a short-lived pairing capability and applies basic per-IP connection throttling. It is not full account authentication and is not yet production-hardened. The free service may sleep when idle. Its hostname being configured does not prove the relay is reachable or media negotiation succeeds; verify on two physical phones before relying on it.
 
 ## Build
 Flutter and Android SDK:
@@ -45,7 +45,7 @@ The GitHub Actions workflow checks the code and builds an APK artifact. Configur
 
 
 ## Connection setup UI
-Choose whether this phone is the camera or monitor, then select local Wi-Fi or remote access. The next screen lets you enter the signaling server and room code, explicitly start the camera or connect the viewer, and see connection status. The camera role can display a pairing QR containing only the signaling URL and room code; the monitor can scan it to fill those fields. The shared signaling token must still be entered separately and is never embedded in the QR. Local mode still requires a signaling server reachable from both phones; remote mode requires `wss://`.
+Choose whether this phone is the camera or monitor, then select local Wi-Fi or remote access. The next screen lets you enter the signaling server and room code, explicitly start the camera or connect the viewer, and see connection status. The camera role can display a pairing QR containing only the signaling URL and room code; the monitor can scan it to fill those fields. The QR carries the signaling URL and random room code; no shared token is needed unless the server operator explicitly enables one. Local mode still requires a signaling server reachable from both phones; remote mode requires `wss://`. A TURN relay may still be required by restrictive networks.
 
 
 ## WebRTC signaling service (development foundation)
