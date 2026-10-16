@@ -24,6 +24,8 @@ void main() {
 
     final plan = find.byType(AspectRatio);
     expect(plan, findsOneWidget);
+    await tester.ensureVisible(plan);
+    await tester.pumpAndSettle();
     await tester.tapAt(tester.getCenter(plan));
     await tester.pumpAndSettle();
 
