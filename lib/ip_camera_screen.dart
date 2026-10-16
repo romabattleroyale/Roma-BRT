@@ -1,7 +1,7 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
-import 'package:flutter_vlc_player/flutter_vlc_player.dart';
+import 'package:flutter_vlc_player/vlc_player_flutter.dart';
 
 const _ipBg = Color(0xFF080B12);
 const _ipPanel = Color(0xFF111824);
