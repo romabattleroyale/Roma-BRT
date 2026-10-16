@@ -243,14 +243,12 @@ class _StreamSessionScreenState extends State<StreamSessionScreen> {
       if (decoded is! Map<String, dynamic>) throw const FormatException();
       final scannedServer = decoded['server'];
       final scannedRoom = decoded['room'];
-      if (scannedServer is! String || scannedRoom is! String) {
-        throw const FormatException();
-      }
+      if (scannedServer is! String || scannedRoom is! String) throw const FormatException();
       final parsedServer = Uri.tryParse(scannedServer);
       if (parsedServer == null ||
           !(parsedServer.scheme == 'ws' || parsedServer.scheme == 'wss') ||
           parsedServer.host.isEmpty ||
-          !RegExp(r'^[A-Z2-9]{6,10}
+          !RegExp(r'^[A-Z2-9]{6,10}' + r'
     await _cleanup();
     if (mounted) setState(() { busy = false; linked = false; status = 'Sessione terminata'; });
   }
@@ -385,14 +383,8 @@ class _UpperCaseFormatter extends TextInputFormatter {
 ).hasMatch(scannedRoom.toUpperCase())) {
         throw const FormatException();
       }
-      setState(() {
-        url.text = scannedServer;
-        room.text = scannedRoom.toUpperCase();
-        error = null;
-      });
-    } catch (_) {
-      _error('QR non valido. Scansiona il codice generato da SENTINEL ONE.');
-    }
+      setState(() { url.text = scannedServer; room.text = scannedRoom.toUpperCase(); error = null; });
+    } catch (_) { _error('QR non valido. Scansiona il codice generato da SENTINEL ONE.'); }
   }
 
   Future<void> _stop() async {
@@ -497,50 +489,32 @@ class _UpperCaseFormatter extends TextInputFormatter {
     newValue.copyWith(text: newValue.text.toUpperCase(), selection: newValue.selection);
 }
 
- 
 class _PairingQrScannerScreen extends StatefulWidget {
   const _PairingQrScannerScreen();
-
   @override
   State<_PairingQrScannerScreen> createState() => _PairingQrScannerScreenState();
 }
 
 class _PairingQrScannerScreenState extends State<_PairingQrScannerScreen> {
   bool _completed = false;
-
   @override
   Widget build(BuildContext context) => Scaffold(
-        backgroundColor: const Color(0xFF080B12),
-        appBar: AppBar(backgroundColor: const Color(0xFF080B12), title: const Text('Scansiona abbinamento')),
-        body: Stack(
-          fit: StackFit.expand,
-          children: [
-            MobileScanner(
-              onDetect: (capture) {
-                if (_completed || capture.barcodes.isEmpty) return;
-                final value = capture.barcodes.first.rawValue;
-                if (value == null || value.isEmpty) return;
-                _completed = true;
-                Navigator.of(context).pop(value);
-              },
-            ),
-            Align(
-              alignment: Alignment.bottomCenter,
-              child: Container(
-                margin: const EdgeInsets.all(20),
-                padding: const EdgeInsets.all(16),
-                decoration: BoxDecoration(
-                  color: Colors.black.withValues(alpha: .78),
-                  borderRadius: BorderRadius.circular(16),
-                ),
-                child: const Text(
-                  'Inquadra il QR mostrato sul telefono configurato come telecamera. Il token di accesso va inserito separatamente.',
-                  textAlign: TextAlign.center,
-                  style: TextStyle(color: Colors.white, height: 1.4),
-                ),
-              ),
-            ),
-          ],
-        ),
-      );
+    backgroundColor: const Color(0xFF080B12),
+    appBar: AppBar(backgroundColor: const Color(0xFF080B12), title: const Text('Scansiona abbinamento')),
+    body: Stack(fit: StackFit.expand, children: [
+      MobileScanner(onDetect: (capture) {
+        if (_completed || capture.barcodes.isEmpty) return;
+        final value = capture.barcodes.first.rawValue;
+        if (value == null || value.isEmpty) return;
+        _completed = true;
+        Navigator.of(context).pop(value);
+      }),
+      Align(alignment: Alignment.bottomCenter, child: Container(
+        margin: const EdgeInsets.all(20), padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(color: Colors.black.withValues(alpha: .78), borderRadius: BorderRadius.circular(16)),
+        child: const Text('Inquadra il QR mostrato sul telefono telecamera. Il token va inserito separatamente.',
+          textAlign: TextAlign.center, style: TextStyle(color: Colors.white, height: 1.4)),
+      )),
+    ]),
+  );
 }
