@@ -22,6 +22,8 @@ from dataclasses import dataclass, field
 from websockets.asyncio.server import ServerConnection, serve
 from websockets.exceptions import ConnectionClosed
 
+from stream_relay import stream_handler
+
 ROOM_RE = re.compile(r"^[A-Z2-9]{6,10}$")
 MAX_MESSAGE_BYTES = 64 * 1024
 MAX_PEERS_PER_ROOM = 2
@@ -119,6 +121,9 @@ async def handler(peer: ServerConnection) -> None:
         supplied_token = authorization.removeprefix("Bearer ").strip() if authorization.startswith("Bearer ") else ""
         if required_token and not secrets.compare_digest(supplied_token, required_token):
             await peer.close(code=1008, reason="Invalid signaling token")
+            return
+        if len(parts) == 2 and parts[0] == "stream":
+            await stream_handler(peer, parts[1].upper())
             return
         if len(parts) != 2 or parts[0] != "signal":
             await peer.close(code=1008, reason="Invalid signaling path")
