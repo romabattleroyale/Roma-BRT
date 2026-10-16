@@ -1,5 +1,6 @@
 import 'package:camera/camera.dart';
 import 'package:flutter/material.dart';
+import 'camera_sender_screen.dart';
 
 const _bg = Color(0xFF080B12);
 const _panel = Color(0xFF111824);
