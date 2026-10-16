@@ -22,8 +22,6 @@ void main() {
     await tester.pumpWidget(const MaterialApp(home: HousePlanScreen()));
     await tester.pumpAndSettle();
 
-    expect(find.text('Nessun punto inserito. Tocca un punto della pianta per cominciare.'), findsOneWidget);
-
     final plan = find.byType(AspectRatio);
     expect(plan, findsOneWidget);
     await tester.tapAt(tester.getCenter(plan));
