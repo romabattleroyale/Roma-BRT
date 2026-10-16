@@ -1,4 +1,11 @@
 name: Flutter checks and Android APK
+
+# Keep only the newest validation for a branch/PR; stale commits otherwise
+# consume runners while newer fixes wait in the queue.
+concurrency:
+  group: flutter-checks-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
 on:
   push:
     branches: [main]
