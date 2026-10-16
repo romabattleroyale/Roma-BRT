@@ -54,6 +54,13 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text('Ingresso'), findsWidgets);
+    // The summary is below the fold in the ListView and may not be built yet.
+    await tester.scrollUntilVisible(
+      find.text('PUNTI SALVATI'),
+      250,
+      scrollable: find.byType(Scrollable).first,
+    );
+    await tester.pumpAndSettle();
     expect(find.text('PUNTI SALVATI'), findsOneWidget);
 
     final prefs = await SharedPreferences.getInstance();
