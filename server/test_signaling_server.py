@@ -22,12 +22,16 @@ class PairingTests(unittest.IsolatedAsyncioTestCase):
         self.assertRegex(room, r"^[A-Z2-9]{8}$")
         self.assertTrue(pair["ticket"])
         self.assertTrue(pair["cameraToken"])
+        waiting = await self.client.post("/pair/status", json={"room": room, "cameraToken": pair["cameraToken"]})
+        self.assertEqual((await waiting.json())["paired"], False)
 
         consumed = await self.client.post("/pair/consume", json={"ticket": pair["ticket"]})
         self.assertEqual(consumed.status, 200)
         viewer = await consumed.json()
         self.assertEqual(viewer["room"], room)
         self.assertTrue(viewer["viewerToken"])
+        ready = await self.client.post("/pair/status", json={"room": room, "cameraToken": pair["cameraToken"]})
+        self.assertEqual((await ready.json())["paired"], True)
 
         reused = await self.client.post("/pair/consume", json={"ticket": pair["ticket"]})
         self.assertEqual(reused.status, 410)
