@@ -1,7 +1,7 @@
 name: Native Android source checks
 on:
   push:
-    branches: [main, "feature/sentinel-house-reconstruction"]
+    branches: [main]
     paths:
       - "native-android/**"
       - ".github/workflows/native-android.yml"
