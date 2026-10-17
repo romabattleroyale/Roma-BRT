@@ -907,73 +907,116 @@ private fun EmptyStateCard(title: String, subtitle: String, panel: Color, primar
 
 @Composable
 private fun HouseModel3D(panel: Color, accent: Color, selectedRoom: String, onRoomSelected: (String) -> Unit, isDark: Boolean) {
-    val engine = rememberEngine()
-    val modelLoader = rememberModelLoader(engine)
-    val wall = if (isDark) Color(0xFF61738B) else Color(0xFF9DAFC2)
-    val floor = if (isDark) Color(0xFF253448) else Color(0xFFD7E1EB)
-    val onlineGreen = Color(0xFF35E59A)
-    val offlineRed = Color(0xFFFF5964)
     var basement by remember { mutableStateOf(false) }
     var cameras by remember { mutableStateOf(true) }
-    Card(colors = CardDefaults.cardColors(containerColor = panel), shape = RoundedCornerShape(24.dp), border = androidx.compose.foundation.BorderStroke(1.dp, accent.copy(alpha = 0.22f))) {
-        Column(Modifier.fillMaxWidth().padding(12.dp)) {
+    val ink = if (isDark) Color(0xFF0B1220) else Color(0xFFF3F7FC)
+    val floor = if (isDark) Color(0xFF17263A) else Color(0xFFE1EAF4)
+    val wall = if (isDark) Color(0xFF405873) else Color(0xFF9CAFC4)
+    val grid = if (isDark) Color(0xFF25384F) else Color(0xFFCCD8E5)
+    val label = if (isDark) Color(0xFFD9E5F4) else Color(0xFF34445B)
+    val rooms = listOf("Soggiorno", "Cucina", "Camera")
+    Card(
+        colors = CardDefaults.cardColors(containerColor = panel),
+        shape = RoundedCornerShape(24.dp),
+        border = androidx.compose.foundation.BorderStroke(1.dp, accent.copy(alpha = 0.24f))
+    ) {
+        Column(Modifier.fillMaxWidth().padding(14.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
             Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-                Column(Modifier.weight(1f)) {
-                    Text(if (basement) "CASA · SEMINTERRATO" else "CASA · PIANO PRINCIPALE", color = if (isDark) Color(0xFFB5C5D8) else Color(0xFF53647B), fontSize = 9.sp, letterSpacing = 1.sp)
-                    Text("SCENA 3D · FILAMENT", color = accent, fontSize = 10.sp, fontWeight = FontWeight.Bold)
+                Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(3.dp)) {
+                    Text(if (basement) "PIANO INTERRATO" else "PIANO PRINCIPALE", color = if (isDark) Color(0xFF9BAAC0) else Color(0xFF64748B), fontSize = 10.sp, letterSpacing = 1.1.sp, fontWeight = FontWeight.Bold)
+                    Text("Pianta della casa", color = if (isDark) Color.White else Color(0xFF172033), fontSize = 18.sp, fontWeight = FontWeight.Bold)
                 }
-                Surface(color = Color(0xFF12372D), shape = RoundedCornerShape(50)) {
-                    Text("● NON COLLEGATE", Modifier.padding(horizontal = 9.dp, vertical = 6.dp), color = offlineRed, fontSize = 9.sp, fontWeight = FontWeight.Bold)
-                }
-            }
-            Box(Modifier.fillMaxWidth().height(290.dp).padding(top = 8.dp).background(if (isDark) Color(0xFF090F19) else Color(0xFFEAF0F6), RoundedCornerShape(18.dp))) {
-                SceneView(
-                    modifier = Modifier.fillMaxSize(),
-                    engine = engine,
-                    modelLoader = modelLoader,
-                    cameraManipulator = rememberCameraManipulator()
-                ) {
-                    CubeNode(size = SceneSize(4.2f), position = Position(y = -0.14f))
-                    CubeNode(size = SceneSize(0.12f), position = Position(x = -1.8f, y = 0.55f))
-                    CubeNode(size = SceneSize(0.12f), position = Position(x = 1.8f, y = 0.55f))
-                    CubeNode(size = SceneSize(0.12f), position = Position(y = 0.55f, z = -1.8f))
-                    CubeNode(size = SceneSize(0.12f), position = Position(y = 0.55f, z = 1.8f))
-                    CubeNode(size = SceneSize(0.10f), position = Position(x = -0.55f, y = 0.55f))
-                    CubeNode(size = SceneSize(0.10f), position = Position(x = 0.65f, y = 0.55f, z = -0.35f))
-                    CubeNode(size = SceneSize(0.48f), position = Position(x = -1.0f, y = 0.12f, z = -0.75f))
-                    CubeNode(size = SceneSize(0.34f), position = Position(x = 1.0f, y = 0.10f, z = -0.7f))
-                    CubeNode(size = SceneSize(0.40f), position = Position(x = 1.0f, y = 0.12f, z = 0.95f))
-                    if (cameras) {
-                        SphereNode(radius = 0.10f, position = Position(x = -1.6f, y = 1.05f, z = -1.55f))
-                        SphereNode(radius = 0.10f, position = Position(x = 1.55f, y = 1.05f, z = -1.55f))
-                        SphereNode(radius = 0.10f, position = Position(x = 1.55f, y = 1.05f, z = 1.55f))
-                    }
-                    if (basement) {
-                        CubeNode(size = SceneSize(3.2f), position = Position(y = -1.15f))
-                        CubeNode(size = SceneSize(0.10f), position = Position(y = -0.72f, z = -1.35f))
-                        CubeNode(size = SceneSize(0.10f), position = Position(x = -1.35f, y = -0.72f))
-                        SphereNode(radius = 0.09f, position = Position(x = -1.2f, y = -0.55f, z = -1.2f))
+                Surface(color = if (isDark) Color(0xFF19263A) else Color(0xFFEAF0F7), shape = RoundedCornerShape(12.dp)) {
+                    Row(Modifier.padding(horizontal = 10.dp, vertical = 8.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                        Box(Modifier.size(7.dp).background(Color(0xFFFF6678), RoundedCornerShape(50)))
+                        Text("NESSUNA CAMERA", color = if (isDark) Color(0xFFFF8290) else Color(0xFFB9384D), fontSize = 9.sp, fontWeight = FontWeight.Bold)
                     }
                 }
             }
-            Text("Scena 3D renderizzata da Filament · trascina per orbitare", Modifier.padding(top = 6.dp), color = if (isDark) Color(0xFF8292A9) else Color(0xFF65758A), fontSize = 9.sp)
+            androidx.compose.foundation.Canvas(
+                Modifier.fillMaxWidth().height(250.dp).background(ink, RoundedCornerShape(18.dp))
+            ) {
+                val cell = 22.dp.toPx()
+                var x = 0f
+                while (x < size.width) {
+                    drawLine(grid.copy(alpha = 0.42f), androidx.compose.ui.geometry.Offset(x, 0f), androidx.compose.ui.geometry.Offset(x, size.height), 1f)
+                    x += cell
+                }
+                var y = 0f
+                while (y < size.height) {
+                    drawLine(grid.copy(alpha = 0.42f), androidx.compose.ui.geometry.Offset(0f, y), androidx.compose.ui.geometry.Offset(size.width, y), 1f)
+                    y += cell
+                }
+                val marginX = size.width * 0.10f
+                val marginY = size.height * 0.12f
+                val left = marginX
+                val top = marginY
+                val right = size.width - marginX
+                val bottom = size.height - marginY
+                val midX = left + (right - left) * 0.59f
+                val midY = top + (bottom - top) * 0.53f
+                drawRoundRect(floor, androidx.compose.ui.geometry.Offset(left, top), androidx.compose.ui.geometry.Size(right-left, bottom-top), androidx.compose.ui.geometry.CornerRadius(9.dp.toPx()))
+                val stroke = 5.dp.toPx()
+                // Architectural partitions form a readable, room-by-room floor plan.
+                drawLine(wall, androidx.compose.ui.geometry.Offset(left, top), androidx.compose.ui.geometry.Offset(right, top), stroke)
+                drawLine(wall, androidx.compose.ui.geometry.Offset(left, bottom), androidx.compose.ui.geometry.Offset(right, bottom), stroke)
+                drawLine(wall, androidx.compose.ui.geometry.Offset(left, top), androidx.compose.ui.geometry.Offset(left, bottom), stroke)
+                drawLine(wall, androidx.compose.ui.geometry.Offset(right, top), androidx.compose.ui.geometry.Offset(right, bottom), stroke)
+                drawLine(wall, androidx.compose.ui.geometry.Offset(midX, top), androidx.compose.ui.geometry.Offset(midX, bottom), stroke)
+                drawLine(wall, androidx.compose.ui.geometry.Offset(left, midY), androidx.compose.ui.geometry.Offset(midX, midY), stroke)
+                // Door openings are drawn as bright gaps with a subtle swing arc.
+                val doorY = midY
+                drawLine(floor, androidx.compose.ui.geometry.Offset(midX - 13.dp.toPx(), doorY), androidx.compose.ui.geometry.Offset(midX + 13.dp.toPx(), doorY), stroke + 2.dp.toPx())
+                drawLine(accent, androidx.compose.ui.geometry.Offset(midX, doorY), androidx.compose.ui.geometry.Offset(midX + 13.dp.toPx(), doorY - 13.dp.toPx()), 2.dp.toPx())
+                // Window markers.
+                drawLine(Color(0xFF79C9FF), androidx.compose.ui.geometry.Offset(left + (right-left)*0.32f, top), androidx.compose.ui.geometry.Offset(left + (right-left)*0.45f, top), 5.dp.toPx())
+                drawLine(Color(0xFF79C9FF), androidx.compose.ui.geometry.Offset(right, top + (bottom-top)*0.26f), androidx.compose.ui.geometry.Offset(right, top + (bottom-top)*0.42f), 5.dp.toPx())
+                // Furniture silhouettes provide scale and make the empty map feel intentional.
+                fun furniture(l: Float, t: Float, w: Float, h: Float, color: Color) {
+                    drawRoundRect(color, androidx.compose.ui.geometry.Offset(l, t), androidx.compose.ui.geometry.Size(w, h), androidx.compose.ui.geometry.CornerRadius(5.dp.toPx()))
+                    drawRoundRect(Color.White.copy(alpha = if (isDark) 0.13f else 0.35f), androidx.compose.ui.geometry.Offset(l+3.dp.toPx(), t+3.dp.toPx()), androidx.compose.ui.geometry.Size((w-6.dp.toPx()).coerceAtLeast(1f), (h-6.dp.toPx()).coerceAtLeast(1f)), androidx.compose.ui.geometry.CornerRadius(3.dp.toPx()), style = androidx.compose.ui.graphics.drawscope.Stroke(1.dp.toPx()))
+                }
+                furniture(left+14.dp.toPx(), top+15.dp.toPx(), 52.dp.toPx(), 27.dp.toPx(), Color(0xFF526E8D))
+                furniture(left+18.dp.toPx(), midY+13.dp.toPx(), 34.dp.toPx(), 27.dp.toPx(), Color(0xFF687D99))
+                furniture(midX+14.dp.toPx(), top+16.dp.toPx(), 31.dp.toPx(), 31.dp.toPx(), Color(0xFF667D98))
+                furniture(midX+15.dp.toPx(), midY+14.dp.toPx(), 47.dp.toPx(), 25.dp.toPx(), Color(0xFF526E8D))
+                if (cameras) {
+                    listOf(androidx.compose.ui.geometry.Offset(left+10.dp.toPx(), top+10.dp.toPx()), androidx.compose.ui.geometry.Offset(right-10.dp.toPx(), top+10.dp.toPx()), androidx.compose.ui.geometry.Offset(right-10.dp.toPx(), bottom-10.dp.toPx())).forEach { p ->
+                        drawCircle(Color(0xFF35E59A).copy(alpha = 0.18f), 12.dp.toPx(), p)
+                        drawCircle(Color(0xFF35E59A), 5.dp.toPx(), p)
+                        drawCircle(Color.White, 2.dp.toPx(), p)
+                    }
+                }
+            }
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(7.dp)) {
-                listOf("Soggiorno", "Cucina", "Camera").forEach { room ->
+                rooms.forEach { room ->
                     val selected = selectedRoom == room
-                    Surface(onClick = { onRoomSelected(room) }, color = if (selected) Color(0xFF17343E) else if (isDark) Color(0xFF172131) else Color(0xFFE8EEF5), shape = RoundedCornerShape(11.dp), border = androidx.compose.foundation.BorderStroke(1.dp, if (selected) accent else Color.Transparent)) {
-                        Text(room, Modifier.padding(horizontal = 9.dp, vertical = 8.dp), color = if (selected) accent else if (isDark) Color(0xFFB5C5D8) else Color(0xFF53647B), fontSize = 10.sp, fontWeight = FontWeight.SemiBold)
+                    Surface(
+                        onClick = { onRoomSelected(room) },
+                        color = if (selected) accent.copy(alpha = 0.14f) else if (isDark) Color(0xFF172131) else Color(0xFFE8EEF5),
+                        shape = RoundedCornerShape(12.dp),
+                        border = androidx.compose.foundation.BorderStroke(1.dp, if (selected) accent else Color.Transparent)
+                    ) {
+                        Text(room, Modifier.padding(horizontal = 10.dp, vertical = 9.dp), color = if (selected) accent else label, fontSize = 10.sp, fontWeight = FontWeight.SemiBold, maxLines = 1)
                     }
                 }
             }
             Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-                TextButton(onClick = { basement = !basement }) { Text(if (basement) "Piano principale" else "Seminterrato") }
+                TextButton(onClick = { basement = !basement }) { Text(if (basement) "Mostra piano principale" else "Mostra piano interrato", fontSize = 10.sp) }
                 Spacer(Modifier.weight(1f))
-                TextButton(onClick = { cameras = !cameras }) { Text(if (cameras) "Nascondi telecamere" else "Mostra telecamere") }
+                TextButton(onClick = { cameras = !cameras }) { Text(if (cameras) "Nascondi marker" else "Mostra marker", fontSize = 10.sp) }
             }
             Row(horizontalArrangement = Arrangement.spacedBy(12.dp), verticalAlignment = Alignment.CenterVertically) {
-                Row(verticalAlignment = Alignment.CenterVertically) { Box(Modifier.size(8.dp).background(onlineGreen, RoundedCornerShape(50))); Spacer(Modifier.width(5.dp)); Text("Online", color = if (isDark) Color(0xFFB5C5D8) else Color(0xFF53647B), fontSize = 10.sp) }
-                Row(verticalAlignment = Alignment.CenterVertically) { Box(Modifier.size(8.dp).background(offlineRed, RoundedCornerShape(50))); Spacer(Modifier.width(5.dp)); Text("Offline / non collegata", color = if (isDark) Color(0xFFB5C5D8) else Color(0xFF53647B), fontSize = 10.sp) }
+                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(5.dp)) {
+                    Box(Modifier.size(7.dp).background(Color(0xFF35E59A), RoundedCornerShape(50)))
+                    Text("Marker camera", color = label, fontSize = 10.sp)
+                }
+                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(5.dp)) {
+                    Box(Modifier.size(7.dp).background(Color(0xFF79C9FF), RoundedCornerShape(50)))
+                    Text("Finestre", color = label, fontSize = 10.sp)
+                }
             }
+            Text("Schema illustrativo modificabile nell'editor della piantina. I marker verdi sono segnaposto grafici, non dispositivi già rilevati.", color = if (isDark) Color(0xFF8292A9) else Color(0xFF65758A), fontSize = 10.sp, lineHeight = 15.sp)
         }
     }
 }
