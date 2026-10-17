@@ -57,7 +57,7 @@ import java.util.concurrent.atomic.AtomicBoolean
 
 private const val SERVICE_ID = "com.sentinelone.nativeapp.camera-link"
 private const val PERMISSION_REQUEST = 401
-private const val MAX_FRAME_BYTES = 28 * 1024
+private const val MAX_FRAME_BYTES = 120 * 1024
 
 private val Night = Color(0xFF080B13)
 private val Panel = Color(0xFF111827)
@@ -372,6 +372,7 @@ class MainActivity : ComponentActivity() {
         }
         imageCapture = null
         imageAnalysis?.clearAnalyzer()
+        imageAnalysis?.let { analysis -> try { cameraProvider?.unbind(analysis) } catch (_: Exception) { } }
         imageAnalysis = null
         frameInFlight.set(false)
     }
