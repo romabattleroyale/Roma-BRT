@@ -73,7 +73,7 @@ class RoomScanActivity : ComponentActivity() {
         checkArCoreDepth()
         setContent {
             MaterialTheme(colorScheme = darkColorScheme(primary = ScanCyan, secondary = ScanViolet, background = ScanNight, surface = ScanPanel, onBackground = Color.White, onSurface = Color.White)) {
-                RoomScanScreen(roomName, { roomName = it }, arStatus, depthSupported, cameraMessage, cameraReady, previewView, photoCount, isRecording, lastSaved, { capturePhoto() }, { toggleRecording() }, { finish() }, { startActivity(Intent(this, HouseReconstructionActivity::class.java).putExtra(HouseReconstructionActivity.EXTRA_ROOM_NAME, roomName)) })
+                RoomScanScreen(roomName, { roomName = it }, arStatus, depthSupported, cameraMessage, cameraReady, previewView, photoCount, isRecording, lastSaved, { capturePhoto() }, { toggleRecording() }, { finish() }, { startActivity(Intent(this, HouseReconstructionActivity::class.java).putExtra(HouseReconstructionActivity.EXTRA_ROOM_NAME, roomName)) }, { startActivity(Intent(this, HouseArScanActivity::class.java).putExtra(HouseReconstructionActivity.EXTRA_ROOM_NAME, roomName)) })
             }
         }
         if (ContextCompat.checkSelfPermission(this, Manifest.permission.CAMERA) == PackageManager.PERMISSION_GRANTED) startCamera()
@@ -199,7 +199,7 @@ class RoomScanActivity : ComponentActivity() {
 private fun RoomScanScreen(
     roomName: String, onRoomName: (String) -> Unit, arStatus: String, depthSupported: Boolean,
     cameraMessage: String, cameraReady: Boolean, previewView: PreviewView?, photoCount: Int,
-    isRecording: Boolean, lastSaved: String, onCapturePhoto: () -> Unit, onToggleRecording: () -> Unit, onBack: () -> Unit, onOpenReconstruction: () -> Unit
+    isRecording: Boolean, lastSaved: String, onCapturePhoto: () -> Unit, onToggleRecording: () -> Unit, onBack: () -> Unit, onOpenReconstruction: () -> Unit, onOpenArScan: () -> Unit
 ) {
     Column(Modifier.fillMaxSize().background(Brush.verticalGradient(listOf(Color(0xFF101A2B), ScanNight, ScanNight))).verticalScroll(rememberScrollState()).padding(18.dp), verticalArrangement = Arrangement.spacedBy(13.dp)) {
         Row(verticalAlignment = Alignment.CenterVertically) {
@@ -242,9 +242,10 @@ private fun RoomScanScreen(
             Column(Modifier.fillMaxWidth().padding(14.dp), verticalArrangement = Arrangement.spacedBy(7.dp)) {
                 Text("4 · SUPPORTO ARCORE", color = ScanCyan, fontSize = 10.sp, fontWeight = FontWeight.ExtraBold)
                 Text(arStatus, color = if (depthSupported) Color(0xFF55E6B1) else Color(0xFFFFC36B), fontSize = 12.sp)
-                Text("Questa versione salva foto e video reali e controlla la Depth API. La ricostruzione automatica della piantina e il correttore delle misure richiedono il successivo modulo di elaborazione.", color = Color(0xFF9BA8BC), fontSize = 11.sp, lineHeight = 17.sp)
+                Text("La scansione AR separata rileva i piani di pavimento e parete quando il tracking è disponibile e propone una stima iniziale. Le misure restano da verificare; foto e video continuano a funzionare come acquisizione guidata.", color = Color(0xFF9BA8BC), fontSize = 11.sp, lineHeight = 17.sp)
             }
         }
+        Button(onClick = onOpenArScan, modifier = Modifier.fillMaxWidth().height(52.dp), colors = ButtonDefaults.buttonColors(containerColor = ScanCyan, contentColor = Color(0xFF07101A))) { Text("AVVIA SCANSIONE AR · PAVIMENTO E PARETI", fontWeight = FontWeight.ExtraBold, fontSize = 10.sp) }
         Button(onClick = onOpenReconstruction, modifier = Modifier.fillMaxWidth().height(52.dp), colors = ButtonDefaults.buttonColors(containerColor = ScanViolet)) { Text("APRI EDITOR PIANTINA 2D / MODELLO 3D", fontWeight = FontWeight.ExtraBold) }
         Spacer(Modifier.height(12.dp))
     }
