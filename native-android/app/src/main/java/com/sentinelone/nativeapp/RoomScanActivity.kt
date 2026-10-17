@@ -87,9 +87,12 @@ class RoomScanActivity : ComponentActivity() {
                 arStatus = "ARCore non supportato in questa configurazione; disponibile acquisizione foto/video"
                 return
             }
-            Session(this).use { session ->
+            val session = Session(this)
+            try {
                 depthSupported = session.isDepthModeSupported(Config.DepthMode.AUTOMATIC)
                 arStatus = if (depthSupported) "ARCore e Depth API disponibili" else "ARCore disponibile, Depth API non supportata: percorso alternativo"
+            } finally {
+                session.close()
             }
         } catch (e: Exception) {
             depthSupported = false
