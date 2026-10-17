@@ -531,3 +531,186 @@ private fun HouseArScanScreen(
         }
     }
 }
+
+
+private data class HouseProjectSummary(
+    val roomName: String,
+    val geometry: HouseGeometry,
+    val captureCount: Int,
+    val hasArEvidence: Boolean
+)
+
+class HouseProjectsActivity : ComponentActivity() {
+    private var rooms by mutableStateOf<List<HouseProjectSummary>>(emptyList())
+
+    override fun onCreate(savedInstanceState: Bundle?) {
+        super.onCreate(savedInstanceState)
+        refreshRooms()
+        setContent {
+            MaterialTheme(
+                colorScheme = darkColorScheme(
+                    primary = HouseCyan,
+                    secondary = Color(0xFF9A7BFF),
+                    background = HouseBg,
+                    surface = HousePanel,
+                    onSurface = Color.White
+                )
+            ) {
+                HouseProjectsScreen(
+                    rooms = rooms,
+                    onBack = { finish() },
+                    onOpenEditor = { openRoom(it, HouseReconstructionActivity::class.java) },
+                    onStartCapture = { openRoom(it, RoomScanActivity::class.java) },
+                    onStartAr = { openRoom(it, HouseArScanActivity::class.java) },
+                    onNewRoom = {
+                        startActivity(
+                            Intent(this, RoomScanActivity::class.java)
+                                .putExtra(HouseReconstructionActivity.EXTRA_ROOM_NAME, "Nuova stanza")
+                        )
+                    }
+                )
+            }
+        }
+    }
+
+    override fun onResume() {
+        super.onResume()
+        refreshRooms()
+    }
+
+    private fun openRoom(roomName: String, destination: Class<*>) {
+        startActivity(
+            Intent(this, destination)
+                .putExtra(HouseReconstructionActivity.EXTRA_ROOM_NAME, roomName)
+        )
+    }
+
+    private fun refreshRooms() {
+        val names = linkedSetOf<String>()
+        filesDir.listFiles()?.filter { it.isFile }?.forEach { file ->
+            when {
+                file.name == "sentinel_house_project.json" -> names += "Stanza"
+                file.name.startsWith("sentinel_house_project_") && file.name.endsWith(".json") ->
+                    names += file.name.removePrefix("sentinel_house_project_").removeSuffix(".json")
+                file.name.startsWith("sentinel_ar_scan_") && file.name.endsWith(".json") ->
+                    names += file.name.removePrefix("sentinel_ar_scan_").removeSuffix(".json")
+            }
+        }
+
+        val base = getExternalFilesDir(Environment.DIRECTORY_PICTURES) ?: filesDir
+        val scanRoot = File(base, "SENTINEL_ONE_SCAN")
+        scanRoot.listFiles()?.filter { it.isDirectory }?.forEach { names += it.name }
+
+        rooms = names.map { normalizedRoomName(it) }
+            .distinct()
+            .map { room ->
+                val roomDir = File(scanRoot, room)
+                val captures = roomDir.listFiles()
+                    ?.count { it.isFile && it.extension.lowercase() in setOf("jpg", "jpeg", "mp4") }
+                    ?: 0
+                HouseProjectSummary(
+                    roomName = room,
+                    geometry = HouseProjectRepository.load(filesDir, room),
+                    captureCount = captures,
+                    hasArEvidence = arEvidenceFile(filesDir, room).isFile
+                )
+            }
+            .sortedBy { it.roomName.lowercase() }
+    }
+}
+
+@Composable
+private fun HouseProjectsScreen(
+    rooms: List<HouseProjectSummary>,
+    onBack: () -> Unit,
+    onOpenEditor: (String) -> Unit,
+    onStartCapture: (String) -> Unit,
+    onStartAr: (String) -> Unit,
+    onNewRoom: () -> Unit
+) {
+    Column(
+        Modifier.fillMaxSize()
+            .background(HouseBg)
+            .statusBarsPadding()
+            .navigationBarsPadding()
+            .verticalScroll(rememberScrollState())
+            .padding(16.dp),
+        verticalArrangement = Arrangement.spacedBy(12.dp)
+    ) {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(10.dp),
+            verticalAlignment = androidx.compose.ui.Alignment.CenterVertically
+        ) {
+            OutlinedButton(onClick = onBack) { Text("INDIETRO") }
+            Column(Modifier.weight(1f)) {
+                Text("SENTINEL ONE", color = HouseCyan, fontSize = 11.sp)
+                Text("Stanze salvate", color = Color.White, fontSize = 22.sp)
+            }
+        }
+        Text(
+            "Ogni ambiente mantiene la propria piantina, le acquisizioni e le evidenze AR.",
+            color = HouseMuted,
+            fontSize = 12.sp
+        )
+        Button(
+            onClick = onNewRoom,
+            modifier = Modifier.fillMaxWidth().height(50.dp)
+        ) { Text("+ NUOVA STANZA · FOTO / VIDEO") }
+
+        if (rooms.isEmpty()) {
+            Card(colors = CardDefaults.cardColors(containerColor = HousePanel)) {
+                Column(Modifier.fillMaxWidth().padding(18.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Text("Nessuna stanza salvata", color = Color.White, fontSize = 17.sp)
+                    Text(
+                        "Avvia una nuova acquisizione, inserisci il nome dell'ambiente e salva almeno una foto oppure una piantina.",
+                        color = HouseMuted,
+                        fontSize = 12.sp
+                    )
+                }
+            }
+        }
+
+        rooms.forEach { room ->
+            Card(
+                colors = CardDefaults.cardColors(containerColor = HousePanel),
+                shape = RoundedCornerShape(16.dp)
+            ) {
+                Column(
+                    Modifier.fillMaxWidth().padding(13.dp),
+                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    Text(room.roomName.replace('_', ' '), color = Color.White, fontSize = 18.sp)
+                    Text(
+                        "%.1f × %.1f m · %d porte/finestre".format(
+                            room.geometry.width,
+                            room.geometry.depth,
+                            room.geometry.openings.size
+                        ),
+                        color = HouseCyan,
+                        fontSize = 12.sp
+                    )
+                    Text(
+                        "${room.captureCount} foto/video · " + if (room.hasArEvidence) "stima AR disponibile" else "nessuna stima AR salvata",
+                        color = HouseMuted,
+                        fontSize = 11.sp
+                    )
+                    Button(
+                        onClick = { onOpenEditor(room.roomName) },
+                        modifier = Modifier.fillMaxWidth()
+                    ) { Text("APRI PIANTINA 2D / MODELLO 3D") }
+                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        OutlinedButton(
+                            onClick = { onStartCapture(room.roomName) },
+                            modifier = Modifier.weight(1f)
+                        ) { Text("FOTO / VIDEO", fontSize = 10.sp) }
+                        OutlinedButton(
+                            onClick = { onStartAr(room.roomName) },
+                            modifier = Modifier.weight(1f)
+                        ) { Text("SCANSIONE AR", fontSize = 10.sp) }
+                    }
+                }
+            }
+        }
+    }
+}
