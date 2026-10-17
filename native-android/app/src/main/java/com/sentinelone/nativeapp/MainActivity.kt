@@ -249,30 +249,29 @@ class MainActivity : ComponentActivity() {
     private fun captureNextFrame() {
         if (!captureActive.get()) return
         val capture = imageCapture ?: return
-        capture.takePicture(cameraExecutor, object : ImageCapture.OnImageCapturedCallback() {
-            override fun onCaptureSuccess(image: ImageProxy) {
+        val frameFile = java.io.File(cacheDir, "sentinel_frame_${System.nanoTime()}.jpg")
+        val output = ImageCapture.OutputFileOptions.Builder(frameFile).build()
+        capture.takePicture(output, cameraExecutor, object : ImageCapture.OnImageSavedCallback {
+            override fun onImageSaved(result: ImageCapture.OutputFileResults) {
                 try {
-                    val buffer = image.planes.firstOrNull()?.buffer
-                    if (buffer != null) {
-                        val bytes = ByteArray(buffer.remaining())
-                        buffer.get(bytes)
-                        val compressed = compressForNearby(bytes)
-                        val endpoint = activeEndpoint
-                        if (compressed != null && endpoint != null && captureActive.get()) {
-                            connections.sendPayload(endpoint, Payload.fromBytes(compressed))
-                                .addOnSuccessListener { runOnUiThread { sentFrames += 1 } }
-                                .addOnFailureListener { fail("Invio frame fallito: ${it.localizedMessage}") }
-                        }
+                    val source = frameFile.readBytes()
+                    val compressed = compressForNearby(source)
+                    val endpoint = activeEndpoint
+                    if (compressed != null && endpoint != null && captureActive.get()) {
+                        connections.sendPayload(endpoint, Payload.fromBytes(compressed))
+                            .addOnSuccessListener { runOnUiThread { sentFrames += 1 } }
+                            .addOnFailureListener { fail("Invio frame fallito: ${it.localizedMessage}") }
                     }
                 } catch (e: Exception) {
                     fail("Errore frame: ${e.localizedMessage}")
                 } finally {
-                    image.close()
+                    frameFile.delete()
                     if (captureActive.get()) android.os.Handler(mainLooper).postDelayed({ captureNextFrame() }, 500L)
                 }
             }
 
             override fun onError(exception: ImageCaptureException) {
+                frameFile.delete()
                 fail("Acquisizione frame fallita: ${exception.localizedMessage}")
                 if (captureActive.get()) android.os.Handler(mainLooper).postDelayed({ captureNextFrame() }, 1000L)
             }
