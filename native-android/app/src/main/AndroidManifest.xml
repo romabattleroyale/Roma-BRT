@@ -27,6 +27,7 @@
         android:usesCleartextTraffic="false">
         <meta-data android:name="com.google.ar.core" android:value="optional" />
         <activity android:name=".RoomScanActivity" android:exported="false" />
+        <activity android:name=".HouseReconstructionActivity" android:exported="false" />
         <activity
             android:name=".MainActivity"
             android:exported="true">
