@@ -24,6 +24,7 @@ import androidx.compose.foundation.Image
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
+import androidx.compose.animation.animateContentSize
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -522,7 +523,7 @@ private fun ModeHeroCard(title: String, subtitle: String, accent: Color, symbol:
         colors = CardDefaults.cardColors(containerColor = Color(0xFF111C2D)),
         border = androidx.compose.foundation.BorderStroke(1.dp, accent.copy(alpha = 0.55f))
     ) {
-        Box(Modifier.fillMaxWidth().background(Brush.horizontalGradient(listOf(accent.copy(alpha = 0.16f), Color(0xFF111C2D)))) {
+        Box(Modifier.fillMaxWidth().background(Brush.horizontalGradient(listOf(accent.copy(alpha = 0.16f), Color(0xFF111C2D))))) {
             Row(Modifier.fillMaxWidth().padding(19.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(15.dp)) {
                 Box(Modifier.size(82.dp).background(Brush.linearGradient(listOf(accent.copy(alpha = 0.3f), Color(0xFF0A1220))), RoundedCornerShape(24.dp)), contentAlignment = Alignment.Center) {
                     Text(symbol, color = accent, fontSize = 50.sp, fontWeight = FontWeight.Light)
