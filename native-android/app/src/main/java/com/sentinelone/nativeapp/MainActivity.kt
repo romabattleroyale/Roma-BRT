@@ -433,25 +433,31 @@ class MainActivity : ComponentActivity() {
 
 @Composable
 private fun WelcomeScreen(onCameraMode: () -> Unit, onControlMode: () -> Unit) {
-    val muted = Color(0xFF9BAAC0)
-    Box(Modifier.fillMaxSize().background(Brush.verticalGradient(listOf(Color(0xFF101D32), Color(0xFF070B14), Color(0xFF090D18))))) {
+    val muted = Color(0xFF9BA8BC)
+    Box(Modifier.fillMaxSize().background(Color(0xFF080B13))) {
         Column(
-            Modifier.fillMaxSize().statusBarsPadding().navigationBarsPadding().verticalScroll(rememberScrollState()).padding(horizontal = 22.dp, vertical = 18.dp),
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.spacedBy(16.dp)
+            Modifier.fillMaxSize().statusBarsPadding().navigationBarsPadding().verticalScroll(rememberScrollState()).padding(horizontal = 22.dp, vertical = 24.dp),
+            horizontalAlignment = Alignment.Start,
+            verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
-            Spacer(Modifier.height(6.dp))
-            SentinelLogo(Modifier.size(86.dp))
-            Text("SENTINEL ONE", color = Color(0xFFF4F7FF), fontSize = 25.sp, fontWeight = FontWeight.Black, letterSpacing = 1.1.sp)
-            Text("SMART HOME SECURITY", color = muted, fontSize = 10.sp, letterSpacing = 3.sp)
-            Spacer(Modifier.height(3.dp))
-            Text("Come vuoi usare", color = Color.White, fontSize = 24.sp, fontWeight = FontWeight.Bold)
-            Text("SENTINEL ONE?", color = Color(0xFF65DFF4), fontSize = 27.sp, fontWeight = FontWeight.ExtraBold)
-            Text("Scegli una modalità per continuare", color = muted, fontSize = 13.sp)
-            ModeChoiceCard("MODALITÀ", "TELECAMERA", "Usa questo telefono per inviare il video live.", "CONFIGURA TELECAMERA", "◉", Color(0xFF39D9F0), onCameraMode)
-            ModeChoiceCard("CENTRO DI", "CONTROLLO", "Collega e gestisci telecamere e dispositivi.", "APRI CENTRO DI CONTROLLO", "⌂", Color(0xFF9B79FF), onControlMode)
-            Spacer(Modifier.height(2.dp))
-            Text("♙  Privacy e connessione protetta", color = muted, fontSize = 12.sp)
+            Spacer(Modifier.height(14.dp))
+            SentinelLogo(Modifier.size(64.dp))
+            Text("SENTINEL ONE", color = Color(0xFFF4F7FF), fontSize = 26.sp, fontWeight = FontWeight.Black, letterSpacing = 0.6.sp)
+            Text("VIDEOSORVEGLIANZA SEMPLICE", color = muted, fontSize = 10.sp, letterSpacing = 1.8.sp)
+            Spacer(Modifier.height(20.dp))
+            Text("Da quale telefono
+vuoi iniziare?", color = Color.White, fontSize = 29.sp, lineHeight = 34.sp, fontWeight = FontWeight.ExtraBold)
+            Text("Usa due telefoni Android. Uno riprende, l'altro mostra il video in diretta.", color = muted, fontSize = 14.sp, lineHeight = 21.sp)
+            Spacer(Modifier.height(10.dp))
+            ModeChoiceCard("TELEFONO 1", "Telecamera", "Questo telefono invia il video della fotocamera.", "USA COME TELECAMERA", "◉", Color(0xFF53E5F2), onCameraMode)
+            ModeChoiceCard("TELEFONO 2", "Centro di controllo", "Questo telefono cerca la telecamera e mostra il live.", "USA COME MONITOR", "⌂", Color(0xFF53E5F2), onControlMode)
+            Spacer(Modifier.height(8.dp))
+            Surface(color = Color(0xFF111827), shape = RoundedCornerShape(16.dp)) {
+                Row(Modifier.fillMaxWidth().padding(14.dp), verticalAlignment = Alignment.Top, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                    Text("i", color = Color(0xFF53E5F2), fontSize = 18.sp, fontWeight = FontWeight.Bold)
+                    Text("Tieni entrambi i telefoni vicini, con Bluetooth attivo e permessi richiesti concessi. Avvia prima il Centro di controllo sul telefono che riceve.", color = muted, fontSize = 12.sp, lineHeight = 18.sp)
+                }
+            }
         }
     }
 }
@@ -488,16 +494,16 @@ private fun ModeChoiceCard(
     )
     Card(
         onClick = { pressed = true; onClick() },
-        modifier = Modifier.fillMaxWidth().heightIn(min = 200.dp).graphicsLayer { scaleX = scale; scaleY = scale }.animateContentSize(),
+        modifier = Modifier.fillMaxWidth().heightIn(min = 142.dp).graphicsLayer { scaleX = scale; scaleY = scale }.animateContentSize(),
         shape = RoundedCornerShape(25.dp),
         colors = CardDefaults.cardColors(containerColor = Color(0xFF111C2D)),
         border = androidx.compose.foundation.BorderStroke(1.3.dp, accent.copy(alpha = 0.8f)),
         elevation = CardDefaults.cardElevation(defaultElevation = 5.dp, pressedElevation = 12.dp)
     ) {
-        Column(Modifier.fillMaxWidth().padding(17.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+        Column(Modifier.fillMaxWidth().padding(15.dp), verticalArrangement = Arrangement.spacedBy(9.dp)) {
             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(14.dp)) {
-                Box(Modifier.size(72.dp).background(Brush.linearGradient(listOf(accent.copy(alpha = 0.28f), Color(0xFF101827))), RoundedCornerShape(19.dp)), contentAlignment = Alignment.Center) {
-                    Text(symbol, color = accent, fontSize = 46.sp, fontWeight = FontWeight.Light)
+                Box(Modifier.size(58.dp).background(Brush.linearGradient(listOf(accent.copy(alpha = 0.22f), Color(0xFF101827))), RoundedCornerShape(17.dp)), contentAlignment = Alignment.Center) {
+                    Text(symbol, color = accent, fontSize = 36.sp, fontWeight = FontWeight.Light)
                 }
                 Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(3.dp)) {
                     Text(title, color = Color(0xFFF4F7FF), fontSize = 12.sp, fontWeight = FontWeight.SemiBold, letterSpacing = 1.2.sp)
@@ -505,8 +511,8 @@ private fun ModeChoiceCard(
                     Text(description, color = Color(0xFFB1BED1), fontSize = 12.sp, lineHeight = 17.sp)
                 }
             }
-            Surface(color = accent, shape = RoundedCornerShape(14.dp), modifier = Modifier.fillMaxWidth()) {
-                Row(Modifier.fillMaxWidth().padding(horizontal = 14.dp, vertical = 13.dp), verticalAlignment = Alignment.CenterVertically) {
+            Surface(color = accent, shape = RoundedCornerShape(12.dp), modifier = Modifier.fillMaxWidth()) {
+                Row(Modifier.fillMaxWidth().padding(horizontal = 13.dp, vertical = 10.dp), verticalAlignment = Alignment.CenterVertically) {
                     Text(action, color = Color(0xFF07101A), fontSize = 10.sp, fontWeight = FontWeight.ExtraBold, modifier = Modifier.weight(1f))
                     Text("→", color = Color(0xFF07101A), fontSize = 22.sp, fontWeight = FontWeight.Bold)
                 }
@@ -536,6 +542,16 @@ private fun ModeHeroCard(title: String, subtitle: String, accent: Color, symbol:
                 }
             }
         }
+    }
+}
+
+@Composable
+private fun PairingInstruction(number: String, instruction: String) {
+    Row(horizontalArrangement = Arrangement.spacedBy(10.dp), verticalAlignment = Alignment.Top) {
+        Box(Modifier.size(24.dp).background(Color(0xFF17343E), RoundedCornerShape(8.dp)), contentAlignment = Alignment.Center) {
+            Text(number, color = Color(0xFF53E5F2), fontSize = 11.sp, fontWeight = FontWeight.ExtraBold)
+        }
+        Text(instruction, color = Color(0xFFCFD8E6), fontSize = 12.sp, lineHeight = 18.sp, modifier = Modifier.weight(1f))
     }
 }
 
@@ -759,6 +775,21 @@ private fun Dashboard(
                                     symbol = if (role == "camera") "◉" else "⌂",
                                     connected = connectedName != null
                                 )
+                                Card(
+                                    colors = CardDefaults.cardColors(containerColor = panel),
+                                    shape = RoundedCornerShape(18.dp),
+                                    border = androidx.compose.foundation.BorderStroke(1.dp, accent.copy(alpha = 0.28f))
+                                ) {
+                                    Column(Modifier.fillMaxWidth().padding(15.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                                        Text("COLLEGA I DUE TELEFONI", color = accent, fontSize = 12.sp, fontWeight = FontWeight.ExtraBold, letterSpacing = 0.6.sp)
+                                        PairingInstruction("1", "Sul telefono che riceve il video, scegli CENTRO DI CONTROLLO.")
+                                        PairingInstruction("2", "Sul telefono che riprende, scegli TELECAMERA e consenti l'accesso alla fotocamera.")
+                                        PairingInstruction("3", "Tieni i telefoni vicini e attiva Bluetooth e Wi-Fi su entrambi. Concedi i permessi Dispositivi nelle vicinanze e posizione se Android li richiede.")
+                                        PairingInstruction("4", "Premi prima “Rendi visibile il centro di controllo” sul monitor; poi premi “Cerca il centro di controllo” sulla telecamera.")
+                                        PairingInstruction("5", "Quando il nome del monitor appare, premi COLLEGA. Accetta la richiesta se compare e apri la scheda Live per vedere il video.")
+                                        Text("Se non si trovano: premi Interrompi ricerca su entrambi, verifica i permessi e ripeti iniziando dal monitor.", color = secondaryText, fontSize = 11.sp, lineHeight = 16.sp)
+                                    }
+                                }
                                 Text("1  ·  MODALITÀ", fontSize = 10.sp, fontWeight = FontWeight.Bold, letterSpacing = 1.5.sp, color = secondaryText)
                                 Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                                     ModeMiniCard("TELECAMERA", "Invia video", role == "camera", accent, Modifier.weight(1f)) { onRole("camera") }
