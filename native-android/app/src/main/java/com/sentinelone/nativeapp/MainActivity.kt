@@ -427,29 +427,60 @@ class MainActivity : ComponentActivity() {
 @Composable
 private fun WelcomeScreen(onCameraMode: () -> Unit, onControlMode: () -> Unit) {
     val muted = Color(0xFF9BA8BC)
-    Box(Modifier.fillMaxSize().background(Color(0xFF080B13))) {
+    Box(Modifier.fillMaxSize().background(Color(0xFF070B13))) {
+        Box(Modifier.fillMaxWidth().height(410.dp).background(Brush.verticalGradient(listOf(Color(0xFF172941), Color(0xFF0B1220), Color.Transparent))))
         Column(
-            Modifier.fillMaxSize().statusBarsPadding().navigationBarsPadding().verticalScroll(rememberScrollState()).padding(horizontal = 22.dp, vertical = 24.dp),
-            horizontalAlignment = Alignment.Start,
-            verticalArrangement = Arrangement.spacedBy(12.dp)
+            Modifier.fillMaxSize().statusBarsPadding().navigationBarsPadding().verticalScroll(rememberScrollState()).padding(horizontal = 20.dp, vertical = 16.dp),
+            verticalArrangement = Arrangement.spacedBy(13.dp)
         ) {
-            Spacer(Modifier.height(14.dp))
-            SentinelLogo(Modifier.size(64.dp))
-            Text("SENTINEL ONE", color = Color(0xFFF4F7FF), fontSize = 26.sp, fontWeight = FontWeight.Black, letterSpacing = 0.6.sp)
-            Text("VIDEOSORVEGLIANZA SEMPLICE", color = muted, fontSize = 10.sp, letterSpacing = 1.8.sp)
-            Spacer(Modifier.height(20.dp))
-            Text("Da quale telefono\nvuoi iniziare?", color = Color.White, fontSize = 29.sp, lineHeight = 34.sp, fontWeight = FontWeight.ExtraBold)
-            Text("Usa due telefoni Android. Uno riprende, l'altro mostra il video in diretta.", color = muted, fontSize = 14.sp, lineHeight = 21.sp)
-            Spacer(Modifier.height(10.dp))
-            ModeChoiceCard("TELEFONO 1", "Telecamera", "Questo telefono invia il video della fotocamera.", "USA COME TELECAMERA", "◉", Color(0xFF53E5F2), onCameraMode)
-            ModeChoiceCard("TELEFONO 2", "Centro di controllo", "Questo telefono cerca la telecamera e mostra il live.", "USA COME MONITOR", "⌂", Color(0xFF53E5F2), onControlMode)
-            Spacer(Modifier.height(8.dp))
-            Surface(color = Color(0xFF111827), shape = RoundedCornerShape(16.dp)) {
-                Row(Modifier.fillMaxWidth().padding(14.dp), verticalAlignment = Alignment.Top, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                    Text("i", color = Color(0xFF53E5F2), fontSize = 18.sp, fontWeight = FontWeight.Bold)
-                    Text("Tieni entrambi i telefoni vicini, con Bluetooth attivo e permessi richiesti concessi. Avvia prima il Centro di controllo sul telefono che riceve.", color = muted, fontSize = 12.sp, lineHeight = 18.sp)
+            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                SentinelLogo(Modifier.size(52.dp))
+                Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                    Text("SENTINEL ONE", color = Color(0xFFF4F7FF), fontSize = 19.sp, fontWeight = FontWeight.Black, letterSpacing = 0.7.sp)
+                    Text("SMART HOME SECURITY", color = muted, fontSize = 9.sp, letterSpacing = 1.8.sp)
                 }
             }
+            Spacer(Modifier.height(2.dp))
+            SecurityHeroVisual(
+                isDark = true,
+                online = false,
+                frame = null,
+                subtitle = "Trasforma due telefoni in un sistema di sorveglianza live.",
+                onClick = onControlMode
+            )
+            Column(verticalArrangement = Arrangement.spacedBy(5.dp)) {
+                Text("Inizia in pochi passaggi", color = Color.White, fontSize = 25.sp, fontWeight = FontWeight.ExtraBold, lineHeight = 30.sp)
+                Text("Scegli il ruolo di questo telefono. L'altro potrà collegarsi in seguito.", color = muted, fontSize = 13.sp, lineHeight = 19.sp)
+            }
+            ModeChoiceCard(
+                "TELEFONO 1",
+                "Telecamera",
+                "Usa la fotocamera di questo telefono per inviare il video live.",
+                "CONFIGURA TELECAMERA",
+                "◉",
+                Color(0xFF53E5F2),
+                onCameraMode
+            )
+            ModeChoiceCard(
+                "TELEFONO 2",
+                "Centro di controllo",
+                "Ricevi il flusso e guarda la visuale dal vivo su questo schermo.",
+                "APRI CENTRO DI CONTROLLO",
+                "⌂",
+                Color(0xFF9A7BFF),
+                onControlMode
+            )
+            Surface(
+                color = Color(0xFF111827),
+                shape = RoundedCornerShape(16.dp),
+                border = androidx.compose.foundation.BorderStroke(1.dp, Color(0xFF283348))
+            ) {
+                Row(Modifier.fillMaxWidth().padding(14.dp), verticalAlignment = Alignment.Top, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                    Text("i", color = Color(0xFF53E5F2), fontSize = 18.sp, fontWeight = FontWeight.Bold)
+                    Text("Per collegarli: attiva Bluetooth e Wi-Fi su entrambi. Avvia prima il Centro di controllo sul telefono che riceve, poi cerca il monitor dal telefono telecamera.", color = muted, fontSize = 12.sp, lineHeight = 18.sp)
+                }
+            }
+            Text("PRIVACY · CONNESSIONE DIRETTA TRA DISPOSITIVI", Modifier.fillMaxWidth().padding(vertical = 4.dp), color = Color(0xFF738198), fontSize = 9.sp, letterSpacing = 1.1.sp)
         }
     }
 }
