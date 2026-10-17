@@ -231,7 +231,7 @@ class MainActivity : ComponentActivity() {
                 cameraProvider = provider
                 val capture = ImageCapture.Builder()
                     .setCaptureMode(ImageCapture.CAPTURE_MODE_MINIMIZE_LATENCY)
-                    .setTargetResolution(Size(640, 480))
+                    .setTargetResolution(Size(480, 360))
                     .build()
                 provider.unbindAll()
                 val selector = CameraSelector.Builder().requireLensFacing(lensFacing).build()
@@ -266,7 +266,7 @@ class MainActivity : ComponentActivity() {
                     fail("Errore frame: ${e.localizedMessage}")
                 } finally {
                     frameFile.delete()
-                    if (captureActive.get()) android.os.Handler(mainLooper).postDelayed({ captureNextFrame() }, 500L)
+                    if (captureActive.get()) android.os.Handler(mainLooper).postDelayed({ captureNextFrame() }, 180L)
                 }
             }
 
@@ -283,7 +283,7 @@ class MainActivity : ComponentActivity() {
         try {
             val scaled = Bitmap.createScaledBitmap(bitmap, 320, 240, true)
             try {
-                var quality = 45
+                var quality = 38
                 var output: ByteArray
                 do {
                     val stream = ByteArrayOutputStream()
