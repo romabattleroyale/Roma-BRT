@@ -4,27 +4,43 @@ This is the native Android implementation track, separate from the legacy Flutte
 
 ## Native stack
 - Kotlin + Jetpack Compose for the Android interface.
-- CameraX for camera capture.
-- Google Nearby Connections for discovery, pairing and nearby payload delivery.
-- No Render or WebRTC dependency in this native pairing path.
+- CameraX for separate live-stream camera use and guided room photo/video capture.
+- Google Nearby Connections for discovery, pairing and nearby streaming payload delivery.
+- SceneView/Filament for the navigable 3D room model.
+- SceneView ARSceneView + ARCore plane tracking for a preliminary in-room floor/wall survey.
 
-## Current prototype functions
-- Camera and monitor roles.
-- Nearby device discovery and connection acceptance.
-- Camera capture at a low-resolution, low-frame-rate prototype setting.
+## Camera and streaming prototype
+- Camera and monitor roles, nearby device discovery and connection acceptance.
 - JPEG frame downscaling/compression and sending as Nearby byte payloads.
 - Monitor-side decoding and live frame display.
 - Connection state and sent/received frame counters.
-- Compile-only CI validation. CI does not package an APK; APK generation is handled separately by the project owner in Codemagic.
+- The streaming protocol, frame send/receive callbacks and live-view path are separate from the house scan activities.
+
+## House Builder prototype
+- Guided CameraX photo and video capture, stored in separate folders by normalized room name under `SENTINEL_ONE_SCAN`.
+- A standalone AR scan screen can use ARCore to detect tracked upward-facing horizontal planes and vertical wall planes while the user slowly surveys the room.
+- The largest tracked floor plane's X/Z extents can be written as an **unconfirmed initial estimate** for that room's 2D/3D model. The scan evidence is also saved as JSON per room.
+- Editable 2D room outline and a navigable SceneView/Filament 3D model use the same geometry in meters.
+- Manual room dimensions and door/window position, width and height adjustments.
+- Per-room local JSON project persistence and delayed automatic draft saving.
 
 ## Known limitations
-- This is a first native streaming prototype, not a production-ready security camera app.
-- The Nearby byte-payload path deliberately limits individual JPEG frames to 28 KiB, so image quality and frame rate are limited.
-- Automatic reconnect, secure device identity/pairing persistence, background operation, audio, recording, night mode, motion detection and gallery export are not implemented yet.
-- Compilation and code checks are not a substitute for validation on two physical Android phones. The end-to-end link still needs that verification.
+- AR plane extents are an initial estimate of the observed plane, **not proof of the complete room perimeter**. Surfaces may only be partially observed and detected planes can change while tracking. Always verify the dimensions with real measurements before treating them as accurate.
+- Automatic inference of doors/windows from photos/video, robust photogrammetric reconstruction, and assembly of multiple scans into a multi-room whole-house model are not implemented yet.
+- AR support and tracking quality are device- and environment-dependent. On-device validation, including this app on a physical Xiaomi M11i 5G, is still required.
+- The Nearby byte-payload path limits individual JPEG frames to 28 KiB, so streaming quality and frame rate are limited.
+- Automatic reconnect, persistent secure device identity/pairing, background operation, audio, night mode, motion detection and gallery export are not implemented yet.
+- GitHub Actions currently performs a **Kotlin compile check only**; it does not build or publish an APK. The Codemagic workflow builds the release APK.
 
-## Compile-only check
-With JDK 17 and Gradle 8.9:
-`gradle compileDebugKotlin`
+## Build toolchain
+- JDK 17
+- Gradle 8.14.4
+- Android Gradle Plugin 8.10.1
+- Android `compileSdk = 36` (`targetSdk = 35` remains unchanged)
 
-This checks Kotlin sources without creating an APK.
+From the repository root, run the compile check with:
+```sh
+gradle -p native-android compileDebugKotlin
+```
+
+A successful compile proves source-level build compatibility only. It does not prove camera/AR behavior on a physical device or generate an APK.
