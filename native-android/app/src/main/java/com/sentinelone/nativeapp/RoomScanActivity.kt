@@ -70,6 +70,7 @@ class RoomScanActivity : ComponentActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        roomName = intent.getStringExtra(HouseReconstructionActivity.EXTRA_ROOM_NAME)?.takeIf { it.isNotBlank() } ?: "Soggiorno"
         checkArCoreDepth()
         setContent {
             MaterialTheme(colorScheme = darkColorScheme(primary = ScanCyan, secondary = ScanViolet, background = ScanNight, surface = ScanPanel, onBackground = Color.White, onSurface = Color.White)) {
