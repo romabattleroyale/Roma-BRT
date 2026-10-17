@@ -111,6 +111,10 @@ class MainActivity : ComponentActivity() {
         } else {
             result += Manifest.permission.BLUETOOTH
             result += Manifest.permission.BLUETOOTH_ADMIN
+        }
+        // Nearby Connections may require location permission for discovery on Android 12+ too.
+        if (Build.VERSION.SDK_INT <= 32) {
+            result += Manifest.permission.ACCESS_COARSE_LOCATION
             result += Manifest.permission.ACCESS_FINE_LOCATION
         }
         if (Build.VERSION.SDK_INT >= 33) result += Manifest.permission.NEARBY_WIFI_DEVICES
