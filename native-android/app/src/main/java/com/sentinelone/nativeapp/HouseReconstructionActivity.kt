@@ -39,6 +39,7 @@ import org.json.JSONObject
 import java.io.File
 import java.io.FileOutputStream
 import java.util.UUID
+import java.security.MessageDigest
 import kotlinx.coroutines.delay
 import kotlin.math.min
 import java.util.concurrent.atomic.AtomicInteger
@@ -52,8 +53,34 @@ data class HouseOpening(val id: String = UUID.randomUUID().toString(), val wall:
 data class HouseGeometry(val width: Float = 5f, val depth: Float = 4f, val height: Float = 2.7f, val openings: List<HouseOpening> = emptyList(), val scaleConfirmed: Boolean = false)
 private data class ScanAsset(val name: String, val kind: String, val sizeBytes: Long)
 
-private fun normalizedRoomName(raw: String): String =
+internal fun normalizedRoomName(raw: String): String =
     raw.trim().replace(Regex("[^A-Za-z0-9À-ÿ_-]+"), "_").trim('_').ifBlank { "Stanza" }
+
+/** Stable per-original-name key: different names that sanitize to the same slug remain separate. */
+internal fun roomStorageKey(raw: String): String {
+    val original = raw.trim().ifBlank { "Stanza" }
+    val digest = MessageDigest.getInstance("SHA-256")
+        .digest(original.toByteArray(Charsets.UTF_8))
+        .take(4)
+        .joinToString("") { "%02x".format(it) }
+    return "${normalizedRoomName(original)}_${digest}"
+}
+internal fun roomCaptureDirectory(scanRoot: File, roomName: String): File {
+    val keyDirectory = File(scanRoot, roomStorageKey(roomName))
+    if (keyDirectory.isDirectory) return keyDirectory
+    val legacyDirectory = File(scanRoot, normalizedRoomName(roomName))
+    if (legacyDirectory.isDirectory) {
+        val metadata = File(legacyDirectory, ".sentinel-room-name")
+        val recordedName = runCatching { metadata.takeIf { it.isFile }?.readText()?.trim().orEmpty() }.getOrDefault("")
+        if (recordedName.isBlank() || recordedName == roomName.trim()) {
+            if (!scanRoot.exists()) scanRoot.mkdirs()
+            if (legacyDirectory.renameTo(keyDirectory)) return keyDirectory
+            return legacyDirectory
+        }
+    }
+    return keyDirectory
+}
+
 
 internal fun normalizeOpenings(openings: List<HouseOpening>, roomWidth: Float, roomDepth: Float): List<HouseOpening> {
     val safeWidth = roomWidth.takeIf { it.isFinite() }?.coerceIn(2f, 8f) ?: 5f
@@ -97,6 +124,9 @@ private fun findFreeOpeningOffset(length: Float, width: Float, existing: List<Ho
 }
 
 private fun arEvidenceFile(filesDir: File, roomName: String) =
+    File(filesDir, "sentinel_ar_scan_" + roomStorageKey(roomName) + ".json")
+
+private fun legacyArEvidenceFile(filesDir: File, roomName: String) =
     File(filesDir, "sentinel_ar_scan_" + normalizedRoomName(roomName) + ".json")
 
 private fun writeJsonAtomically(destination: File, json: String) {
@@ -119,12 +149,19 @@ private fun writeJsonAtomically(destination: File, json: String) {
 }
 
 private object HouseProjectRepository {
-    private fun projectFileName(roomName: String) = "sentinel_house_project_" + normalizedRoomName(roomName) + ".json"
+    private fun projectFileName(roomName: String) = "sentinel_house_project_" + roomStorageKey(roomName) + ".json"
+    private fun legacyProjectFileName(roomName: String) = "sentinel_house_project_" + normalizedRoomName(roomName) + ".json"
 
     fun load(dir: File, roomName: String): HouseGeometry = runCatching {
         val roomFile = File(dir, projectFileName(roomName))
-        // Read the pre-room-specific project as a one-time compatibility fallback for the default room.
-        val source = if (roomFile.exists()) roomFile else if (normalizedRoomName(roomName) == "Stanza") File(dir, "sentinel_house_project.json") else roomFile
+        // Preserve projects created by older builds before room names received collision-safe keys.
+        val legacyRoomFile = File(dir, legacyProjectFileName(roomName))
+        val source = when {
+            roomFile.isFile -> roomFile
+            legacyRoomFile.isFile -> legacyRoomFile
+            normalizedRoomName(roomName) == "Stanza" && File(dir, "sentinel_house_project.json").isFile -> File(dir, "sentinel_house_project.json")
+            else -> roomFile
+        }
         if (!source.isFile) return@runCatching HouseGeometry()
         val j = JSONObject(source.readText())
         val a = j.optJSONArray("openings") ?: JSONArray()
@@ -189,14 +226,15 @@ class HouseReconstructionActivity : ComponentActivity() {
 
     private fun refreshScanAssets() {
         val base = getExternalFilesDir(Environment.DIRECTORY_PICTURES) ?: filesDir
-        val roomDir = File(File(base, "SENTINEL_ONE_SCAN"), normalizedRoomName(currentRoomName))
+        val scanRoot = File(base, "SENTINEL_ONE_SCAN")
+        val roomDir = roomCaptureDirectory(scanRoot, currentRoomName)
         val captures = roomDir.listFiles()
             ?.filter { it.isFile && it.extension.lowercase() in setOf("jpg", "jpeg", "mp4") }
             ?.sortedByDescending { it.lastModified() }
             ?.map { file -> ScanAsset(file.name, if (file.extension.lowercase() == "mp4") "VIDEO" else "FOTO", file.length()) }
             ?: emptyList()
-        val arFile = arEvidenceFile(filesDir, currentRoomName)
-        scanAssets = captures + if (arFile.isFile) listOf(ScanAsset("Scansione AR salvata", "AR", arFile.length())) else emptyList()
+        val arFile = listOf(arEvidenceFile(filesDir, currentRoomName), legacyArEvidenceFile(filesDir, currentRoomName)).firstOrNull { it.isFile }
+        scanAssets = captures + if (arFile != null) listOf(ScanAsset("Scansione AR salvata", "AR", arFile.length())) else emptyList()
     }
 }
 
@@ -679,21 +717,28 @@ class HouseProjectsActivity : ComponentActivity() {
         filesDir.listFiles()?.filter { it.isFile }?.forEach { file ->
             when {
                 file.name == "sentinel_house_project.json" -> names += "Stanza"
-                file.name.startsWith("sentinel_house_project_") && file.name.endsWith(".json") ->
-                    names += file.name.removePrefix("sentinel_house_project_").removeSuffix(".json")
-                file.name.startsWith("sentinel_ar_scan_") && file.name.endsWith(".json") ->
-                    names += file.name.removePrefix("sentinel_ar_scan_").removeSuffix(".json")
+                file.name.startsWith("sentinel_house_project_") && file.name.endsWith(".json") -> {
+                    val storedName = runCatching { JSONObject(file.readText()).optString("roomName") }.getOrDefault("")
+                    names += storedName.ifBlank { file.name.removePrefix("sentinel_house_project_").removeSuffix(".json") }
+                }
+                file.name.startsWith("sentinel_ar_scan_") && file.name.endsWith(".json") -> {
+                    val storedName = runCatching { JSONObject(file.readText()).optString("roomName") }.getOrDefault("")
+                    if (storedName.isNotBlank()) names += storedName
+                }
             }
         }
 
         val base = getExternalFilesDir(Environment.DIRECTORY_PICTURES) ?: filesDir
         val scanRoot = File(base, "SENTINEL_ONE_SCAN")
-        scanRoot.listFiles()?.filter { it.isDirectory }?.forEach { names += it.name }
+        scanRoot.listFiles()?.filter { it.isDirectory }?.forEach { dir ->
+            val storedName = runCatching { File(dir, ".sentinel-room-name").takeIf { it.isFile }?.readText()?.trim().orEmpty() }.getOrDefault("")
+            names += storedName.ifBlank { dir.name }
+        }
 
-        rooms = names.map { normalizedRoomName(it) }
+        rooms = names.filter { it.isNotBlank() }
             .distinct()
             .map { room ->
-                val roomDir = File(scanRoot, room)
+                val roomDir = roomCaptureDirectory(scanRoot, room)
                 val captures = roomDir.listFiles()
                     ?.count { it.isFile && it.extension.lowercase() in setOf("jpg", "jpeg", "mp4") }
                     ?: 0
@@ -701,7 +746,7 @@ class HouseProjectsActivity : ComponentActivity() {
                     roomName = room,
                     geometry = HouseProjectRepository.load(filesDir, room),
                     captureCount = captures,
-                    hasArEvidence = arEvidenceFile(filesDir, room).isFile
+                    hasArEvidence = arEvidenceFile(filesDir, room).isFile || legacyArEvidenceFile(filesDir, room).isFile
                 )
             }
             .sortedBy { it.roomName.lowercase() }
