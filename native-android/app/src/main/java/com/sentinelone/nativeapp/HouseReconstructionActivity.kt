@@ -106,10 +106,30 @@ private fun HouseEditor(initial: HouseGeometry, save: (HouseGeometry) -> Unit, b
                         } else message = "Parete troppo corta"
                     }) { Text("AGGIUNGI") }
                 }
-                g.openings.forEach { o -> Row(verticalAlignment = androidx.compose.ui.Alignment.CenterVertically) {
-                    Text(o.type + " · " + o.wall + " · %.1f m".format(o.width), Modifier.weight(1f), color = Color.White, fontSize = 12.sp)
-                    TextButton(onClick = { g = g.copy(openings = g.openings.filterNot { it.id == o.id }) }) { Text("RIMUOVI") }
-                } }
+                g.openings.forEach { o ->
+                    val wallLength = if (o.wall == "Nord" || o.wall == "Sud") g.width else g.depth
+                    val maxWidth = (wallLength - 0.2f).coerceAtLeast(0.5f)
+                    val safeWidth = o.width.coerceIn(0.5f, maxWidth)
+                    val safeOffset = o.offset.coerceIn(0f, (wallLength - safeWidth).coerceAtLeast(0f))
+                    Column(Modifier.fillMaxWidth().padding(vertical = 4.dp), verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                        Row(verticalAlignment = androidx.compose.ui.Alignment.CenterVertically) {
+                            Text(o.type + " · " + o.wall + " · %.1f m".format(safeWidth), Modifier.weight(1f), color = Color.White, fontSize = 12.sp)
+                            TextButton(onClick = { g = g.copy(openings = g.openings.filterNot { it.id == o.id }) }) { Text("RIMUOVI") }
+                        }
+                        Text("Posizione sulla parete: %.1f m".format(safeOffset), color = HouseMuted, fontSize = 10.sp)
+                        Slider(value = safeOffset, onValueChange = { value ->
+                            g = g.copy(openings = g.openings.map { item ->
+                                if (item.id == o.id) item.copy(offset = value.coerceIn(0f, (wallLength - safeWidth).coerceAtLeast(0f))) else item
+                            })
+                        }, valueRange = 0f..(wallLength - safeWidth).coerceAtLeast(0.01f))
+                        Text("Larghezza: %.1f m".format(safeWidth), color = HouseMuted, fontSize = 10.sp)
+                        Slider(value = safeWidth, onValueChange = { value ->
+                            g = g.copy(openings = g.openings.map { item ->
+                                if (item.id == o.id) item.copy(width = value, offset = item.offset.coerceIn(0f, (wallLength - value).coerceAtLeast(0f))) else item
+                            })
+                        }, valueRange = 0.5f..maxWidth)
+                    }
+                }
             }
         }
         Card(colors = CardDefaults.cardColors(containerColor = HousePanel)) {
@@ -154,13 +174,15 @@ private fun House3D(g: HouseGeometry, modifier: Modifier = Modifier) {
                 val z = if (side=="Nord") -hd else hd
                 val opens = g.openings.filter { it.wall==side }
                 wallSegments(g.width, opens).forEach { seg -> CubeNode(size=SceneSize(x=seg.second-seg.first,y=g.height,z=t), position=Position(x=-hw+(seg.first+seg.second)/2,y=g.height/2,z=z)) }
-                opens.filter { it.type=="Finestra" }.forEach { o ->
+                opens.forEach { o ->
                     val start=o.offset.coerceIn(0f,g.width)
                     val end=(start+o.width).coerceIn(start,g.width)
-                    val sill=0.9f.coerceAtMost(g.height)
-                    val openingTop=(sill+o.height).coerceAtMost(g.height)
+                    val openingHeight = if (o.type=="Porta") 2.05f else o.height
+                    val sill = if (o.type=="Porta") 0f else 0.9f.coerceAtMost(g.height)
+                    val openingTop=(sill+openingHeight).coerceAtMost(g.height)
+                    val below=sill.coerceAtLeast(0f)
                     val above=(g.height-openingTop).coerceAtLeast(0f)
-                    if (sill > 0.05f) CubeNode(size=SceneSize(x=end-start,y=sill,z=t),position=Position(x=-hw+(start+end)/2,y=sill/2,z=z))
+                    if (below > 0.05f) CubeNode(size=SceneSize(x=end-start,y=below,z=t),position=Position(x=-hw+(start+end)/2,y=below/2,z=z))
                     if (above > 0.05f) CubeNode(size=SceneSize(x=end-start,y=above,z=t),position=Position(x=-hw+(start+end)/2,y=openingTop+above/2,z=z))
                 }
             }
@@ -168,13 +190,15 @@ private fun House3D(g: HouseGeometry, modifier: Modifier = Modifier) {
                 val x = if (side=="Ovest") -hw else hw
                 val opens = g.openings.filter { it.wall==side }
                 wallSegments(g.depth, opens).forEach { seg -> CubeNode(size=SceneSize(x=t,y=g.height,z=seg.second-seg.first), position=Position(x=x,y=g.height/2,z=-hd+(seg.first+seg.second)/2)) }
-                opens.filter { it.type=="Finestra" }.forEach { o ->
+                opens.forEach { o ->
                     val start=o.offset.coerceIn(0f,g.depth)
                     val end=(start+o.width).coerceIn(start,g.depth)
-                    val sill=0.9f.coerceAtMost(g.height)
-                    val openingTop=(sill+o.height).coerceAtMost(g.height)
+                    val openingHeight = if (o.type=="Porta") 2.05f else o.height
+                    val sill = if (o.type=="Porta") 0f else 0.9f.coerceAtMost(g.height)
+                    val openingTop=(sill+openingHeight).coerceAtMost(g.height)
+                    val below=sill.coerceAtLeast(0f)
                     val above=(g.height-openingTop).coerceAtLeast(0f)
-                    if (sill > 0.05f) CubeNode(size=SceneSize(x=t,y=sill,z=end-start),position=Position(x=x,y=sill/2,z=-hd+(start+end)/2))
+                    if (below > 0.05f) CubeNode(size=SceneSize(x=t,y=below,z=end-start),position=Position(x=x,y=below/2,z=-hd+(start+end)/2))
                     if (above > 0.05f) CubeNode(size=SceneSize(x=t,y=above,z=end-start),position=Position(x=x,y=openingTop+above/2,z=-hd+(start+end)/2))
                 }
             }
