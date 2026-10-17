@@ -1,6 +1,7 @@
 package com.sentinelone.nativeapp
 
 import android.Manifest
+import android.content.Intent
 import android.content.pm.PackageManager
 import android.os.Bundle
 import android.os.Environment
@@ -72,7 +73,7 @@ class RoomScanActivity : ComponentActivity() {
         checkArCoreDepth()
         setContent {
             MaterialTheme(colorScheme = darkColorScheme(primary = ScanCyan, secondary = ScanViolet, background = ScanNight, surface = ScanPanel, onBackground = Color.White, onSurface = Color.White)) {
-                RoomScanScreen(roomName, { roomName = it }, arStatus, depthSupported, cameraMessage, cameraReady, previewView, photoCount, isRecording, lastSaved, { capturePhoto() }, { toggleRecording() }, { finish() })
+                RoomScanScreen(roomName, { roomName = it }, arStatus, depthSupported, cameraMessage, cameraReady, previewView, photoCount, isRecording, lastSaved, { capturePhoto() }, { toggleRecording() }, { finish() }, { startActivity(Intent(this, HouseReconstructionActivity::class.java)) })
             }
         }
         if (ContextCompat.checkSelfPermission(this, Manifest.permission.CAMERA) == PackageManager.PERMISSION_GRANTED) startCamera()
@@ -198,7 +199,7 @@ class RoomScanActivity : ComponentActivity() {
 private fun RoomScanScreen(
     roomName: String, onRoomName: (String) -> Unit, arStatus: String, depthSupported: Boolean,
     cameraMessage: String, cameraReady: Boolean, previewView: PreviewView?, photoCount: Int,
-    isRecording: Boolean, lastSaved: String, onCapturePhoto: () -> Unit, onToggleRecording: () -> Unit, onBack: () -> Unit
+    isRecording: Boolean, lastSaved: String, onCapturePhoto: () -> Unit, onToggleRecording: () -> Unit, onBack: () -> Unit, onOpenReconstruction: () -> Unit
 ) {
     Column(Modifier.fillMaxSize().background(Brush.verticalGradient(listOf(Color(0xFF101A2B), ScanNight, ScanNight))).verticalScroll(rememberScrollState()).padding(18.dp), verticalArrangement = Arrangement.spacedBy(13.dp)) {
         Row(verticalAlignment = Alignment.CenterVertically) {
@@ -244,6 +245,7 @@ private fun RoomScanScreen(
                 Text("Questa versione salva foto e video reali e controlla la Depth API. La ricostruzione automatica della piantina e il correttore delle misure richiedono il successivo modulo di elaborazione.", color = Color(0xFF9BA8BC), fontSize = 11.sp, lineHeight = 17.sp)
             }
         }
+        Button(onClick = onOpenReconstruction, modifier = Modifier.fillMaxWidth().height(52.dp), colors = ButtonDefaults.buttonColors(containerColor = ScanViolet)) { Text("APRI EDITOR PIANTINA 2D / MODELLO 3D", fontWeight = FontWeight.ExtraBold) }
         Spacer(Modifier.height(12.dp))
     }
 }
