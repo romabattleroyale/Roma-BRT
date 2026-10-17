@@ -445,8 +445,7 @@ private fun WelcomeScreen(onCameraMode: () -> Unit, onControlMode: () -> Unit) {
             Text("SENTINEL ONE", color = Color(0xFFF4F7FF), fontSize = 26.sp, fontWeight = FontWeight.Black, letterSpacing = 0.6.sp)
             Text("VIDEOSORVEGLIANZA SEMPLICE", color = muted, fontSize = 10.sp, letterSpacing = 1.8.sp)
             Spacer(Modifier.height(20.dp))
-            Text("Da quale telefono
-vuoi iniziare?", color = Color.White, fontSize = 29.sp, lineHeight = 34.sp, fontWeight = FontWeight.ExtraBold)
+            Text("Da quale telefono\nvuoi iniziare?", color = Color.White, fontSize = 29.sp, lineHeight = 34.sp, fontWeight = FontWeight.ExtraBold)
             Text("Usa due telefoni Android. Uno riprende, l'altro mostra il video in diretta.", color = muted, fontSize = 14.sp, lineHeight = 21.sp)
             Spacer(Modifier.height(10.dp))
             ModeChoiceCard("TELEFONO 1", "Telecamera", "Questo telefono invia il video della fotocamera.", "USA COME TELECAMERA", "◉", Color(0xFF53E5F2), onCameraMode)
