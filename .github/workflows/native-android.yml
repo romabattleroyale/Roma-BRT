@@ -11,6 +11,10 @@ on:
       - ".github/workflows/native-android.yml"
   workflow_dispatch:
 
+concurrency:
+  group: native-android-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   compile:
     runs-on: ubuntu-latest
