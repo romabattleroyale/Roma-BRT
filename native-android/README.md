@@ -30,7 +30,7 @@ This is the native Android implementation track, separate from the legacy Flutte
 - AR support and tracking quality are device- and environment-dependent. On-device validation, including this app on a physical Xiaomi M11i 5G, is still required.
 - The Nearby byte-payload path limits individual JPEG frames to 28 KiB, so streaming quality and frame rate are limited.
 - Automatic reconnect, persistent secure device identity/pairing, background operation, audio, night mode, motion detection and gallery export are not implemented yet.
-- GitHub Actions currently performs a **Kotlin compile check only**; it does not build or publish an APK. The Codemagic workflow builds the release APK.
+- GitHub Actions compiles Kotlin, builds a debug APK and uploads it as the `sentinel-one-debug-apk` artifact for 14 days. It is intended for testing and uses the debug signing key. Codemagic separately builds the release-variant APK.
 
 ## Build toolchain
 - JDK 17
@@ -43,4 +43,4 @@ From the repository root, run the compile check with:
 gradle -p native-android compileDebugKotlin
 ```
 
-A successful compile proves source-level build compatibility only. It does not prove camera/AR behavior on a physical device or generate an APK.
+GitHub Actions also packages a debug APK. A green build proves compile/package compatibility, not that camera/AR behavior works on a physical device.
