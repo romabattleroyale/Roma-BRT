@@ -75,7 +75,7 @@ class RoomScanActivity : ComponentActivity() {
         checkArCoreDepth()
         setContent {
             MaterialTheme(colorScheme = darkColorScheme(primary = ScanCyan, secondary = ScanViolet, background = ScanNight, surface = ScanPanel, onBackground = Color.White, onSurface = Color.White)) {
-                RoomScanScreen(roomName, { roomName = it }, arStatus, depthSupported, cameraMessage, cameraReady, previewView, photoCount, isRecording, lastSaved, { capturePhoto() }, { toggleRecording() }, { finish() }, { startActivity(Intent(this, HouseReconstructionActivity::class.java).putExtra(HouseReconstructionActivity.EXTRA_ROOM_NAME, roomName)) }, { startActivity(Intent(this, HouseArScanActivity::class.java).putExtra(HouseReconstructionActivity.EXTRA_ROOM_NAME, roomName)) })
+                RoomScanScreen(roomName, { newName -> roomName = newName; refreshCaptureSummary() }, arStatus, depthSupported, cameraMessage, cameraReady, previewView, photoCount, isRecording, lastSaved, { capturePhoto() }, { toggleRecording() }, { finish() }, { startActivity(Intent(this, HouseReconstructionActivity::class.java).putExtra(HouseReconstructionActivity.EXTRA_ROOM_NAME, roomName)) }, { startActivity(Intent(this, HouseArScanActivity::class.java).putExtra(HouseReconstructionActivity.EXTRA_ROOM_NAME, roomName)) })
             }
         }
         if (ContextCompat.checkSelfPermission(this, Manifest.permission.CAMERA) == PackageManager.PERMISSION_GRANTED) startCamera()
@@ -93,7 +93,7 @@ class RoomScanActivity : ComponentActivity() {
             ?.sortedByDescending { it.lastModified() }
             .orEmpty()
         photoCount = files.count { it.extension.lowercase() in setOf("jpg", "jpeg") }
-        files.firstOrNull()?.let { lastSaved = it.name }
+        lastSaved = files.firstOrNull()?.name ?: "Nessun file acquisito"
     }
 
     private fun checkArCoreDepth() {
