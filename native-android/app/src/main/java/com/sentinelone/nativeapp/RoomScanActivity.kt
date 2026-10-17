@@ -71,6 +71,7 @@ class RoomScanActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         roomName = intent.getStringExtra(HouseReconstructionActivity.EXTRA_ROOM_NAME)?.takeIf { it.isNotBlank() } ?: "Soggiorno"
+        refreshCaptureSummary()
         checkArCoreDepth()
         setContent {
             MaterialTheme(colorScheme = darkColorScheme(primary = ScanCyan, secondary = ScanViolet, background = ScanNight, surface = ScanPanel, onBackground = Color.White, onSurface = Color.White)) {
@@ -79,6 +80,20 @@ class RoomScanActivity : ComponentActivity() {
         }
         if (ContextCompat.checkSelfPermission(this, Manifest.permission.CAMERA) == PackageManager.PERMISSION_GRANTED) startCamera()
         else permissionLauncher.launch(Manifest.permission.CAMERA)
+    }
+
+    override fun onResume() {
+        super.onResume()
+        refreshCaptureSummary()
+    }
+
+    private fun refreshCaptureSummary() {
+        val files = outputDirectory().listFiles()
+            ?.filter { it.isFile && it.extension.lowercase() in setOf("jpg", "jpeg", "mp4") }
+            ?.sortedByDescending { it.lastModified() }
+            .orEmpty()
+        photoCount = files.count { it.extension.lowercase() in setOf("jpg", "jpeg") }
+        files.firstOrNull()?.let { lastSaved = it.name }
     }
 
     private fun checkArCoreDepth() {
