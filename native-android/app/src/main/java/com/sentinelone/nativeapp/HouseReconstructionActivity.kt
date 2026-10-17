@@ -53,6 +53,29 @@ private data class ScanAsset(val name: String, val kind: String, val sizeBytes: 
 private fun normalizedRoomName(raw: String): String =
     raw.trim().replace(Regex("[^A-Za-z0-9À-ÿ_-]+"), "_").trim('_').ifBlank { "Stanza" }
 
+private fun normalizeOpenings(openings: List<HouseOpening>, roomWidth: Float, roomDepth: Float): List<HouseOpening> {
+    val normalized = mutableListOf<HouseOpening>()
+    listOf("Nord", "Sud", "Est", "Ovest").forEach { wall ->
+        val wallLength = if (wall == "Nord" || wall == "Sud") roomWidth else roomDepth
+        var cursor = 0f
+        openings.filter { it.wall == wall }.sortedBy { it.offset }.forEach { opening ->
+            val available = (wallLength - cursor).coerceAtLeast(0f)
+            if (available >= 0.5f) {
+                val width = opening.width.coerceIn(0.5f, minOf(available, wallLength))
+                val offset = opening.offset.coerceIn(cursor, (wallLength - width).coerceAtLeast(cursor))
+                val height = if (opening.type == "Porta") {
+                    opening.height.coerceIn(1.8f, 2.4f)
+                } else {
+                    opening.height.coerceIn(0.6f, 2.0f)
+                }
+                normalized += opening.copy(offset = offset, width = width, height = height)
+                cursor = offset + width + 0.1f
+            }
+        }
+    }
+    return normalized
+}
+
 private fun findFreeOpeningOffset(length: Float, width: Float, existing: List<HouseOpening>): Float? {
     val minimumGap = 0.1f
     var cursor = 0f
@@ -174,9 +197,9 @@ private fun HouseEditor(initial: HouseGeometry, roomName: String, scanAssets: Li
                 Text("PIANTINA 2D · METRI", color = HouseCyan)
                 FloorPlan(g, Modifier.fillMaxWidth().height(220.dp))
                 Text("Larghezza: %.1f m".format(g.width), color = Color.White)
-                Slider(g.width, { g = g.copy(width = it, scaleConfirmed = false) }, valueRange = 2f..8f)
+                Slider(g.width, { value -> g = g.copy(width = value, openings = normalizeOpenings(g.openings, value, g.depth), scaleConfirmed = false) }, valueRange = 2f..8f)
                 Text("Profondità: %.1f m".format(g.depth), color = Color.White)
-                Slider(g.depth, { g = g.copy(depth = it, scaleConfirmed = false) }, valueRange = 2f..8f)
+                Slider(g.depth, { value -> g = g.copy(depth = value, openings = normalizeOpenings(g.openings, g.width, value), scaleConfirmed = false) }, valueRange = 2f..8f)
                 Text("Altezza pareti: %.1f m".format(g.height), color = Color.White)
                 Slider(g.height, { g = g.copy(height = it) }, valueRange = 2.2f..4f)
                 Row(verticalAlignment = androidx.compose.ui.Alignment.CenterVertically) {
@@ -385,9 +408,12 @@ class HouseArScanActivity : ComponentActivity() {
 
         return try {
             val previous = HouseProjectRepository.load(filesDir, roomName)
+            val estimatedWidth = floor.extentX.coerceIn(2f, 8f)
+            val estimatedDepth = floor.extentZ.coerceIn(2f, 8f)
             val draft = previous.copy(
-                width = floor.extentX.coerceIn(2f, 8f),
-                depth = floor.extentZ.coerceIn(2f, 8f),
+                width = estimatedWidth,
+                depth = estimatedDepth,
+                openings = normalizeOpenings(previous.openings, estimatedWidth, estimatedDepth),
                 scaleConfirmed = false
             )
             HouseProjectRepository.save(filesDir, roomName, draft)
