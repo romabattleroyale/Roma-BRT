@@ -1,6 +1,7 @@
 package com.sentinelone.nativeapp
 
 import android.Manifest
+import android.content.Intent
 import android.content.pm.PackageManager
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
@@ -576,6 +577,7 @@ private fun Dashboard(
     onStop: () -> Unit,
     onSwitchCamera: () -> Unit
 ) {
+    val context = androidx.compose.ui.platform.LocalContext.current
     var selectedTab by remember { mutableStateOf(if (role == "camera") "Dispositivi" else "Casa") }
     var selectedRoom by remember { mutableStateOf("Soggiorno") }
     var isDark by remember { mutableStateOf(true) }
@@ -637,6 +639,14 @@ private fun Dashboard(
                                     Text("TRASCINA PER RUOTARE", fontSize = 8.sp, color = secondaryText, letterSpacing = 0.7.sp)
                                 }
                                 HouseModel3D(panel = panel, accent = accent, selectedRoom = selectedRoom, onRoomSelected = { selectedRoom = it }, isDark = isDark)
+                                OutlinedButton(
+                                    onClick = { context.startActivity(Intent(context, RoomScanActivity::class.java)) },
+                                    modifier = Modifier.fillMaxWidth().height(54.dp),
+                                    shape = RoundedCornerShape(16.dp),
+                                    colors = ButtonDefaults.outlinedButtonColors(contentColor = accent)
+                                ) {
+                                    Text("⌖  RICOSTRUISCI LA PIANTINA · SCANSIONE STANZE", fontSize = 10.sp, fontWeight = FontWeight.ExtraBold)
+                                }
                                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                                     listOf("Soggiorno", "Cucina", "Camera").forEach { room ->
                                         val chosen = selectedRoom == room
