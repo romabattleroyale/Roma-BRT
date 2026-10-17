@@ -58,5 +58,6 @@ dependencies {
     implementation("com.google.android.gms:play-services-nearby:19.3.0")
     implementation("io.github.sceneview:sceneview:4.25.0")
     implementation("io.github.sceneview:arsceneview:4.25.0")
+    testImplementation("junit:junit:4.13.2")
     debugImplementation("androidx.compose.ui:ui-tooling")
 }
