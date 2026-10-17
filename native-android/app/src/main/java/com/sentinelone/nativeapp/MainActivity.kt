@@ -529,7 +529,7 @@ private fun Dashboard(
     onStop: () -> Unit,
     onSwitchCamera: () -> Unit
 ) {
-    var selectedTab by remember { mutableStateOf("Casa") }
+    var selectedTab by remember { mutableStateOf(if (role == "camera") "Dispositivi" else "Casa") }
     var selectedRoom by remember { mutableStateOf("Soggiorno") }
     var isDark by remember { mutableStateOf(true) }
     val background = if (isDark) Color(0xFF070B13) else Color(0xFFF2F5FA)
