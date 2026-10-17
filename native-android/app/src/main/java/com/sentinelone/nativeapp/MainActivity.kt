@@ -112,11 +112,10 @@ class MainActivity : ComponentActivity() {
             result += Manifest.permission.BLUETOOTH
             result += Manifest.permission.BLUETOOTH_ADMIN
         }
-        // Nearby Connections may require location permission for discovery on Android 12+ too.
-        if (Build.VERSION.SDK_INT <= 32) {
-            result += Manifest.permission.ACCESS_COARSE_LOCATION
-            result += Manifest.permission.ACCESS_FINE_LOCATION
-        }
+        // Nearby Connections discovery on this device reports missing coarse location,
+        // so request it on all Android versions; fine location is also declared for compatibility.
+        result += Manifest.permission.ACCESS_COARSE_LOCATION
+        result += Manifest.permission.ACCESS_FINE_LOCATION
         if (Build.VERSION.SDK_INT >= 33) result += Manifest.permission.NEARBY_WIFI_DEVICES
         if (role == "camera") result += Manifest.permission.CAMERA
         return result.toTypedArray()
