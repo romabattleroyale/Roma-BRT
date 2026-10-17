@@ -75,7 +75,7 @@ private fun normalizeOpenings(openings: List<HouseOpening>, roomWidth: Float, ro
                 } else {
                     requestedHeight.coerceIn(0.6f, 2.0f)
                 }
-                normalized += opening.copy(offset = offset, width = width, height = height)
+                normalized += opening.copy(type = if (opening.type == "Porta") "Porta" else "Finestra", offset = offset, width = width, height = height)
                 cursor = offset + width + 0.1f
             }
         }
