@@ -55,7 +55,7 @@ private data class ScanAsset(val name: String, val kind: String, val sizeBytes: 
 private fun normalizedRoomName(raw: String): String =
     raw.trim().replace(Regex("[^A-Za-z0-9À-ÿ_-]+"), "_").trim('_').ifBlank { "Stanza" }
 
-private fun normalizeOpenings(openings: List<HouseOpening>, roomWidth: Float, roomDepth: Float): List<HouseOpening> {
+internal fun normalizeOpenings(openings: List<HouseOpening>, roomWidth: Float, roomDepth: Float): List<HouseOpening> {
     val safeWidth = roomWidth.takeIf { it.isFinite() }?.coerceIn(2f, 8f) ?: 5f
     val safeDepth = roomDepth.takeIf { it.isFinite() }?.coerceIn(2f, 8f) ?: 4f
     val normalized = mutableListOf<HouseOpening>()
