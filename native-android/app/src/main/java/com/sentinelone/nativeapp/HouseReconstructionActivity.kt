@@ -470,7 +470,7 @@ private fun HouseArScanScreen(
                 if (updateCounter.incrementAndGet() % 12 == 0) {
                     val snapshot = runCatching {
                         session.getAllTrackables(Plane::class.java)
-                            .filter { it.trackingState == TrackingState.TRACKING }
+                            .filter { it.trackingState == TrackingState.TRACKING && it.subsumedBy == null }
                             .mapNotNull { plane ->
                                 val kind = when (plane.type) {
                                     Plane.Type.HORIZONTAL_UPWARD_FACING -> "PAVIMENTO"
@@ -487,7 +487,6 @@ private fun HouseArScanScreen(
                                     extentZ = plane.extentZ
                                 )
                             }
-                            .distinctBy { "${it.kind}:${(it.centerX * 2).toInt()}:${(it.centerZ * 2).toInt()}" }
                     }.getOrElse { emptyList() }
                     val tracking = frame.camera.trackingState == TrackingState.TRACKING
                     mainHandler.post {
@@ -495,7 +494,7 @@ private fun HouseArScanScreen(
                         status = if (!tracking) {
                             "Tracking in acquisizione: muovi lentamente il telefono e guarda superfici ben illuminate."
                         } else {
-                            "Tracking attivo · ${snapshot.count { it.kind == "PAVIMENTO" }} piani pavimento · $wallCount pareti candidate."
+                            "Tracking attivo · ${snapshot.count { it.kind == "PAVIMENTO" }} piani pavimento · ${snapshot.count { it.kind == "PARETE" }} pareti candidate."
                         }
                     }
                 }
