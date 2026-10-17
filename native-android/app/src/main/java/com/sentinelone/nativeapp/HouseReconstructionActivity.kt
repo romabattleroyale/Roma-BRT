@@ -5,6 +5,7 @@ import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
 import android.os.Environment
+import android.system.Os
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.compose.foundation.Canvas
@@ -36,6 +37,7 @@ import io.github.sceneview.rememberModelLoader
 import org.json.JSONArray
 import org.json.JSONObject
 import java.io.File
+import java.io.FileOutputStream
 import java.util.UUID
 import kotlinx.coroutines.delay
 import kotlin.math.min
@@ -92,6 +94,25 @@ private fun findFreeOpeningOffset(length: Float, width: Float, existing: List<Ho
 private fun arEvidenceFile(filesDir: File, roomName: String) =
     File(filesDir, "sentinel_ar_scan_" + normalizedRoomName(roomName) + ".json")
 
+private fun writeJsonAtomically(destination: File, json: String) {
+    val parent = destination.parentFile
+        ?: throw IllegalStateException("Directory di destinazione non disponibile")
+    if (!parent.exists() && !parent.mkdirs()) {
+        throw IllegalStateException("Impossibile creare la directory del progetto")
+    }
+    val temporary = File(parent, destination.name + ".tmp")
+    try {
+        FileOutputStream(temporary).use { stream ->
+            stream.write(json.toByteArray(Charsets.UTF_8))
+            stream.fd.sync()
+        }
+        // rename(2) replaces the destination atomically when both files share a filesystem.
+        Os.rename(temporary.absolutePath, destination.absolutePath)
+    } finally {
+        if (temporary.exists()) temporary.delete()
+    }
+}
+
 private object HouseProjectRepository {
     private fun projectFileName(roomName: String) = "sentinel_house_project_" + normalizedRoomName(roomName) + ".json"
 
@@ -110,7 +131,7 @@ private object HouseProjectRepository {
     fun save(dir: File, roomName: String, g: HouseGeometry) {
         val a = JSONArray()
         g.openings.forEach { o -> a.put(JSONObject().put("id", o.id).put("wall", o.wall).put("type", o.type).put("offset", o.offset).put("width", o.width).put("height", o.height)) }
-        File(dir, projectFileName(roomName)).writeText(JSONObject().put("version", 2).put("roomName", roomName).put("width", g.width).put("depth", g.depth).put("height", g.height).put("scaleConfirmed", g.scaleConfirmed).put("openings", a).toString(2))
+        writeJsonAtomically(File(dir, projectFileName(roomName)), JSONObject().put("version", 2).put("roomName", roomName).put("width", g.width).put("depth", g.depth).put("height", g.height).put("scaleConfirmed", g.scaleConfirmed).put("openings", a).toString(2))
     }
 }
 
@@ -439,7 +460,7 @@ class HouseArScanActivity : ComponentActivity() {
                 .put("scaleConfirmed", false)
                 .put("trackedPlaneCount", measurements.size)
                 .put("planes", planeJson)
-            arEvidenceFile(filesDir, roomName).writeText(evidence.toString(2))
+            writeJsonAtomically(arEvidenceFile(filesDir, roomName), evidence.toString(2))
 
             startActivity(
                 Intent(this, HouseReconstructionActivity::class.java)
