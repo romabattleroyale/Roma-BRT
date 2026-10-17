@@ -155,8 +155,13 @@ private fun House3D(g: HouseGeometry, modifier: Modifier = Modifier) {
                 val opens = g.openings.filter { it.wall==side }
                 wallSegments(g.width, opens).forEach { seg -> CubeNode(size=SceneSize(x=seg.second-seg.first,y=g.height,z=t), position=Position(x=-hw+(seg.first+seg.second)/2,y=g.height/2,z=z)) }
                 opens.filter { it.type=="Finestra" }.forEach { o ->
-                    val start=o.offset.coerceIn(0f,g.width); val end=(start+o.width).coerceIn(start,g.width); val above=(g.height-o.height).coerceAtLeast(.15f)
-                    CubeNode(size=SceneSize(x=end-start,y=above,z=t),position=Position(x=-hw+(start+end)/2,y=o.height+above/2,z=z))
+                    val start=o.offset.coerceIn(0f,g.width)
+                    val end=(start+o.width).coerceIn(start,g.width)
+                    val sill=0.9f.coerceAtMost(g.height)
+                    val openingTop=(sill+o.height).coerceAtMost(g.height)
+                    val above=(g.height-openingTop).coerceAtLeast(0f)
+                    if (sill > 0.05f) CubeNode(size=SceneSize(x=end-start,y=sill,z=t),position=Position(x=-hw+(start+end)/2,y=sill/2,z=z))
+                    if (above > 0.05f) CubeNode(size=SceneSize(x=end-start,y=above,z=t),position=Position(x=-hw+(start+end)/2,y=openingTop+above/2,z=z))
                 }
             }
             listOf("Ovest","Est").forEach { side ->
@@ -164,8 +169,13 @@ private fun House3D(g: HouseGeometry, modifier: Modifier = Modifier) {
                 val opens = g.openings.filter { it.wall==side }
                 wallSegments(g.depth, opens).forEach { seg -> CubeNode(size=SceneSize(x=t,y=g.height,z=seg.second-seg.first), position=Position(x=x,y=g.height/2,z=-hd+(seg.first+seg.second)/2)) }
                 opens.filter { it.type=="Finestra" }.forEach { o ->
-                    val start=o.offset.coerceIn(0f,g.depth); val end=(start+o.width).coerceIn(start,g.depth); val above=(g.height-o.height).coerceAtLeast(.15f)
-                    CubeNode(size=SceneSize(x=t,y=above,z=end-start),position=Position(x=x,y=o.height+above/2,z=-hd+(start+end)/2))
+                    val start=o.offset.coerceIn(0f,g.depth)
+                    val end=(start+o.width).coerceIn(start,g.depth)
+                    val sill=0.9f.coerceAtMost(g.height)
+                    val openingTop=(sill+o.height).coerceAtMost(g.height)
+                    val above=(g.height-openingTop).coerceAtLeast(0f)
+                    if (sill > 0.05f) CubeNode(size=SceneSize(x=t,y=sill,z=end-start),position=Position(x=x,y=sill/2,z=-hd+(start+end)/2))
+                    if (above > 0.05f) CubeNode(size=SceneSize(x=t,y=above,z=end-start),position=Position(x=x,y=openingTop+above/2,z=-hd+(start+end)/2))
                 }
             }
         }
