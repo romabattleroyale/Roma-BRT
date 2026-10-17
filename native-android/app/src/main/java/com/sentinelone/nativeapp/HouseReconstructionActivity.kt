@@ -30,6 +30,7 @@ import org.json.JSONArray
 import org.json.JSONObject
 import java.io.File
 import java.util.UUID
+import kotlinx.coroutines.delay
 import kotlin.math.min
 
 private val HouseBg = Color(0xFF080B13)
@@ -119,6 +120,17 @@ private fun HouseEditor(initial: HouseGeometry, roomName: String, scanAssets: Li
     var wall by remember { mutableStateOf("Nord") }
     var type by remember { mutableStateOf("Porta") }
     var message by remember { mutableStateOf("Progetto pronto") }
+
+    LaunchedEffect(g) {
+        delay(600)
+        message = try {
+            save(g)
+            "Bozza salvata automaticamente"
+        } catch (_: Exception) {
+            "Salvataggio automatico non riuscito"
+        }
+    }
+
     Column(Modifier.fillMaxSize().background(HouseBg).statusBarsPadding().navigationBarsPadding().verticalScroll(rememberScrollState()).padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
         Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) { OutlinedButton(onClick = back) { Text("INDIETRO") }; Column { Text("SENTINEL ONE", color = HouseCyan); Text("Ricostruzione 2D/3D", color = Color.White, fontSize = 21.sp) } }
         Text("STANZA · $roomName", color = HouseMuted, fontSize = 12.sp)
@@ -228,7 +240,14 @@ private fun HouseEditor(initial: HouseGeometry, roomName: String, scanAssets: Li
             }
         }
         Text(message, color = HouseMuted)
-        Button(onClick = { save(g); message = "Progetto salvato sul dispositivo" }, modifier = Modifier.fillMaxWidth()) { Text("SALVA PROGETTO 2D/3D") }
+        Button(onClick = {
+            message = try {
+                save(g)
+                "Progetto salvato sul dispositivo"
+            } catch (_: Exception) {
+                "Errore durante il salvataggio del progetto"
+            }
+        }, modifier = Modifier.fillMaxWidth()) { Text("SALVA PROGETTO 2D/3D") }
     }
 }
 
