@@ -128,6 +128,15 @@ private fun HouseEditor(initial: HouseGeometry, save: (HouseGeometry) -> Unit, b
                                 if (item.id == o.id) item.copy(width = value, offset = item.offset.coerceIn(0f, (wallLength - value).coerceAtLeast(0f))) else item
                             })
                         }, valueRange = 0.5f..maxWidth)
+                        val minOpeningHeight = if (o.type == "Porta") 1.8f else 0.6f
+                        val maxOpeningHeight = if (o.type == "Porta") minOf(2.4f, g.height) else minOf(2.0f, (g.height - 0.9f).coerceAtLeast(0.6f))
+                        val safeOpeningHeight = o.height.coerceIn(minOpeningHeight.coerceAtMost(maxOpeningHeight), maxOpeningHeight.coerceAtLeast(minOpeningHeight))
+                        Text("Altezza apertura: %.1f m".format(safeOpeningHeight), color = HouseMuted, fontSize = 10.sp)
+                        Slider(value = safeOpeningHeight, onValueChange = { value ->
+                            g = g.copy(openings = g.openings.map { item ->
+                                if (item.id == o.id) item.copy(height = value) else item
+                            })
+                        }, valueRange = minOpeningHeight.coerceAtMost(maxOpeningHeight)..maxOpeningHeight.coerceAtLeast(minOpeningHeight))
                     }
                 }
             }
