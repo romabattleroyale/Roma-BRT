@@ -1,6 +1,7 @@
 package com.sentinelone.nativeapp
 
 import android.Manifest
+import android.content.Intent
 import android.content.pm.PackageManager
 import android.os.Bundle
 import android.os.Environment
@@ -69,34 +70,72 @@ class RoomScanActivity : ComponentActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        roomName = intent.getStringExtra(HouseReconstructionActivity.EXTRA_ROOM_NAME)?.takeIf { it.isNotBlank() } ?: "Soggiorno"
+        refreshCaptureSummary()
         checkArCoreDepth()
         setContent {
             MaterialTheme(colorScheme = darkColorScheme(primary = ScanCyan, secondary = ScanViolet, background = ScanNight, surface = ScanPanel, onBackground = Color.White, onSurface = Color.White)) {
-                RoomScanScreen(roomName, { roomName = it }, arStatus, depthSupported, cameraMessage, cameraReady, previewView, photoCount, isRecording, lastSaved, { capturePhoto() }, { toggleRecording() }, { finish() })
+                RoomScanScreen(roomName, { newName -> roomName = newName; refreshCaptureSummary() }, arStatus, depthSupported, cameraMessage, cameraReady, previewView, photoCount, isRecording, lastSaved, { capturePhoto() }, { toggleRecording() }, { finish() }, { startActivity(Intent(this, HouseReconstructionActivity::class.java).putExtra(HouseReconstructionActivity.EXTRA_ROOM_NAME, roomName)) }, { startActivity(Intent(this, HouseArScanActivity::class.java).putExtra(HouseReconstructionActivity.EXTRA_ROOM_NAME, roomName)) })
             }
         }
         if (ContextCompat.checkSelfPermission(this, Manifest.permission.CAMERA) == PackageManager.PERMISSION_GRANTED) startCamera()
         else permissionLauncher.launch(Manifest.permission.CAMERA)
     }
 
+    override fun onResume() {
+        super.onResume()
+        refreshCaptureSummary()
+    }
+
+    private fun refreshCaptureSummary() {
+        val files = outputDirectory().listFiles()
+            ?.filter { it.isFile && it.extension.lowercase() in setOf("jpg", "jpeg", "mp4") }
+            ?.sortedByDescending { it.lastModified() }
+            .orEmpty()
+        photoCount = files.count { it.extension.lowercase() in setOf("jpg", "jpeg") }
+        lastSaved = files.firstOrNull()?.name ?: "Nessun file acquisito"
+    }
+
     private fun checkArCoreDepth() {
+        // checkAvailability() may initially return UNKNOWN_CHECKING on a cold start.
+        // Do not treat every non-supported enum value as a definite incompatibility.
         try {
             val availability = com.google.ar.core.ArCoreApk.getInstance().checkAvailability(this)
-            if (!availability.isSupported) {
-                depthSupported = false
-                arStatus = "ARCore non supportato in questa configurazione; disponibile acquisizione foto/video"
-                return
+            when {
+                availability.isSupported -> inspectArCoreDepth()
+                availability == com.google.ar.core.ArCoreApk.Availability.UNKNOWN_CHECKING ||
+                    availability == com.google.ar.core.ArCoreApk.Availability.UNKNOWN_TIMED_OUT ||
+                    availability == com.google.ar.core.ArCoreApk.Availability.UNKNOWN_ERROR -> {
+                    depthSupported = false
+                    arStatus = "Verifica ARCore in corso o rete non disponibile. Riprova tra qualche secondo; foto e video sono già utilizzabili."
+                }
+                else -> {
+                    depthSupported = false
+                    arStatus = "ARCore non risulta disponibile (" + availability.name + "). Aggiorna Google Play Services for AR e riprova; foto/video sono salvati ma non generano ancora la piantina."
+                }
             }
+        } catch (e: Exception) {
+            depthSupported = false
+            arStatus = "Verifica ARCore non riuscita (" + e.javaClass.simpleName + "). Foto/video vengono salvati, ma non ricostruiscono da soli la stanza."
+        }
+    }
+
+    private fun inspectArCoreDepth() {
+        try {
             val session = Session(this)
             try {
                 depthSupported = session.isDepthModeSupported(Config.DepthMode.AUTOMATIC)
-                arStatus = if (depthSupported) "ARCore e Depth API disponibili" else "ARCore disponibile, Depth API non supportata: percorso alternativo"
+                arStatus = if (depthSupported) {
+                    "ARCore e Depth API disponibili. Avvia la scansione AR per stimare i piani; foto/video restano riferimenti."
+                } else {
+                    "ARCore disponibile, Depth API non supportata. La scansione dei piani può essere disponibile senza profondità; foto/video non generano da soli la piantina."
+                }
             } finally {
                 session.close()
             }
         } catch (e: Exception) {
             depthSupported = false
-            arStatus = "ARCore non inizializzabile (" + e.javaClass.simpleName + "); percorso alternativo disponibile"
+            arStatus = "ARCore rilevato ma sessione non inizializzabile (" + e.javaClass.simpleName + "). Aggiorna Google Play Services for AR e riprova."
         }
     }
 
@@ -130,11 +169,16 @@ class RoomScanActivity : ComponentActivity() {
         }, ContextCompat.getMainExecutor(this))
     }
 
-    private fun safeRoomName(): String = roomName.trim().replace(Regex("[^A-Za-z0-9À-ÿ_-]+"), "_").trim('_').ifBlank { "Stanza" }
-
     private fun outputDirectory(): File {
         val base = getExternalFilesDir(Environment.DIRECTORY_PICTURES) ?: filesDir
-        return File(File(base, "SENTINEL_ONE_SCAN"), safeRoomName()).apply { mkdirs() }
+        val scanRoot = File(base, "SENTINEL_ONE_SCAN")
+        val directory = roomCaptureDirectory(scanRoot, roomName)
+        if (!directory.exists()) directory.mkdirs()
+        runCatching {
+            val marker = File(directory, ".sentinel-room-name")
+            if (!marker.isFile) marker.writeText(roomName.trim().ifBlank { "Stanza" })
+        }
+        return directory
     }
 
     private fun newOutput(prefix: String, extension: String): File {
@@ -198,7 +242,7 @@ class RoomScanActivity : ComponentActivity() {
 private fun RoomScanScreen(
     roomName: String, onRoomName: (String) -> Unit, arStatus: String, depthSupported: Boolean,
     cameraMessage: String, cameraReady: Boolean, previewView: PreviewView?, photoCount: Int,
-    isRecording: Boolean, lastSaved: String, onCapturePhoto: () -> Unit, onToggleRecording: () -> Unit, onBack: () -> Unit
+    isRecording: Boolean, lastSaved: String, onCapturePhoto: () -> Unit, onToggleRecording: () -> Unit, onBack: () -> Unit, onOpenReconstruction: () -> Unit, onOpenArScan: () -> Unit
 ) {
     Column(Modifier.fillMaxSize().background(Brush.verticalGradient(listOf(Color(0xFF101A2B), ScanNight, ScanNight))).verticalScroll(rememberScrollState()).padding(18.dp), verticalArrangement = Arrangement.spacedBy(13.dp)) {
         Row(verticalAlignment = Alignment.CenterVertically) {
@@ -241,9 +285,11 @@ private fun RoomScanScreen(
             Column(Modifier.fillMaxWidth().padding(14.dp), verticalArrangement = Arrangement.spacedBy(7.dp)) {
                 Text("4 · SUPPORTO ARCORE", color = ScanCyan, fontSize = 10.sp, fontWeight = FontWeight.ExtraBold)
                 Text(arStatus, color = if (depthSupported) Color(0xFF55E6B1) else Color(0xFFFFC36B), fontSize = 12.sp)
-                Text("Questa versione salva foto e video reali e controlla la Depth API. La ricostruzione automatica della piantina e il correttore delle misure richiedono il successivo modulo di elaborazione.", color = Color(0xFF9BA8BC), fontSize = 11.sp, lineHeight = 17.sp)
+                Text("Importante: in questa versione foto e video vengono soltanto salvati come riferimenti; non vengono analizzati per ricavare la piantina. Per ottenere una stima automatica devi usare la scansione AR quando il dispositivo la supporta. Se ARCore non parte, l'editor 2D/3D resta manuale.", color = Color(0xFFFFC36B), fontSize = 11.sp, lineHeight = 17.sp)
             }
         }
+        Button(onClick = onOpenArScan, modifier = Modifier.fillMaxWidth().height(52.dp), colors = ButtonDefaults.buttonColors(containerColor = ScanCyan, contentColor = Color(0xFF07101A))) { Text("AVVIA SCANSIONE AR · PAVIMENTO E PARETI", fontWeight = FontWeight.ExtraBold, fontSize = 10.sp) }
+        Button(onClick = onOpenReconstruction, modifier = Modifier.fillMaxWidth().height(52.dp), colors = ButtonDefaults.buttonColors(containerColor = ScanViolet)) { Text("APRI EDITOR PIANTINA 2D / MODELLO 3D", fontWeight = FontWeight.ExtraBold) }
         Spacer(Modifier.height(12.dp))
     }
 }

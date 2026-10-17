@@ -6,7 +6,7 @@ plugins {
 
 android {
     namespace = "com.sentinelone.nativeapp"
-    compileSdk = 35
+    compileSdk = 36
 
     defaultConfig {
         applicationId = "com.sentinelone.nativeapp"
@@ -57,5 +57,7 @@ dependencies {
     implementation("com.google.ar:core:1.49.0")
     implementation("com.google.android.gms:play-services-nearby:19.3.0")
     implementation("io.github.sceneview:sceneview:4.25.0")
+    implementation("io.github.sceneview:arsceneview:4.25.0")
+    testImplementation("junit:junit:4.13.2")
     debugImplementation("androidx.compose.ui:ui-tooling")
 }

@@ -6,10 +6,34 @@ workflows:
     environment:
       java: 17
     scripts:
+      - name: Prepare Android API 36
+        script: |
+          set -eu
+          SDK_ROOT="${ANDROID_SDK_ROOT:-${ANDROID_HOME:-$HOME/Library/Android/sdk}}"
+          SDKMANAGER="$SDK_ROOT/cmdline-tools/latest/bin/sdkmanager"
+          if [ ! -x "$SDKMANAGER" ]; then
+            SDKMANAGER="$(command -v sdkmanager || true)"
+          fi
+          if [ -z "$SDKMANAGER" ] || [ ! -x "$SDKMANAGER" ]; then
+            echo "ERROR: sdkmanager not found; cannot ensure Android API 36 is installed."
+            exit 1
+          fi
+          yes | "$SDKMANAGER" --sdk_root="$SDK_ROOT" --licenses >/dev/null || true
+          "$SDKMANAGER" --sdk_root="$SDK_ROOT" "platforms;android-36" "build-tools;36.0.0"
+      - name: Install compatible Gradle
+        script: |
+          set -eu
+          GRADLE_VERSION="8.14.4"
+          GRADLE_HOME="$HOME/gradle-$GRADLE_VERSION"
+          if [ ! -x "$GRADLE_HOME/bin/gradle" ]; then
+            curl -fsSL --retry 3 "https://services.gradle.org/distributions/gradle-$GRADLE_VERSION-bin.zip" -o "/tmp/gradle-$GRADLE_VERSION-bin.zip"
+            unzip -q -o "/tmp/gradle-$GRADLE_VERSION-bin.zip" -d "$HOME"
+          fi
+          "$GRADLE_HOME/bin/gradle" --version
       - name: Compile Kotlin sources
-        script: gradle -p native-android compileDebugKotlin
+        script: "$HOME/gradle-8.14.4/bin/gradle -p native-android compileDebugKotlin"
       - name: Build Android release APK
-        script: gradle -p native-android assembleRelease
+        script: "$HOME/gradle-8.14.4/bin/gradle -p native-android assembleRelease"
       - name: Verify APK output
         script: |
           set -eu
@@ -24,7 +48,7 @@ workflows:
             exit 1
           fi
           echo "APK found: $APK"
-          echo "APK size: $(stat -c%s "$APK") bytes"
+          echo "APK size: $(wc -c < "$APK" | tr -d ' ') bytes"
     artifacts:
       - native-android/app/build/outputs/**/*.apk
     publishing:

@@ -26,6 +26,7 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.animation.animateContentSize
+import androidx.compose.animation.core.animateFloat
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -40,17 +41,10 @@ import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.asImageBitmap
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import io.github.sceneview.SceneView
-import io.github.sceneview.rememberEngine
-import io.github.sceneview.rememberModelLoader
-import io.github.sceneview.rememberCameraManipulator
-import io.github.sceneview.node.CubeNode
-import io.github.sceneview.node.SphereNode
-import io.github.sceneview.math.Position
-import io.github.sceneview.math.Size as SceneSize
 import com.google.android.gms.nearby.Nearby
 import com.google.android.gms.nearby.connection.*
 import java.io.ByteArrayOutputStream
@@ -433,25 +427,61 @@ class MainActivity : ComponentActivity() {
 
 @Composable
 private fun WelcomeScreen(onCameraMode: () -> Unit, onControlMode: () -> Unit) {
-    val muted = Color(0xFF9BAAC0)
-    Box(Modifier.fillMaxSize().background(Brush.verticalGradient(listOf(Color(0xFF101D32), Color(0xFF070B14), Color(0xFF090D18))))) {
+    val muted = Color(0xFF9BA8BC)
+    Box(Modifier.fillMaxSize().background(Color(0xFF070B13))) {
+        Box(Modifier.fillMaxWidth().height(410.dp).background(Brush.verticalGradient(listOf(Color(0xFF172941), Color(0xFF0B1220), Color.Transparent))))
         Column(
-            Modifier.fillMaxSize().statusBarsPadding().navigationBarsPadding().verticalScroll(rememberScrollState()).padding(horizontal = 22.dp, vertical = 18.dp),
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.spacedBy(16.dp)
+            Modifier.fillMaxSize().statusBarsPadding().navigationBarsPadding().verticalScroll(rememberScrollState()).padding(horizontal = 20.dp, vertical = 16.dp),
+            verticalArrangement = Arrangement.spacedBy(13.dp)
         ) {
-            Spacer(Modifier.height(6.dp))
-            SentinelLogo(Modifier.size(86.dp))
-            Text("SENTINEL ONE", color = Color(0xFFF4F7FF), fontSize = 25.sp, fontWeight = FontWeight.Black, letterSpacing = 1.1.sp)
-            Text("SMART HOME SECURITY", color = muted, fontSize = 10.sp, letterSpacing = 3.sp)
-            Spacer(Modifier.height(3.dp))
-            Text("Come vuoi usare", color = Color.White, fontSize = 24.sp, fontWeight = FontWeight.Bold)
-            Text("SENTINEL ONE?", color = Color(0xFF65DFF4), fontSize = 27.sp, fontWeight = FontWeight.ExtraBold)
-            Text("Scegli una modalità per continuare", color = muted, fontSize = 13.sp)
-            ModeChoiceCard("MODALITÀ", "TELECAMERA", "Usa questo telefono per inviare il video live.", "CONFIGURA TELECAMERA", "◉", Color(0xFF39D9F0), onCameraMode)
-            ModeChoiceCard("CENTRO DI", "CONTROLLO", "Collega e gestisci telecamere e dispositivi.", "APRI CENTRO DI CONTROLLO", "⌂", Color(0xFF9B79FF), onControlMode)
+            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                SentinelLogo(Modifier.size(52.dp))
+                Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                    Text("SENTINEL ONE", color = Color(0xFFF4F7FF), fontSize = 19.sp, fontWeight = FontWeight.Black, letterSpacing = 0.7.sp)
+                    Text("SMART HOME SECURITY", color = muted, fontSize = 9.sp, letterSpacing = 1.8.sp)
+                }
+            }
             Spacer(Modifier.height(2.dp))
-            Text("♙  Privacy e connessione protetta", color = muted, fontSize = 12.sp)
+            SecurityHeroVisual(
+                isDark = true,
+                online = false,
+                frame = null,
+                subtitle = "Trasforma due telefoni in un sistema di sorveglianza live.",
+                onClick = onControlMode
+            )
+            Column(verticalArrangement = Arrangement.spacedBy(5.dp)) {
+                Text("Inizia in pochi passaggi", color = Color.White, fontSize = 25.sp, fontWeight = FontWeight.ExtraBold, lineHeight = 30.sp)
+                Text("Scegli il ruolo di questo telefono. L'altro potrà collegarsi in seguito.", color = muted, fontSize = 13.sp, lineHeight = 19.sp)
+            }
+            ModeChoiceCard(
+                "TELEFONO 1",
+                "Telecamera",
+                "Usa la fotocamera di questo telefono per inviare il video live.",
+                "CONFIGURA TELECAMERA",
+                "◉",
+                Color(0xFF53E5F2),
+                onCameraMode
+            )
+            ModeChoiceCard(
+                "TELEFONO 2",
+                "Centro di controllo",
+                "Ricevi il flusso e guarda la visuale dal vivo su questo schermo.",
+                "APRI CENTRO DI CONTROLLO",
+                "⌂",
+                Color(0xFF9A7BFF),
+                onControlMode
+            )
+            Surface(
+                color = Color(0xFF111827),
+                shape = RoundedCornerShape(16.dp),
+                border = androidx.compose.foundation.BorderStroke(1.dp, Color(0xFF283348))
+            ) {
+                Row(Modifier.fillMaxWidth().padding(14.dp), verticalAlignment = Alignment.Top, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                    Text("i", color = Color(0xFF53E5F2), fontSize = 18.sp, fontWeight = FontWeight.Bold)
+                    Text("Per collegarli: attiva Bluetooth e Wi-Fi su entrambi. Avvia prima il Centro di controllo sul telefono che riceve, poi cerca il monitor dal telefono telecamera.", color = muted, fontSize = 12.sp, lineHeight = 18.sp)
+                }
+            }
+            Text("PRIVACY · CONNESSIONE DIRETTA TRA DISPOSITIVI", Modifier.fillMaxWidth().padding(vertical = 4.dp), color = Color(0xFF738198), fontSize = 9.sp, letterSpacing = 1.1.sp)
         }
     }
 }
@@ -488,16 +518,16 @@ private fun ModeChoiceCard(
     )
     Card(
         onClick = { pressed = true; onClick() },
-        modifier = Modifier.fillMaxWidth().heightIn(min = 200.dp).graphicsLayer { scaleX = scale; scaleY = scale }.animateContentSize(),
+        modifier = Modifier.fillMaxWidth().heightIn(min = 142.dp).graphicsLayer { scaleX = scale; scaleY = scale }.animateContentSize(),
         shape = RoundedCornerShape(25.dp),
         colors = CardDefaults.cardColors(containerColor = Color(0xFF111C2D)),
         border = androidx.compose.foundation.BorderStroke(1.3.dp, accent.copy(alpha = 0.8f)),
         elevation = CardDefaults.cardElevation(defaultElevation = 5.dp, pressedElevation = 12.dp)
     ) {
-        Column(Modifier.fillMaxWidth().padding(17.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+        Column(Modifier.fillMaxWidth().padding(15.dp), verticalArrangement = Arrangement.spacedBy(9.dp)) {
             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(14.dp)) {
-                Box(Modifier.size(72.dp).background(Brush.linearGradient(listOf(accent.copy(alpha = 0.28f), Color(0xFF101827))), RoundedCornerShape(19.dp)), contentAlignment = Alignment.Center) {
-                    Text(symbol, color = accent, fontSize = 46.sp, fontWeight = FontWeight.Light)
+                Box(Modifier.size(58.dp).background(Brush.linearGradient(listOf(accent.copy(alpha = 0.22f), Color(0xFF101827))), RoundedCornerShape(17.dp)), contentAlignment = Alignment.Center) {
+                    Text(symbol, color = accent, fontSize = 36.sp, fontWeight = FontWeight.Light)
                 }
                 Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(3.dp)) {
                     Text(title, color = Color(0xFFF4F7FF), fontSize = 12.sp, fontWeight = FontWeight.SemiBold, letterSpacing = 1.2.sp)
@@ -505,8 +535,8 @@ private fun ModeChoiceCard(
                     Text(description, color = Color(0xFFB1BED1), fontSize = 12.sp, lineHeight = 17.sp)
                 }
             }
-            Surface(color = accent, shape = RoundedCornerShape(14.dp), modifier = Modifier.fillMaxWidth()) {
-                Row(Modifier.fillMaxWidth().padding(horizontal = 14.dp, vertical = 13.dp), verticalAlignment = Alignment.CenterVertically) {
+            Surface(color = accent, shape = RoundedCornerShape(12.dp), modifier = Modifier.fillMaxWidth()) {
+                Row(Modifier.fillMaxWidth().padding(horizontal = 13.dp, vertical = 10.dp), verticalAlignment = Alignment.CenterVertically) {
                     Text(action, color = Color(0xFF07101A), fontSize = 10.sp, fontWeight = FontWeight.ExtraBold, modifier = Modifier.weight(1f))
                     Text("→", color = Color(0xFF07101A), fontSize = 22.sp, fontWeight = FontWeight.Bold)
                 }
@@ -536,6 +566,16 @@ private fun ModeHeroCard(title: String, subtitle: String, accent: Color, symbol:
                 }
             }
         }
+    }
+}
+
+@Composable
+private fun PairingInstruction(number: String, instruction: String) {
+    Row(horizontalArrangement = Arrangement.spacedBy(10.dp), verticalAlignment = Alignment.Top) {
+        Box(Modifier.size(24.dp).background(Color(0xFF17343E), RoundedCornerShape(8.dp)), contentAlignment = Alignment.Center) {
+            Text(number, color = Color(0xFF53E5F2), fontSize = 11.sp, fontWeight = FontWeight.ExtraBold)
+        }
+        Text(instruction, color = Color(0xFFCFD8E6), fontSize = 12.sp, lineHeight = 18.sp, modifier = Modifier.weight(1f))
     }
 }
 
@@ -578,8 +618,7 @@ private fun Dashboard(
     onSwitchCamera: () -> Unit
 ) {
     val context = androidx.compose.ui.platform.LocalContext.current
-    var selectedTab by remember { mutableStateOf(if (role == "camera") "Dispositivi" else "Casa") }
-    var selectedRoom by remember { mutableStateOf("Soggiorno") }
+    var selectedTab by remember { mutableStateOf("Casa") }
     var isDark by remember { mutableStateOf(true) }
     val background = if (isDark) Color(0xFF070B13) else Color(0xFFF2F5FA)
     val panel = if (isDark) Color(0xFF111827) else Color.White
@@ -588,213 +627,228 @@ private fun Dashboard(
     val accent = Color(0xFF56E6F2)
     val online = connectedName != null
     CompositionLocalProvider(LocalContentColor provides primaryText) {
-        Box(Modifier.fillMaxSize().background(Brush.verticalGradient(listOf(if (isDark) Color(0xFF101A2B) else Color(0xFFE8F1FA), background, background)))) {
+        Box(Modifier.fillMaxSize().background(background)) {
             Column(Modifier.fillMaxSize().statusBarsPadding()) {
                 Row(
-                    Modifier.fillMaxWidth().padding(horizontal = 20.dp, vertical = 14.dp),
+                    Modifier.fillMaxWidth().padding(horizontal = 20.dp, vertical = 12.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Box(Modifier.size(46.dp).background(Brush.linearGradient(listOf(accent, Violet)), RoundedCornerShape(15.dp)), contentAlignment = Alignment.Center) {
-                        Text("S", color = Color(0xFF07101A), fontSize = 26.sp, fontWeight = FontWeight.Black)
-                    }
+                    SentinelLogo(Modifier.size(48.dp))
                     Spacer(Modifier.width(12.dp))
-                    Column(Modifier.weight(1f)) {
-                        Text("SENTINEL ONE", fontSize = 17.sp, fontWeight = FontWeight.ExtraBold, letterSpacing = 1.1.sp, color = primaryText)
+                    Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                        Text("SENTINEL ONE", fontSize = 16.sp, fontWeight = FontWeight.ExtraBold, letterSpacing = 1.1.sp, color = primaryText)
                         Text("SMART HOME SECURITY", fontSize = 9.sp, color = secondaryText, letterSpacing = 1.8.sp)
                     }
-                    Surface(onClick = { isDark = !isDark }, color = panel, shape = RoundedCornerShape(14.dp), border = androidx.compose.foundation.BorderStroke(1.dp, if (isDark) Color(0xFF283348) else Color(0xFFDDE5F0))) {
-                        Text(if (isDark) "☼" else "☾", Modifier.padding(horizontal = 14.dp, vertical = 9.dp), fontSize = 19.sp, color = accent)
+                    Surface(
+                        onClick = { isDark = !isDark },
+                        color = panel,
+                        shape = RoundedCornerShape(14.dp),
+                        border = androidx.compose.foundation.BorderStroke(1.dp, if (isDark) Color(0xFF283348) else Color(0xFFDDE5F0))
+                    ) {
+                        Text(if (isDark) "☼" else "☾", Modifier.padding(horizontal = 13.dp, vertical = 9.dp), fontSize = 19.sp, color = accent)
                     }
                 }
+                when (selectedTab) {
+                    "Casa" -> {
+                        Column(
+                            Modifier.weight(1f).fillMaxWidth().verticalScroll(rememberScrollState()).padding(horizontal = 20.dp),
+                            verticalArrangement = Arrangement.spacedBy(16.dp)
+                        ) {
+                            Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                                Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                                    Text("La tua sicurezza", fontSize = 27.sp, fontWeight = FontWeight.ExtraBold, color = primaryText)
+                                    Text("Tutto sotto controllo.", fontSize = 14.sp, color = secondaryText)
+                                }
+                                Surface(
+                                    color = if (online) Color(0xFF12352F) else panel,
+                                    shape = RoundedCornerShape(50),
+                                    border = androidx.compose.foundation.BorderStroke(1.dp, if (online) Color(0xFF2C8A78) else Color(0xFF2A3448))
+                                ) {
+                                    Row(Modifier.padding(horizontal = 10.dp, vertical = 8.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                                        Box(Modifier.size(7.dp).background(if (online) Color(0xFF55E6B1) else Color(0xFFFFC36B), RoundedCornerShape(50)))
+                                        Text(if (online) "COLLEGATA" else "IN ATTESA", fontSize = 9.sp, fontWeight = FontWeight.Bold, color = if (online) Color(0xFF55E6B1) else secondaryText)
+                                    }
+                                }
+                            }
 
-                Column(
-                    Modifier.weight(1f).fillMaxWidth(),
-                    verticalArrangement = Arrangement.spacedBy(0.dp)
-                ) {
-                    when (selectedTab) {
-                        "Casa" -> {
-                            Column(Modifier.fillMaxWidth().verticalScroll(rememberScrollState()).padding(horizontal = 20.dp), verticalArrangement = Arrangement.spacedBy(14.dp)) {
-                                Row(verticalAlignment = Alignment.CenterVertically) {
-                                    Column(Modifier.weight(1f)) {
-                                        Text("La tua casa", fontSize = 27.sp, fontWeight = FontWeight.ExtraBold, color = primaryText)
-                                        Text("Tutto sotto controllo.", fontSize = 14.sp, color = secondaryText)
+                            SecurityHeroVisual(
+                                isDark = isDark,
+                                online = online,
+                                frame = remoteFrame,
+                                subtitle = if (online) "Connessione attiva con $connectedName" else "Collega un secondo telefono per iniziare",
+                                onClick = { selectedTab = if (online) "Live" else "Dispositivi" }
+                            )
+
+                            Row(horizontalArrangement = Arrangement.spacedBy(9.dp)) {
+                                MetricTile("DISPOSITIVI", if (online) "01" else "00", if (online) "1 collegato" else "Nessun collegamento", panel, primaryText, secondaryText, accent, Modifier.weight(1f))
+                                MetricTile("STATO LIVE", if (remoteFrame != null) "LIVE" else "—", if (remoteFrame != null) "Video ricevuto" else "In attesa video", panel, primaryText, secondaryText, Violet, Modifier.weight(1f))
+                                MetricTile("EVENTI", "—", "Non attivi", panel, primaryText, secondaryText, Color(0xFFFFB86B), Modifier.weight(1f))
+                            }
+
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(3.dp)) {
+                                    Text("ACCESSO RAPIDO", fontSize = 10.sp, fontWeight = FontWeight.Bold, letterSpacing = 1.5.sp, color = secondaryText)
+                                    Text("Cosa vuoi fare?", fontSize = 19.sp, fontWeight = FontWeight.Bold, color = primaryText)
+                                }
+                            }
+                            Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                                QuickActionCard("Video live", "Guarda la telecamera", "◉", accent, panel, primaryText, secondaryText, Modifier.weight(1f)) { selectedTab = "Live" }
+                                QuickActionCard("Dispositivi", "Collega un telefono", "⌁", Violet, panel, primaryText, secondaryText, Modifier.weight(1f)) { selectedTab = "Dispositivi" }
+                            }
+
+                            Card(
+                                colors = CardDefaults.cardColors(containerColor = panel),
+                                shape = RoundedCornerShape(20.dp),
+                                border = androidx.compose.foundation.BorderStroke(1.dp, if (isDark) Color(0xFF202B3D) else Color(0xFFE1E8F1))
+                            ) {
+                                Row(Modifier.fillMaxWidth().padding(15.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                                    Box(Modifier.size(44.dp).background(accent.copy(alpha = 0.10f), RoundedCornerShape(14.dp)), contentAlignment = Alignment.Center) {
+                                        Text("i", color = accent, fontSize = 22.sp, fontWeight = FontWeight.Bold)
                                     }
-                                    Surface(color = if (online) Color(0xFF153A36) else panel, shape = RoundedCornerShape(50), border = androidx.compose.foundation.BorderStroke(1.dp, if (online) Color(0xFF287D73) else Color(0xFF2A3448))) {
-                                        Row(Modifier.padding(horizontal = 10.dp, vertical = 7.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                                            Box(Modifier.size(7.dp).background(if (online) Color(0xFF55E6B1) else Violet, RoundedCornerShape(50)))
-                                            Text(if (online) "PROTETTA" else "PRONTA", fontSize = 9.sp, fontWeight = FontWeight.Bold, color = if (online) Color(0xFF55E6B1) else secondaryText)
-                                        }
-                                    }
-                                }
-                                Row(horizontalArrangement = Arrangement.spacedBy(9.dp)) {
-                                    MetricTile("TELECAMERE", if (online) "1" else "0", if (online) "1 collegata" else "In attesa", panel, primaryText, secondaryText, accent, Modifier.weight(1f))
-                                    MetricTile("STATO CASA", if (online) "LIVE" else "OK", if (online) "Flusso attivo" else "Nessun allarme", panel, primaryText, secondaryText, Violet, Modifier.weight(1f))
-                                    MetricTile("EVENTI", "0", "Oggi", panel, primaryText, secondaryText, Color(0xFFFFB86B), Modifier.weight(1f))
-                                }
-                                Row(verticalAlignment = Alignment.CenterVertically) {
-                                    Column(Modifier.weight(1f)) {
-                                        Text("MODELLO 3D", fontSize = 11.sp, fontWeight = FontWeight.Bold, letterSpacing = 1.5.sp, color = secondaryText)
-                                        Text("Vista della casa", fontSize = 19.sp, fontWeight = FontWeight.Bold, color = primaryText)
-                                    }
-                                    Text("TRASCINA PER RUOTARE", fontSize = 8.sp, color = secondaryText, letterSpacing = 0.7.sp)
-                                }
-                                HouseModel3D(panel = panel, accent = accent, selectedRoom = selectedRoom, onRoomSelected = { selectedRoom = it }, isDark = isDark)
-                                OutlinedButton(
-                                    onClick = { context.startActivity(Intent(context, RoomScanActivity::class.java)) },
-                                    modifier = Modifier.fillMaxWidth().height(54.dp),
-                                    shape = RoundedCornerShape(16.dp),
-                                    colors = ButtonDefaults.outlinedButtonColors(contentColor = accent)
-                                ) {
-                                    Text("⌖  RICOSTRUISCI LA PIANTINA · SCANSIONE STANZE", fontSize = 10.sp, fontWeight = FontWeight.ExtraBold)
-                                }
-                                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                                    listOf("Soggiorno", "Cucina", "Camera").forEach { room ->
-                                        val chosen = selectedRoom == room
-                                        Surface(onClick = { selectedRoom = room }, color = if (chosen) Color(0xFF17343E) else panel, shape = RoundedCornerShape(12.dp), border = androidx.compose.foundation.BorderStroke(1.dp, if (chosen) accent else Color.Transparent)) {
-                                            Text(room, Modifier.padding(horizontal = 12.dp, vertical = 9.dp), color = if (chosen) accent else secondaryText, fontSize = 11.sp, fontWeight = FontWeight.SemiBold)
-                                        }
-                                    }
-                                }
-                                Card(colors = CardDefaults.cardColors(containerColor = panel), shape = RoundedCornerShape(20.dp), border = androidx.compose.foundation.BorderStroke(1.dp, if (isDark) Color(0xFF202B3D) else Color(0xFFE1E8F1))) {
-                                    Row(Modifier.fillMaxWidth().padding(15.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                                        Box(Modifier.size(42.dp).background(Color(0xFF18343B), RoundedCornerShape(13.dp)), contentAlignment = Alignment.Center) { Text("⌁", fontSize = 22.sp, color = accent) }
-                                        Column(Modifier.weight(1f)) {
-                                            Text("Telecamere e copertura", fontWeight = FontWeight.Bold, fontSize = 13.sp, color = primaryText)
-                                            Text(if (online) "Dispositivo collegato: $connectedName" else "Collega un dispositivo per iniziare il monitoraggio", fontSize = 11.sp, color = secondaryText)
-                                        }
-                                        Text("›", color = accent, fontSize = 26.sp)
+                                    Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(3.dp)) {
+                                        Text("Centro di controllo", fontWeight = FontWeight.Bold, fontSize = 13.sp, color = primaryText)
+                                        Text(if (online) "Il telefono è collegato. Apri Live per vedere il flusso." else "Apri Dispositivi e segui la guida per collegare i due telefoni.", fontSize = 11.sp, color = secondaryText, lineHeight = 16.sp)
                                     }
                                 }
                             }
+                            Spacer(Modifier.height(4.dp))
                         }
-                        "Live" -> {
-                            Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(horizontal = 20.dp), verticalArrangement = Arrangement.spacedBy(14.dp)) {
-                                Text("Video live", fontSize = 27.sp, fontWeight = FontWeight.ExtraBold, color = primaryText)
-                                Text("Flussi delle tue telecamere", fontSize = 14.sp, color = secondaryText)
-                                if (remoteFrame != null) {
-                                    Card(colors = CardDefaults.cardColors(containerColor = Color.Black), shape = RoundedCornerShape(22.dp)) {
-                                        Column {
-                                            Image(bitmap = remoteFrame.asImageBitmap(), contentDescription = "Video live dalla telecamera", modifier = Modifier.fillMaxWidth().heightIn(min = 220.dp, max = 390.dp))
-                                            Row(Modifier.fillMaxWidth().padding(14.dp), verticalAlignment = Alignment.CenterVertically) {
-                                                Box(Modifier.size(7.dp).background(Color(0xFFFF5964), RoundedCornerShape(50)))
-                                                Spacer(Modifier.width(8.dp))
-                                                Text("LIVE", color = accent, fontSize = 11.sp, fontWeight = FontWeight.Bold)
-                                                Spacer(Modifier.weight(1f))
-                                                Text("$receivedFrames frame ricevuti", color = Color.LightGray, fontSize = 10.sp)
+                    }
+                    "Live" -> {
+                        Column(
+                            Modifier.weight(1f).fillMaxWidth().verticalScroll(rememberScrollState()).padding(horizontal = 20.dp),
+                            verticalArrangement = Arrangement.spacedBy(14.dp)
+                        ) {
+                            Text("Video live", fontSize = 27.sp, fontWeight = FontWeight.ExtraBold, color = primaryText)
+                            Text("La visuale della tua telecamera", fontSize = 14.sp, color = secondaryText)
+                            if (remoteFrame != null) {
+                                Card(colors = CardDefaults.cardColors(containerColor = Color.Black), shape = RoundedCornerShape(24.dp)) {
+                                    Column {
+                                        Image(bitmap = remoteFrame.asImageBitmap(), contentDescription = "Video live dalla telecamera", modifier = Modifier.fillMaxWidth().heightIn(min = 260.dp, max = 460.dp))
+                                        Row(Modifier.fillMaxWidth().padding(14.dp), verticalAlignment = Alignment.CenterVertically) {
+                                            Box(Modifier.size(8.dp).background(Color(0xFFFF5964), RoundedCornerShape(50)))
+                                            Spacer(Modifier.width(8.dp))
+                                            Text("LIVE", color = Color(0xFFFF6474), fontSize = 11.sp, fontWeight = FontWeight.ExtraBold)
+                                            Spacer(Modifier.weight(1f))
+                                            Text("$receivedFrames frame ricevuti", color = Color.LightGray, fontSize = 10.sp)
+                                        }
+                                    }
+                                }
+                            } else {
+                                LivePreviewPlaceholder(isDark = isDark, accent = accent)
+                                EmptyStateCard("Nessun video ricevuto", "Quando il secondo telefono è collegato e invia il flusso, la visuale reale apparirà qui.", panel, primaryText, secondaryText, accent)
+                            }
+                            if (role == "camera" && connectedName != null) {
+                                OutlinedButton(onClick = onSwitchCamera, modifier = Modifier.fillMaxWidth().height(50.dp)) { Text("CAMBIA FOTOCAMERA") }
+                            }
+                            Text("STATO CONNESSIONE", fontSize = 10.sp, letterSpacing = 1.4.sp, color = secondaryText)
+                            Text(status, fontSize = 12.sp, color = secondaryText)
+                        }
+                    }
+                    "Dispositivi" -> {
+                        Column(
+                            Modifier.weight(1f).fillMaxWidth().verticalScroll(rememberScrollState()).padding(horizontal = 20.dp, vertical = 4.dp),
+                            verticalArrangement = Arrangement.spacedBy(15.dp)
+                        ) {
+                            Text("Dispositivi", fontSize = 27.sp, fontWeight = FontWeight.ExtraBold, color = primaryText)
+                            Text("Collega e gestisci i tuoi telefoni", fontSize = 14.sp, color = secondaryText)
+                            ModeHeroCard(
+                                title = if (role == "camera") "TELECAMERA" else "CENTRO DI CONTROLLO",
+                                subtitle = if (role == "camera") "Questo telefono invia il video live" else "Questo telefono riceve il video live",
+                                accent = if (role == "camera") accent else Violet,
+                                symbol = if (role == "camera") "◉" else "⌂",
+                                connected = online
+                            )
+                            Card(colors = CardDefaults.cardColors(containerColor = panel), shape = RoundedCornerShape(20.dp), border = androidx.compose.foundation.BorderStroke(1.dp, accent.copy(alpha = 0.24f))) {
+                                Column(Modifier.fillMaxWidth().padding(16.dp), verticalArrangement = Arrangement.spacedBy(11.dp)) {
+                                    Text("COLLEGA I DUE TELEFONI", color = accent, fontSize = 12.sp, fontWeight = FontWeight.ExtraBold, letterSpacing = 0.7.sp)
+                                    PairingInstruction("1", "Sul telefono che riceve il video, scegli CENTRO DI CONTROLLO.")
+                                    PairingInstruction("2", "Sul telefono che riprende, scegli TELECAMERA e consenti l'accesso alla fotocamera.")
+                                    PairingInstruction("3", "Attiva Bluetooth e Wi-Fi su entrambi. Concedi i permessi richiesti da Android.")
+                                    PairingInstruction("4", "Avvia prima il centro di controllo; poi cerca il centro dal telefono telecamera.")
+                                    PairingInstruction("5", "Seleziona COLLEGA quando appare il nome. Apri Live per vedere il video.")
+                                    Text("Se non si trovano, interrompi la ricerca su entrambi e ripeti iniziando dal centro di controllo.", color = secondaryText, fontSize = 11.sp, lineHeight = 16.sp)
+                                }
+                            }
+                            Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                                ModeMiniCard("TELECAMERA", "Invia video", role == "camera", accent, Modifier.weight(1f)) { onRole("camera") }
+                                ModeMiniCard("CENTRO CONTROLLO", "Riceve video", role == "monitor", Violet, Modifier.weight(1f)) { onRole("monitor") }
+                            }
+                            Button(
+                                onClick = onStart,
+                                modifier = Modifier.fillMaxWidth().height(56.dp),
+                                shape = RoundedCornerShape(17.dp),
+                                colors = ButtonDefaults.buttonColors(containerColor = if (role == "camera") accent else Violet, contentColor = Color(0xFF07101A))
+                            ) {
+                                Text(if (working) "RICERCA IN CORSO…" else if (role == "monitor") "RENDi VISIBILE IL CENTRO DI CONTROLLO" else "CERCA IL CENTRO DI CONTROLLO", fontWeight = FontWeight.ExtraBold, fontSize = 11.sp)
+                            }
+                            if (working || online) {
+                                OutlinedButton(onClick = onStop, modifier = Modifier.fillMaxWidth().height(48.dp), shape = RoundedCornerShape(15.dp)) {
+                                    Text(if (online) "SCOLLEGA DISPOSITIVO" else "INTERROMPI RICERCA")
+                                }
+                            }
+                            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                                Box(Modifier.size(9.dp).background(if (online) Color(0xFF55E6B1) else if (working) Color(0xFFFFC36B) else Color(0xFF718096), RoundedCornerShape(50)))
+                                Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(3.dp)) {
+                                    Text(if (online) "DISPOSITIVO COLLEGATO" else if (working) "RICERCA IN CORSO" else "PRONTO PER L'ACCOPPIAMENTO", fontSize = 10.sp, fontWeight = FontWeight.Bold, letterSpacing = 0.7.sp, color = primaryText)
+                                    Text(status, fontSize = 12.sp, color = secondaryText)
+                                }
+                            }
+                            if (discovered.isNotEmpty()) {
+                                Text("DISPOSITIVI TROVATI", fontSize = 10.sp, fontWeight = FontWeight.Bold, letterSpacing = 1.5.sp, color = secondaryText)
+                                discovered.forEach { item ->
+                                    Card(colors = CardDefaults.cardColors(containerColor = panel), shape = RoundedCornerShape(18.dp), border = androidx.compose.foundation.BorderStroke(1.dp, accent.copy(alpha = 0.35f))) {
+                                        Row(Modifier.fillMaxWidth().padding(14.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                                            Box(Modifier.size(44.dp).background(accent.copy(alpha = 0.10f), RoundedCornerShape(14.dp)), contentAlignment = Alignment.Center) { Text("◉", fontSize = 23.sp, color = accent) }
+                                            Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(3.dp)) {
+                                                Text(item.second, color = primaryText, fontWeight = FontWeight.Bold, fontSize = 14.sp)
+                                                Text("SENTINEL ONE · nelle vicinanze", color = secondaryText, fontSize = 10.sp)
                                             }
-                                        }
-                                    }
-                                } else {
-                                    EmptyStateCard("Nessun flusso attivo", "Quando una telecamera si collega, il video comparirà qui.", panel, primaryText, secondaryText, accent)
-                                }
-                                if (role == "camera" && connectedName != null) {
-                                    OutlinedButton(onClick = onSwitchCamera, modifier = Modifier.fillMaxWidth()) { Text("Cambia fotocamera") }
-                                }
-                                Text("CONNESSIONE", fontSize = 10.sp, letterSpacing = 1.4.sp, color = secondaryText)
-                                Text(status, fontSize = 12.sp, color = secondaryText)
-                            }
-                        }
-                        "Eventi" -> {
-                            Column(Modifier.fillMaxSize().padding(horizontal = 20.dp), verticalArrangement = Arrangement.spacedBy(14.dp)) {
-                                Text("Eventi e attività", fontSize = 27.sp, fontWeight = FontWeight.ExtraBold, color = primaryText)
-                                Text("Cronologia di sicurezza", fontSize = 14.sp, color = secondaryText)
-                                EmptyStateCard("Nessun evento registrato", "Gli eventi appariranno qui quando sarà implementato e attivato il rilevamento.", panel, primaryText, secondaryText, Color(0xFFFFB86B))
-                                Text("STATO ATTUALE", fontSize = 10.sp, color = secondaryText, letterSpacing = 1.4.sp)
-                                Text(status, fontSize = 12.sp, color = secondaryText)
-                            }
-                        }
-                        "Dispositivi" -> {
-                            Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(horizontal = 20.dp, vertical = 4.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
-                                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(13.dp)) {
-                                    SentinelLogo(Modifier.size(56.dp))
-                                    Column(Modifier.weight(1f)) {
-                                        Text(if (role == "camera") "Modalità telecamera" else "Centro di controllo", fontSize = 23.sp, fontWeight = FontWeight.ExtraBold, color = primaryText)
-                                        Text(if (role == "camera") "Collega questo telefono al monitor" else "Aggiungi e gestisci i dispositivi", fontSize = 12.sp, color = secondaryText)
-                                    }
-                                }
-                                ModeHeroCard(
-                                    title = if (role == "camera") "TELECAMERA" else "MONITOR DI SICUREZZA",
-                                    subtitle = if (role == "camera") "Il tuo telefono diventa una telecamera live" else "Il tuo centro per controllare la casa",
-                                    accent = if (role == "camera") accent else Violet,
-                                    symbol = if (role == "camera") "◉" else "⌂",
-                                    connected = connectedName != null
-                                )
-                                Text("1  ·  MODALITÀ", fontSize = 10.sp, fontWeight = FontWeight.Bold, letterSpacing = 1.5.sp, color = secondaryText)
-                                Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                                    ModeMiniCard("TELECAMERA", "Invia video", role == "camera", accent, Modifier.weight(1f)) { onRole("camera") }
-                                    ModeMiniCard("CENTRO CONTROLLO", "Riceve video", role == "monitor", Violet, Modifier.weight(1f)) { onRole("monitor") }
-                                }
-                                Text("2  ·  ACCOPPIAMENTO", fontSize = 10.sp, fontWeight = FontWeight.Bold, letterSpacing = 1.5.sp, color = secondaryText)
-                                Button(
-                                    onClick = onStart,
-                                    modifier = Modifier.fillMaxWidth().height(58.dp),
-                                    shape = RoundedCornerShape(18.dp),
-                                    colors = ButtonDefaults.buttonColors(containerColor = if (role == "camera") accent else Violet, contentColor = Color(0xFF07101A))
-                                ) {
-                                    Text(
-                                        if (working) "RICERCA IN CORSO…" else if (role == "monitor") "RENDi VISIBILE IL CENTRO DI CONTROLLO" else "CERCA IL CENTRO DI CONTROLLO",
-                                        fontWeight = FontWeight.ExtraBold, fontSize = 11.sp
-                                    )
-                                }
-                                if (working || connectedName != null) {
-                                    OutlinedButton(onClick = onStop, modifier = Modifier.fillMaxWidth().height(48.dp), shape = RoundedCornerShape(15.dp)) {
-                                        Text(if (connectedName != null) "SCOLLEGA DISPOSITIVO" else "INTERROMPI RICERCA")
-                                    }
-                                }
-                                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(9.dp)) {
-                                    Box(Modifier.size(9.dp).background(if (connectedName != null) Color(0xFF55E6B1) else if (working) Color(0xFFFFC36B) else Color(0xFF718096), RoundedCornerShape(50)))
-                                    Column(Modifier.weight(1f)) {
-                                        Text(if (connectedName != null) "DISPOSITIVO COLLEGATO" else if (working) "IN ATTESA DI UN DISPOSITIVO" else "PRONTO PER L'ACCOPPIAMENTO", fontSize = 10.sp, fontWeight = FontWeight.Bold, letterSpacing = 0.7.sp, color = primaryText)
-                                        Text(status, fontSize = 12.sp, color = secondaryText)
-                                    }
-                                }
-                                if (discovered.isNotEmpty()) {
-                                    Text("DISPOSITIVI TROVATI", fontSize = 10.sp, fontWeight = FontWeight.Bold, letterSpacing = 1.5.sp, color = secondaryText)
-                                    discovered.forEach { item ->
-                                        Card(
-                                            colors = CardDefaults.cardColors(containerColor = panel),
-                                            shape = RoundedCornerShape(18.dp),
-                                            border = androidx.compose.foundation.BorderStroke(1.dp, accent.copy(alpha = 0.35f))
-                                        ) {
-                                            Row(Modifier.fillMaxWidth().padding(15.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                                                Box(Modifier.size(46.dp).background(Color(0xFF17283B), RoundedCornerShape(15.dp)), contentAlignment = Alignment.Center) {
-                                                    Text("◉", fontSize = 25.sp, color = accent)
-                                                }
-                                                Column(Modifier.weight(1f)) {
-                                                    Text(item.second, color = primaryText, fontWeight = FontWeight.Bold, fontSize = 14.sp)
-                                                    Text("Dispositivo SENTINEL ONE nelle vicinanze", color = secondaryText, fontSize = 10.sp)
-                                                }
-                                                Button(onClick = { onConnect(item.first) }, shape = RoundedCornerShape(13.dp), colors = ButtonDefaults.buttonColors(containerColor = accent, contentColor = Color(0xFF07101A))) {
-                                                    Text("COLLEGA", fontWeight = FontWeight.Bold, fontSize = 10.sp)
-                                                }
-                                            }
+                                            Button(onClick = { onConnect(item.first) }, shape = RoundedCornerShape(12.dp), colors = ButtonDefaults.buttonColors(containerColor = accent, contentColor = Color(0xFF07101A))) { Text("COLLEGA", fontWeight = FontWeight.Bold, fontSize = 10.sp) }
                                         }
                                     }
                                 }
-                                if (connectedName != null) EmptyStateCard("Collegamento attivo", connectedName, panel, primaryText, secondaryText, Color(0xFF55E6B1))
                             }
+                            if (connectedName != null) EmptyStateCard("Connessione attiva", connectedName, panel, primaryText, secondaryText, Color(0xFF55E6B1))
                         }
-                        else -> {
-                            Column(Modifier.fillMaxSize().padding(horizontal = 20.dp), verticalArrangement = Arrangement.spacedBy(14.dp)) {
-                                Text("Impostazioni", fontSize = 27.sp, fontWeight = FontWeight.ExtraBold, color = primaryText)
-                                Text("Personalizza la tua centrale di sicurezza", fontSize = 13.sp, color = secondaryText)
-                                Card(colors = CardDefaults.cardColors(containerColor = panel), shape = RoundedCornerShape(18.dp)) {
-                                    Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                                        Text("Aspetto", fontWeight = FontWeight.Bold, color = primaryText)
-                                        Row(verticalAlignment = Alignment.CenterVertically) {
-                                            Text(if (isDark) "Tema scuro" else "Tema chiaro", Modifier.weight(1f), color = secondaryText)
-                                            Switch(checked = isDark, onCheckedChange = { isDark = it })
+                    }
+                    "Eventi" -> {
+                        Column(Modifier.weight(1f).fillMaxWidth().padding(horizontal = 20.dp), verticalArrangement = Arrangement.spacedBy(14.dp)) {
+                            Text("Eventi", fontSize = 27.sp, fontWeight = FontWeight.ExtraBold, color = primaryText)
+                            Text("Attività e avvisi di sicurezza", fontSize = 14.sp, color = secondaryText)
+                            LivePreviewPlaceholder(isDark = isDark, accent = Color(0xFFFFB86B))
+                            EmptyStateCard("Cronologia non attiva", "Il rilevamento eventi non è ancora implementato. Quando sarà disponibile, gli avvisi reali compariranno qui.", panel, primaryText, secondaryText, Color(0xFFFFB86B))
+                        }
+                    }
+                    else -> {
+                        Column(Modifier.weight(1f).fillMaxWidth().verticalScroll(rememberScrollState()).padding(horizontal = 20.dp), verticalArrangement = Arrangement.spacedBy(14.dp)) {
+                            Text("Impostazioni", fontSize = 27.sp, fontWeight = FontWeight.ExtraBold, color = primaryText)
+                            Text("Personalizza SENTINEL ONE", fontSize = 14.sp, color = secondaryText)
+                            Card(colors = CardDefaults.cardColors(containerColor = panel), shape = RoundedCornerShape(20.dp), border = androidx.compose.foundation.BorderStroke(1.dp, accent.copy(alpha = 0.18f))) {
+                                Column(Modifier.fillMaxWidth().padding(16.dp), verticalArrangement = Arrangement.spacedBy(14.dp)) {
+                                    Row(verticalAlignment = Alignment.CenterVertically) {
+                                        Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(3.dp)) {
+                                            Text("Aspetto", fontWeight = FontWeight.Bold, color = primaryText)
+                                            Text(if (isDark) "Tema scuro attivo" else "Tema chiaro attivo", color = secondaryText, fontSize = 12.sp)
                                         }
-                                        HorizontalDivider(color = secondaryText.copy(alpha = 0.2f))
-                                        Text("SENTINEL ONE · NATIVE", fontSize = 10.sp, letterSpacing = 1.2.sp, color = secondaryText)
-                                        Text("Prototipo in sviluppo. Le integrazioni di terze parti e le funzioni di registrazione/eventi richiedono implementazione e test dedicati.", fontSize = 12.sp, color = secondaryText)
+                                        Switch(checked = isDark, onCheckedChange = { isDark = it })
                                     }
+                                    HorizontalDivider(color = secondaryText.copy(alpha = 0.2f))
+                                    Row(verticalAlignment = Alignment.CenterVertically) {
+                                        Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(3.dp)) {
+                                            Text("Modalità attuale", fontWeight = FontWeight.Bold, color = primaryText)
+                                            Text(if (role == "camera") "Questo telefono invia il video" else "Questo telefono riceve il video", color = secondaryText, fontSize = 12.sp)
+                                        }
+                                        TextButton(onClick = { selectedTab = "Dispositivi" }) { Text("GESTISCI", color = accent) }
+                                    }
+                                    HorizontalDivider(color = secondaryText.copy(alpha = 0.2f))
+                                    Text("Funzioni in sviluppo", fontWeight = FontWeight.Bold, color = primaryText)
+                                    Text("Registrazione, rilevamento del movimento, notifiche e integrazioni con telecamere esterne non sono dichiarati attivi finché non sono implementati e verificati.", fontSize = 12.sp, color = secondaryText, lineHeight = 17.sp)
                                 }
                             }
                         }
                     }
                 }
-
                 NavigationBar(containerColor = panel, contentColor = primaryText, tonalElevation = 0.dp) {
                     listOf("Casa" to "⌂", "Live" to "◉", "Eventi" to "◷", "Dispositivi" to "▣", "Impostazioni" to "⚙").forEach { item ->
                         NavigationBarItem(
@@ -807,6 +861,145 @@ private fun Dashboard(
                     }
                 }
             }
+        }
+    }
+}
+
+@Composable
+private fun SecurityHeroVisual(isDark: Boolean, online: Boolean, frame: Bitmap?, subtitle: String, onClick: () -> Unit) {
+    val infinite = androidx.compose.animation.core.rememberInfiniteTransition(label = "security-hero")
+    val pulse by infinite.animateFloat(
+        initialValue = 0.72f,
+        targetValue = 1f,
+        animationSpec = androidx.compose.animation.core.infiniteRepeatable(
+            animation = androidx.compose.animation.core.tween(1500, easing = androidx.compose.animation.core.FastOutSlowInEasing),
+            repeatMode = androidx.compose.animation.core.RepeatMode.Reverse
+        ),
+        label = "pulse"
+    )
+    val accent = Color(0xFF56E6F2)
+    Card(
+        onClick = onClick,
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(26.dp),
+        colors = CardDefaults.cardColors(containerColor = Color(0xFF101C2D)),
+        border = androidx.compose.foundation.BorderStroke(1.dp, accent.copy(alpha = 0.28f))
+    ) {
+        Box(Modifier.fillMaxWidth().height(230.dp).background(Brush.linearGradient(listOf(Color(0xFF152B43), Color(0xFF0B1220), Color(0xFF201D3B))))) {
+            if (frame != null) {
+                Image(
+                    bitmap = frame.asImageBitmap(),
+                    contentDescription = "Immagine reale ricevuta dalla telecamera",
+                    modifier = Modifier.fillMaxSize(),
+                    contentScale = ContentScale.Crop
+                )
+                Box(Modifier.fillMaxSize().background(Brush.horizontalGradient(listOf(Color(0xE6101C2D), Color(0x66101C2D), Color.Transparent))))
+            } else {
+                androidx.compose.foundation.Canvas(Modifier.fillMaxSize()) {
+                val center = androidx.compose.ui.geometry.Offset(size.width * 0.73f, size.height * 0.46f)
+                val base = size.minDimension * 0.20f
+                for (i in 0..2) {
+                    drawCircle(accent.copy(alpha = (0.12f - i * 0.025f).coerceAtLeast(0.025f) * pulse), base * (1.0f + i * 0.48f), center, style = androidx.compose.ui.graphics.drawscope.Stroke(width = 1.4.dp.toPx()))
+                }
+                drawCircle(Color(0xFF9A7BFF).copy(alpha = 0.16f), base * 1.15f, center)
+                drawCircle(Color(0xFF56E6F2).copy(alpha = 0.85f), base * 0.72f, center, style = androidx.compose.ui.graphics.drawscope.Stroke(width = 2.dp.toPx()))
+                drawCircle(Color(0xFF56E6F2).copy(alpha = 0.14f), base * 0.56f, center)
+                drawCircle(Color(0xFFE8FBFF), base * 0.24f, center)
+                // stylized camera lens and body
+                val bodyW = base * 1.15f
+                val bodyH = base * 0.78f
+                drawRoundRect(Color(0xFF253C56), androidx.compose.ui.geometry.Offset(center.x - bodyW * 0.78f, center.y - bodyH * 0.5f), androidx.compose.ui.geometry.Size(bodyW * 1.2f, bodyH), androidx.compose.ui.geometry.CornerRadius(12.dp.toPx()))
+                drawCircle(accent, base * 0.32f, center)
+                drawCircle(Color(0xFF0B1220), base * 0.20f, center)
+                drawCircle(accent.copy(alpha = pulse), base * 0.12f, center)
+                // subtle scanline motif, deliberately decorative rather than a false camera feed
+                for (i in 0..5) {
+                    val yy = size.height * 0.17f + i * 13.dp.toPx()
+                    drawLine(Color.White.copy(alpha = 0.035f), androidx.compose.ui.geometry.Offset(size.width * 0.48f, yy), androidx.compose.ui.geometry.Offset(size.width * 0.94f, yy), 1.dp.toPx())
+                }
+            }
+            }
+            Column(Modifier.align(Alignment.CenterStart).fillMaxWidth(0.60f).padding(start = 18.dp, top = 18.dp, bottom = 18.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                Surface(color = accent.copy(alpha = 0.12f), shape = RoundedCornerShape(50)) {
+                    Text(if (online) "● SISTEMA COLLEGATO" else "● SISTEMA PRONTO", Modifier.padding(horizontal = 10.dp, vertical = 6.dp), color = accent, fontSize = 9.sp, fontWeight = FontWeight.ExtraBold, letterSpacing = 0.5.sp)
+                }
+                Text("La casa,\nsotto controllo.", color = Color.White, fontSize = 24.sp, lineHeight = 29.sp, fontWeight = FontWeight.ExtraBold)
+                Text(subtitle, color = Color(0xFFB9C7D9), fontSize = 11.sp, lineHeight = 15.sp, maxLines = 3)
+                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                    Text(if (online) "APRI VIDEO LIVE" else "CONFIGURA ORA", color = accent, fontSize = 10.sp, fontWeight = FontWeight.ExtraBold, letterSpacing = 0.5.sp)
+                    Text("→", color = accent, fontSize = 16.sp, fontWeight = FontWeight.Bold)
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun LivePreviewPlaceholder(isDark: Boolean, accent: Color) {
+    val infinite = androidx.compose.animation.core.rememberInfiniteTransition(label = "live-placeholder")
+    val scan by infinite.animateFloat(
+        initialValue = 0f,
+        targetValue = 1f,
+        animationSpec = androidx.compose.animation.core.infiniteRepeatable(
+            animation = androidx.compose.animation.core.tween(2400, easing = androidx.compose.animation.core.LinearEasing),
+            repeatMode = androidx.compose.animation.core.RepeatMode.Restart
+        ),
+        label = "scan"
+    )
+    Box(
+        Modifier.fillMaxWidth().height(190.dp).background(
+            Brush.linearGradient(listOf(Color(0xFF0B1421), Color(0xFF14243A), Color(0xFF10172B))),
+            RoundedCornerShape(22.dp)
+        )
+    ) {
+        androidx.compose.foundation.Canvas(Modifier.fillMaxSize()) {
+            val grid = Color(0xFF5C7895).copy(alpha = 0.16f)
+            val gap = 24.dp.toPx()
+            var x = 0f
+            while (x < size.width) {
+                drawLine(grid, androidx.compose.ui.geometry.Offset(x, 0f), androidx.compose.ui.geometry.Offset(x, size.height), 1f)
+                x += gap
+            }
+            var y = 0f
+            while (y < size.height) {
+                drawLine(grid, androidx.compose.ui.geometry.Offset(0f, y), androidx.compose.ui.geometry.Offset(size.width, y), 1f)
+                y += gap
+            }
+            val lineY = size.height * scan
+            drawLine(accent.copy(alpha = 0.42f), androidx.compose.ui.geometry.Offset(0f, lineY), androidx.compose.ui.geometry.Offset(size.width, lineY), 2.dp.toPx())
+            drawCircle(accent.copy(alpha = 0.16f), 39.dp.toPx(), androidx.compose.ui.geometry.Offset(size.width / 2, size.height / 2))
+            drawCircle(accent.copy(alpha = 0.8f), 25.dp.toPx(), androidx.compose.ui.geometry.Offset(size.width / 2, size.height / 2), style = androidx.compose.ui.graphics.drawscope.Stroke(2.dp.toPx()))
+        }
+        Column(Modifier.align(Alignment.Center), horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(7.dp)) {
+            Text("◉", color = accent, fontSize = 34.sp)
+            Text("ANTEPRIMA VIDEO", color = Color.White, fontSize = 11.sp, fontWeight = FontWeight.ExtraBold, letterSpacing = 1.2.sp)
+            Text("In attesa del flusso reale", color = Color(0xFF9BAAC0), fontSize = 10.sp)
+        }
+        Surface(Modifier.align(Alignment.TopStart).padding(12.dp), color = Color.Black.copy(alpha = 0.42f), shape = RoundedCornerShape(7.dp)) {
+            Text("SENTINEL · LIVE", Modifier.padding(horizontal = 8.dp, vertical = 5.dp), color = Color.White, fontSize = 9.sp, fontWeight = FontWeight.Bold)
+        }
+    }
+}
+
+@Composable
+private fun QuickActionCard(
+    title: String,
+    subtitle: String,
+    symbol: String,
+    accent: Color,
+    panel: Color,
+    primary: Color,
+    secondary: Color,
+    modifier: Modifier = Modifier,
+    onClick: () -> Unit
+) {
+    Card(onClick = onClick, modifier = modifier, colors = CardDefaults.cardColors(containerColor = panel), shape = RoundedCornerShape(20.dp), border = androidx.compose.foundation.BorderStroke(1.dp, accent.copy(alpha = 0.22f))) {
+        Column(Modifier.fillMaxWidth().padding(14.dp), verticalArrangement = Arrangement.spacedBy(9.dp)) {
+            Box(Modifier.size(42.dp).background(accent.copy(alpha = 0.12f), RoundedCornerShape(14.dp)), contentAlignment = Alignment.Center) {
+                Text(symbol, color = accent, fontSize = 23.sp, fontWeight = FontWeight.Bold)
+            }
+            Text(title, color = primary, fontSize = 13.sp, fontWeight = FontWeight.Bold)
+            Text(subtitle, color = secondary, fontSize = 10.sp, lineHeight = 14.sp)
         }
     }
 }
@@ -835,78 +1028,6 @@ private fun EmptyStateCard(title: String, subtitle: String, panel: Color, primar
     }
 }
 
-@Composable
-private fun HouseModel3D(panel: Color, accent: Color, selectedRoom: String, onRoomSelected: (String) -> Unit, isDark: Boolean) {
-    val engine = rememberEngine()
-    val modelLoader = rememberModelLoader(engine)
-    val wall = if (isDark) Color(0xFF61738B) else Color(0xFF9DAFC2)
-    val floor = if (isDark) Color(0xFF253448) else Color(0xFFD7E1EB)
-    val onlineGreen = Color(0xFF35E59A)
-    val offlineRed = Color(0xFFFF5964)
-    var basement by remember { mutableStateOf(false) }
-    var cameras by remember { mutableStateOf(true) }
-    Card(colors = CardDefaults.cardColors(containerColor = panel), shape = RoundedCornerShape(24.dp), border = androidx.compose.foundation.BorderStroke(1.dp, accent.copy(alpha = 0.22f))) {
-        Column(Modifier.fillMaxWidth().padding(12.dp)) {
-            Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-                Column(Modifier.weight(1f)) {
-                    Text(if (basement) "CASA · SEMINTERRATO" else "CASA · PIANO PRINCIPALE", color = if (isDark) Color(0xFFB5C5D8) else Color(0xFF53647B), fontSize = 9.sp, letterSpacing = 1.sp)
-                    Text("SCENA 3D · FILAMENT", color = accent, fontSize = 10.sp, fontWeight = FontWeight.Bold)
-                }
-                Surface(color = Color(0xFF12372D), shape = RoundedCornerShape(50)) {
-                    Text("● NON COLLEGATE", Modifier.padding(horizontal = 9.dp, vertical = 6.dp), color = offlineRed, fontSize = 9.sp, fontWeight = FontWeight.Bold)
-                }
-            }
-            Box(Modifier.fillMaxWidth().height(290.dp).padding(top = 8.dp).background(if (isDark) Color(0xFF090F19) else Color(0xFFEAF0F6), RoundedCornerShape(18.dp))) {
-                SceneView(
-                    modifier = Modifier.fillMaxSize(),
-                    engine = engine,
-                    modelLoader = modelLoader,
-                    cameraManipulator = rememberCameraManipulator()
-                ) {
-                    CubeNode(size = SceneSize(4.2f), position = Position(y = -0.14f))
-                    CubeNode(size = SceneSize(0.12f), position = Position(x = -1.8f, y = 0.55f))
-                    CubeNode(size = SceneSize(0.12f), position = Position(x = 1.8f, y = 0.55f))
-                    CubeNode(size = SceneSize(0.12f), position = Position(y = 0.55f, z = -1.8f))
-                    CubeNode(size = SceneSize(0.12f), position = Position(y = 0.55f, z = 1.8f))
-                    CubeNode(size = SceneSize(0.10f), position = Position(x = -0.55f, y = 0.55f))
-                    CubeNode(size = SceneSize(0.10f), position = Position(x = 0.65f, y = 0.55f, z = -0.35f))
-                    CubeNode(size = SceneSize(0.48f), position = Position(x = -1.0f, y = 0.12f, z = -0.75f))
-                    CubeNode(size = SceneSize(0.34f), position = Position(x = 1.0f, y = 0.10f, z = -0.7f))
-                    CubeNode(size = SceneSize(0.40f), position = Position(x = 1.0f, y = 0.12f, z = 0.95f))
-                    if (cameras) {
-                        SphereNode(radius = 0.10f, position = Position(x = -1.6f, y = 1.05f, z = -1.55f))
-                        SphereNode(radius = 0.10f, position = Position(x = 1.55f, y = 1.05f, z = -1.55f))
-                        SphereNode(radius = 0.10f, position = Position(x = 1.55f, y = 1.05f, z = 1.55f))
-                    }
-                    if (basement) {
-                        CubeNode(size = SceneSize(3.2f), position = Position(y = -1.15f))
-                        CubeNode(size = SceneSize(0.10f), position = Position(y = -0.72f, z = -1.35f))
-                        CubeNode(size = SceneSize(0.10f), position = Position(x = -1.35f, y = -0.72f))
-                        SphereNode(radius = 0.09f, position = Position(x = -1.2f, y = -0.55f, z = -1.2f))
-                    }
-                }
-            }
-            Text("Scena 3D renderizzata da Filament · trascina per orbitare", Modifier.padding(top = 6.dp), color = if (isDark) Color(0xFF8292A9) else Color(0xFF65758A), fontSize = 9.sp)
-            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(7.dp)) {
-                listOf("Soggiorno", "Cucina", "Camera").forEach { room ->
-                    val selected = selectedRoom == room
-                    Surface(onClick = { onRoomSelected(room) }, color = if (selected) Color(0xFF17343E) else if (isDark) Color(0xFF172131) else Color(0xFFE8EEF5), shape = RoundedCornerShape(11.dp), border = androidx.compose.foundation.BorderStroke(1.dp, if (selected) accent else Color.Transparent)) {
-                        Text(room, Modifier.padding(horizontal = 9.dp, vertical = 8.dp), color = if (selected) accent else if (isDark) Color(0xFFB5C5D8) else Color(0xFF53647B), fontSize = 10.sp, fontWeight = FontWeight.SemiBold)
-                    }
-                }
-            }
-            Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-                TextButton(onClick = { basement = !basement }) { Text(if (basement) "Piano principale" else "Seminterrato") }
-                Spacer(Modifier.weight(1f))
-                TextButton(onClick = { cameras = !cameras }) { Text(if (cameras) "Nascondi telecamere" else "Mostra telecamere") }
-            }
-            Row(horizontalArrangement = Arrangement.spacedBy(12.dp), verticalAlignment = Alignment.CenterVertically) {
-                Row(verticalAlignment = Alignment.CenterVertically) { Box(Modifier.size(8.dp).background(onlineGreen, RoundedCornerShape(50))); Spacer(Modifier.width(5.dp)); Text("Online", color = if (isDark) Color(0xFFB5C5D8) else Color(0xFF53647B), fontSize = 10.sp) }
-                Row(verticalAlignment = Alignment.CenterVertically) { Box(Modifier.size(8.dp).background(offlineRed, RoundedCornerShape(50))); Spacer(Modifier.width(5.dp)); Text("Offline / non collegata", color = if (isDark) Color(0xFFB5C5D8) else Color(0xFF53647B), fontSize = 10.sp) }
-            }
-        }
-    }
-}
 
 @Composable
 private fun RoleCard(title: String, subtitle: String, selected: Boolean, modifier: Modifier = Modifier, onClick: () -> Unit) {
