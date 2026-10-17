@@ -574,7 +574,7 @@ private fun HouseArScanScreen(
             }
             Card(colors = CardDefaults.cardColors(containerColor = HousePanel.copy(alpha = 0.96f))) {
                 Column(Modifier.fillMaxWidth().padding(12.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    Text("Cammina lentamente attorno alla stanza; ruota il telefono per includere pavimento e tutte le pareti. Mantieni gli angoli nell'inquadratura. La misura è una stima del piano osservato, non una certificazione del perimetro.", color = HouseMuted, fontSize = 11.sp)
+                    Text("1. Inquadra il pavimento. 2. Cammina lentamente lungo le pareti. 3. Quando la misura è abbastanza grande, salva la stima. È provvisoria: controlla larghezza e profondità nella piantina.", color = HouseMuted, fontSize = 11.sp)
                     Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                         OutlinedButton(onClick = onBack, modifier = Modifier.weight(1f)) { Text("INDIETRO") }
                         Button(
