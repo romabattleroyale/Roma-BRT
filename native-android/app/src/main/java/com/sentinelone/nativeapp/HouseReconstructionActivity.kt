@@ -57,35 +57,62 @@ internal fun normalizedRoomName(raw: String): String =
     raw.trim().replace(Regex("[^A-Za-z0-9À-ÿ_-]+"), "_").trim('_').ifBlank { "Stanza" }
 
 /** Stable per-original-name key: different names that sanitize to the same slug remain separate. */
+private fun roomNameDigest(raw: String, bytes: Int): String =
+    MessageDigest.getInstance("SHA-256")
+        .digest(raw.trim().ifBlank { "Stanza" }.toByteArray(Charsets.UTF_8))
+        .take(bytes)
+        .joinToString("") { "%02x".format(it) }
+
 internal fun roomStorageKey(raw: String): String {
     val original = raw.trim().ifBlank { "Stanza" }
-    val digest = MessageDigest.getInstance("SHA-256")
-        .digest(original.toByteArray(Charsets.UTF_8))
-        .take(4)
-        .joinToString("") { "%02x".format(it) }
-    return "${normalizedRoomName(original)}_${digest}"
+    // Keep path components bounded while using the full digest to prevent name collisions.
+    val slug = normalizedRoomName(original).take(40).trim('_').ifBlank { "Stanza" }
+    return "${slug}_${roomNameDigest(original, 32)}"
+}
+
+private fun legacyRoomStorageKey(raw: String): String {
+    val original = raw.trim().ifBlank { "Stanza" }
+    return "${normalizedRoomName(original)}_${roomNameDigest(original, 4)}"
 }
 internal fun roomCaptureDirectory(scanRoot: File, roomName: String): File {
     val displayName = roomName.trim().ifBlank { "Stanza" }
     val keyDirectory = File(scanRoot, roomStorageKey(displayName))
     if (keyDirectory.isDirectory) {
-        runCatching {
-            val marker = File(keyDirectory, ".sentinel-room-name")
-            if (!marker.isFile) marker.writeText(displayName)
+        val marker = File(keyDirectory, ".sentinel-room-name")
+        val recordedName = runCatching { marker.takeIf { it.isFile }?.readText()?.trim().orEmpty() }.getOrDefault("")
+        if (recordedName.isBlank() || recordedName == displayName) {
+            runCatching { if (!marker.isFile) marker.writeText(displayName) }
+            return keyDirectory
         }
-        return keyDirectory
+        // A folder with conflicting identity metadata must never be reused for another room.
+        return File(scanRoot, roomStorageKey(displayName) + "_" + roomNameDigest(displayName + "#isolated", 8))
     }
+
+    // Migrate data created by an earlier build that used a shorter hash-based folder key.
+    val oldKeyDirectory = File(scanRoot, legacyRoomStorageKey(displayName))
+    if (oldKeyDirectory.isDirectory) {
+        val marker = File(oldKeyDirectory, ".sentinel-room-name")
+        val recordedName = runCatching { marker.takeIf { it.isFile }?.readText()?.trim().orEmpty() }.getOrDefault("")
+        if (recordedName == displayName && oldKeyDirectory.renameTo(keyDirectory)) {
+            runCatching { File(keyDirectory, ".sentinel-room-name").writeText(displayName) }
+            return keyDirectory
+        }
+    }
+
+    // A legacy sanitized folder without identity metadata is safe to adopt only when its
+    // folder name exactly matches the requested display name. Otherwise two names may alias.
     val legacyDirectory = File(scanRoot, normalizedRoomName(displayName))
     if (legacyDirectory.isDirectory) {
         val metadata = File(legacyDirectory, ".sentinel-room-name")
         val recordedName = runCatching { metadata.takeIf { it.isFile }?.readText()?.trim().orEmpty() }.getOrDefault("")
-        if (recordedName.isBlank() || recordedName == displayName) {
+        val identityMatches = recordedName == displayName ||
+            (recordedName.isBlank() && normalizedRoomName(displayName) == displayName)
+        if (identityMatches) {
             if (!scanRoot.exists()) scanRoot.mkdirs()
             if (legacyDirectory.renameTo(keyDirectory)) {
                 runCatching { File(keyDirectory, ".sentinel-room-name").writeText(displayName) }
                 return keyDirectory
             }
-            return legacyDirectory
         }
     }
     return keyDirectory
@@ -139,6 +166,9 @@ private fun arEvidenceFile(filesDir: File, roomName: String) =
 private fun legacyArEvidenceFile(filesDir: File, roomName: String) =
     File(filesDir, "sentinel_ar_scan_" + normalizedRoomName(roomName) + ".json")
 
+private fun previousKeyArEvidenceFile(filesDir: File, roomName: String) =
+    File(filesDir, "sentinel_ar_scan_" + legacyRoomStorageKey(roomName) + ".json")
+
 private fun writeJsonAtomically(destination: File, json: String) {
     val parent = destination.parentFile
         ?: throw IllegalStateException("Directory di destinazione non disponibile")
@@ -160,14 +190,20 @@ private fun writeJsonAtomically(destination: File, json: String) {
 
 private object HouseProjectRepository {
     private fun projectFileName(roomName: String) = "sentinel_house_project_" + roomStorageKey(roomName) + ".json"
+    private fun previousKeyProjectFileName(roomName: String) = "sentinel_house_project_" + legacyRoomStorageKey(roomName) + ".json"
     private fun legacyProjectFileName(roomName: String) = "sentinel_house_project_" + normalizedRoomName(roomName) + ".json"
 
     fun load(dir: File, roomName: String): HouseGeometry = runCatching {
         val roomFile = File(dir, projectFileName(roomName))
-        // Preserve projects created by older builds before room names received collision-safe keys.
+        val previousKeyFile = File(dir, previousKeyProjectFileName(roomName))
+        // Preserve projects created by earlier builds, but only when their stored identity matches.
+        val previousKeyMatches = previousKeyFile.isFile && runCatching {
+            JSONObject(previousKeyFile.readText()).optString("roomName") == roomName
+        }.getOrDefault(false)
         val legacyRoomFile = File(dir, legacyProjectFileName(roomName))
         val source = when {
             roomFile.isFile -> roomFile
+            previousKeyMatches -> previousKeyFile
             legacyRoomFile.isFile && runCatching {
                 val storedName = JSONObject(legacyRoomFile.readText()).optString("roomName")
                 storedName.isBlank() && normalizedRoomName(roomName) == "Stanza" || storedName == roomName
