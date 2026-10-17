@@ -34,6 +34,7 @@ import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.material3.LocalContentColor
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.asImageBitmap
@@ -75,6 +76,7 @@ class MainActivity : ComponentActivity() {
     private var cameraProvider: ProcessCameraProvider? = null
     private var lensFacing by mutableIntStateOf(CameraSelector.LENS_FACING_BACK)
     private var role by mutableStateOf("monitor")
+    private var hasChosenMode by mutableStateOf(false)
     private var status by mutableStateOf("Pronto per collegare i dispositivi")
     private var connectedName by mutableStateOf<String?>(null)
     private var discovered by mutableStateOf<List<Pair<String, String>>>(emptyList())
@@ -94,16 +96,31 @@ class MainActivity : ComponentActivity() {
                     surface = Panel, onBackground = Color.White, onSurface = Color.White
                 )
             ) {
-                Dashboard(
-                    role = role, status = status, connectedName = connectedName,
-                    discovered = discovered, working = working, remoteFrame = remoteFrame,
-                    sentFrames = sentFrames, receivedFrames = receivedFrames,
-                    onRole = { role = it; stopSearching() },
-                    onStart = { startPairing() },
-                    onConnect = { endpoint -> requestPair(endpoint) },
-                    onStop = { stopSearching() },
-                    onSwitchCamera = { switchCamera() }
-                )
+                if (!hasChosenMode) {
+                    WelcomeScreen(
+                        onCameraMode = {
+                            role = "camera"
+                            hasChosenMode = true
+                            startPairing()
+                        },
+                        onControlMode = {
+                            role = "monitor"
+                            hasChosenMode = true
+                            startPairing()
+                        }
+                    )
+                } else {
+                    Dashboard(
+                        role = role, status = status, connectedName = connectedName,
+                        discovered = discovered, working = working, remoteFrame = remoteFrame,
+                        sentFrames = sentFrames, receivedFrames = receivedFrames,
+                        onRole = { role = it; stopSearching() },
+                        onStart = { startPairing() },
+                        onConnect = { endpoint -> requestPair(endpoint) },
+                        onStop = { stopSearching() },
+                        onSwitchCamera = { switchCamera() }
+                    )
+                }
             }
         }
     }
@@ -408,6 +425,91 @@ class MainActivity : ComponentActivity() {
         connections.stopAllEndpoints()
         cameraExecutor.shutdown()
         super.onDestroy()
+    }
+}
+
+
+@Composable
+private fun WelcomeScreen(onCameraMode: () -> Unit, onControlMode: () -> Unit) {
+    val muted = Color(0xFF9BAAC0)
+    Box(Modifier.fillMaxSize().background(Brush.verticalGradient(listOf(Color(0xFF101D32), Color(0xFF070B14), Color(0xFF090D18))))) {
+        Column(
+            Modifier.fillMaxSize().statusBarsPadding().navigationBarsPadding().verticalScroll(rememberScrollState()).padding(horizontal = 22.dp, vertical = 18.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.spacedBy(16.dp)
+        ) {
+            Spacer(Modifier.height(6.dp))
+            SentinelLogo(Modifier.size(86.dp))
+            Text("SENTINEL ONE", color = Color(0xFFF4F7FF), fontSize = 25.sp, fontWeight = FontWeight.Black, letterSpacing = 1.1.sp)
+            Text("SMART HOME SECURITY", color = muted, fontSize = 10.sp, letterSpacing = 3.sp)
+            Spacer(Modifier.height(3.dp))
+            Text("Come vuoi usare", color = Color.White, fontSize = 24.sp, fontWeight = FontWeight.Bold)
+            Text("SENTINEL ONE?", color = Color(0xFF65DFF4), fontSize = 27.sp, fontWeight = FontWeight.ExtraBold)
+            Text("Scegli una modalità per continuare", color = muted, fontSize = 13.sp)
+            ModeChoiceCard("MODALITÀ", "TELECAMERA", "Usa questo telefono per inviare il video live.", "CONFIGURA TELECAMERA", "◉", Color(0xFF39D9F0), onCameraMode)
+            ModeChoiceCard("CENTRO DI", "CONTROLLO", "Collega e gestisci telecamere e dispositivi.", "APRI CENTRO DI CONTROLLO", "⌂", Color(0xFF9B79FF), onControlMode)
+            Spacer(Modifier.height(2.dp))
+            Text("♙  Privacy e connessione protetta", color = muted, fontSize = 12.sp)
+        }
+    }
+}
+
+@Composable
+private fun SentinelLogo(modifier: Modifier = Modifier) {
+    Box(modifier, contentAlignment = Alignment.Center) {
+        androidx.compose.foundation.Canvas(Modifier.fillMaxSize()) {
+            val shield = androidx.compose.ui.graphics.Path().apply {
+                moveTo(size.width * 0.5f, size.height * 0.04f)
+                lineTo(size.width * 0.9f, size.height * 0.2f)
+                lineTo(size.width * 0.85f, size.height * 0.58f)
+                quadraticTo(size.width * 0.79f, size.height * 0.82f, size.width * 0.5f, size.height * 0.96f)
+                quadraticTo(size.width * 0.21f, size.height * 0.82f, size.width * 0.15f, size.height * 0.58f)
+                lineTo(size.width * 0.1f, size.height * 0.2f)
+                close()
+            }
+            drawPath(shield, Brush.linearGradient(listOf(Color(0xFF38E4F4), Color(0xFF786BFF), Color(0xFFB06DFF))))
+        }
+        Text("S", color = Color(0xFF07101A), fontSize = 43.sp, fontWeight = FontWeight.Black)
+    }
+}
+
+@Composable
+private fun ModeChoiceCard(
+    title: String, emphasis: String, description: String, action: String,
+    symbol: String, accent: Color, onClick: () -> Unit
+) {
+    var pressed by remember { mutableStateOf(false) }
+    val scale by androidx.compose.animation.core.animateFloatAsState(
+        targetValue = if (pressed) 0.985f else 1f,
+        animationSpec = androidx.compose.animation.core.spring(dampingRatio = 0.55f, stiffness = 500f),
+        label = "mode-card-scale"
+    )
+    Card(
+        onClick = { pressed = true; onClick() },
+        modifier = Modifier.fillMaxWidth().heightIn(min = 200.dp).graphicsLayer { scaleX = scale; scaleY = scale }.animateContentSize(),
+        shape = RoundedCornerShape(25.dp),
+        colors = CardDefaults.cardColors(containerColor = Color(0xFF111C2D)),
+        border = androidx.compose.foundation.BorderStroke(1.3.dp, accent.copy(alpha = 0.8f)),
+        elevation = CardDefaults.cardElevation(defaultElevation = 5.dp, pressedElevation = 12.dp)
+    ) {
+        Column(Modifier.fillMaxWidth().padding(17.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(14.dp)) {
+                Box(Modifier.size(72.dp).background(Brush.linearGradient(listOf(accent.copy(alpha = 0.28f), Color(0xFF101827))), RoundedCornerShape(19.dp)), contentAlignment = Alignment.Center) {
+                    Text(symbol, color = accent, fontSize = 46.sp, fontWeight = FontWeight.Light)
+                }
+                Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(3.dp)) {
+                    Text(title, color = Color(0xFFF4F7FF), fontSize = 12.sp, fontWeight = FontWeight.SemiBold, letterSpacing = 1.2.sp)
+                    Text(emphasis, color = accent, fontSize = 20.sp, fontWeight = FontWeight.ExtraBold)
+                    Text(description, color = Color(0xFFB1BED1), fontSize = 12.sp, lineHeight = 17.sp)
+                }
+            }
+            Surface(color = accent, shape = RoundedCornerShape(14.dp), modifier = Modifier.fillMaxWidth()) {
+                Row(Modifier.fillMaxWidth().padding(horizontal = 14.dp, vertical = 13.dp), verticalAlignment = Alignment.CenterVertically) {
+                    Text(action, color = Color(0xFF07101A), fontSize = 10.sp, fontWeight = FontWeight.ExtraBold, modifier = Modifier.weight(1f))
+                    Text("→", color = Color(0xFF07101A), fontSize = 22.sp, fontWeight = FontWeight.Bold)
+                }
+            }
+        }
     }
 }
 
