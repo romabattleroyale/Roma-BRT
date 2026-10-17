@@ -129,6 +129,9 @@ class MainActivity : ComponentActivity() {
         }
         discovered = emptyList()
         connectedName = null
+        remoteFrame = null
+        sentFrames = 0
+        receivedFrames = 0
         activeEndpoint = null
         working = true
         status = if (role == "monitor") "Monitor visibile agli altri telefoni" else "Ricerca del monitor nelle vicinanze…"
@@ -195,10 +198,16 @@ class MainActivity : ComponentActivity() {
 
     private val payloadCallback = object : PayloadCallback() {
         override fun onPayloadReceived(endpointId: String, payload: Payload) {
-            if (payload.type != Payload.Type.BYTES) return
+            // Only render frames from the endpoint that completed the connection.
+            if (endpointId != activeEndpoint || payload.type != Payload.Type.BYTES) return
             val bytes = payload.asBytes() ?: return
+            if (bytes.isEmpty() || bytes.size > MAX_FRAME_BYTES) return
             val bitmap = BitmapFactory.decodeByteArray(bytes, 0, bytes.size) ?: return
             runOnUiThread {
+                if (endpointId != activeEndpoint) {
+                    bitmap.recycle()
+                    return@runOnUiThread
+                }
                 remoteFrame = bitmap
                 receivedFrames += 1
                 status = "Video in ricezione · frame $receivedFrames"
@@ -323,6 +332,9 @@ class MainActivity : ComponentActivity() {
         connections.stopAllEndpoints()
         activeEndpoint = null
         connectedName = null
+        remoteFrame = null
+        sentFrames = 0
+        receivedFrames = 0
         working = false
         status = "Ricerca interrotta"
     }
