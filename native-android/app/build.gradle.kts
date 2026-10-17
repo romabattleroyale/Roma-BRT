@@ -6,7 +6,7 @@ plugins {
 
 android {
     namespace = "com.sentinelone.nativeapp"
-    compileSdk = 35
+    compileSdk = 36
 
     defaultConfig {
         applicationId = "com.sentinelone.nativeapp"
