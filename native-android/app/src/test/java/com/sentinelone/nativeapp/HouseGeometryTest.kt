@@ -4,6 +4,8 @@ import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotEquals
 import org.junit.Assert.assertTrue
 import org.junit.Test
+import java.io.File
+import java.nio.file.Files
 
 class HouseGeometryTest {
     @Test
@@ -11,6 +13,48 @@ class HouseGeometryTest {
         assertEquals(normalizedRoomName("Sala!"), normalizedRoomName("Sala?"))
         assertNotEquals(roomStorageKey("Sala!"), roomStorageKey("Sala?"))
         assertEquals(roomStorageKey("Soggiorno"), roomStorageKey("Soggiorno"))
+    }
+
+    @Test
+    fun roomStorageKeysStayBoundedForLongNames() {
+        assertTrue(roomStorageKey("Sala ".repeat(200)).length < 120)
+        assertNotEquals(roomStorageKey("Sala!"), roomStorageKey("Sala?"))
+    }
+
+    @Test
+    fun captureDirectoriesKeepSanitizedNameCollisionsSeparate() {
+        val root = Files.createTempDirectory("sentinel-room-keys").toFile()
+        try {
+            val first = roomCaptureDirectory(root, "Sala!")
+            assertTrue(first.mkdirs())
+            File(first, ".sentinel-room-name").writeText("Sala!")
+
+            val second = roomCaptureDirectory(root, "Sala?")
+            assertNotEquals(first.canonicalPath, second.canonicalPath)
+            assertTrue(second.mkdirs())
+            File(second, ".sentinel-room-name").writeText("Sala?")
+
+            assertEquals("Sala!", File(first, ".sentinel-room-name").readText())
+            assertEquals("Sala?", File(second, ".sentinel-room-name").readText())
+        } finally {
+            root.deleteRecursively()
+        }
+    }
+
+    @Test
+    fun ambiguousLegacyFolderIsNotAssignedToUnnormalizedRoomName() {
+        val root = Files.createTempDirectory("sentinel-room-legacy").toFile()
+        try {
+            val legacy = File(root, "Sala_da_pranzo")
+            assertTrue(legacy.mkdirs())
+
+            val target = roomCaptureDirectory(root, "Sala da pranzo")
+
+            assertTrue(legacy.isDirectory)
+            assertNotEquals(legacy.canonicalPath, target.canonicalPath)
+        } finally {
+            root.deleteRecursively()
+        }
     }
 
     @Test
