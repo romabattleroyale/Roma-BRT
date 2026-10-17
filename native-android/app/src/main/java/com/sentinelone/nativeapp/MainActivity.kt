@@ -640,7 +640,7 @@ private fun Dashboard(
                                 }
                                 HouseModel3D(panel = panel, accent = accent, selectedRoom = selectedRoom, onRoomSelected = { selectedRoom = it }, isDark = isDark)
                                 OutlinedButton(
-                                    onClick = { context.startActivity(Intent(context, RoomScanActivity::class.java)) },
+                                    onClick = { context.startActivity(Intent(context, RoomScanActivity::class.java).putExtra(HouseReconstructionActivity.EXTRA_ROOM_NAME, selectedRoom)) },
                                     modifier = Modifier.fillMaxWidth().height(54.dp),
                                     shape = RoundedCornerShape(16.dp),
                                     colors = ButtonDefaults.outlinedButtonColors(contentColor = accent)
@@ -648,13 +648,19 @@ private fun Dashboard(
                                     Text("⌖  RICOSTRUISCI LA PIANTINA · SCANSIONE STANZE", fontSize = 10.sp, fontWeight = FontWeight.ExtraBold)
                                 }
                                 Button(
-                                    onClick = { context.startActivity(Intent(context, HouseReconstructionActivity::class.java)) },
+                                    onClick = { context.startActivity(Intent(context, HouseReconstructionActivity::class.java).putExtra(HouseReconstructionActivity.EXTRA_ROOM_NAME, selectedRoom)) },
                                     modifier = Modifier.fillMaxWidth().height(54.dp),
                                     shape = RoundedCornerShape(16.dp),
                                     colors = ButtonDefaults.buttonColors(containerColor = Violet, contentColor = Color(0xFF07101A))
                                 ) {
                                     Text("APRI EDITOR PIANTINA 2D / MODELLO 3D", fontSize = 10.sp, fontWeight = FontWeight.ExtraBold)
                                 }
+                                OutlinedButton(
+                                    onClick = { context.startActivity(Intent(context, HouseProjectsActivity::class.java)) },
+                                    modifier = Modifier.fillMaxWidth().height(48.dp),
+                                    shape = RoundedCornerShape(14.dp),
+                                    colors = ButtonDefaults.outlinedButtonColors(contentColor = accent)
+                                ) { Text("GESTISCI STANZE SALVATE", fontSize = 10.sp, fontWeight = FontWeight.ExtraBold) }
                                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                                     listOf("Soggiorno", "Cucina", "Camera").forEach { room ->
                                         val chosen = selectedRoom == room
