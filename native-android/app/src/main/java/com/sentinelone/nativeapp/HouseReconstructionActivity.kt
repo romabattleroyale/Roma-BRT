@@ -56,19 +56,24 @@ private fun normalizedRoomName(raw: String): String =
     raw.trim().replace(Regex("[^A-Za-z0-9À-ÿ_-]+"), "_").trim('_').ifBlank { "Stanza" }
 
 private fun normalizeOpenings(openings: List<HouseOpening>, roomWidth: Float, roomDepth: Float): List<HouseOpening> {
+    val safeWidth = roomWidth.takeIf { it.isFinite() }?.coerceIn(2f, 8f) ?: 5f
+    val safeDepth = roomDepth.takeIf { it.isFinite() }?.coerceIn(2f, 8f) ?: 4f
     val normalized = mutableListOf<HouseOpening>()
     listOf("Nord", "Sud", "Est", "Ovest").forEach { wall ->
-        val wallLength = if (wall == "Nord" || wall == "Sud") roomWidth else roomDepth
+        val wallLength = if (wall == "Nord" || wall == "Sud") safeWidth else safeDepth
         var cursor = 0f
         openings.filter { it.wall == wall }.sortedBy { it.offset }.forEach { opening ->
             val available = (wallLength - cursor).coerceAtLeast(0f)
             if (available >= 0.5f) {
-                val width = opening.width.coerceIn(0.5f, minOf(available, wallLength))
-                val offset = opening.offset.coerceIn(cursor, (wallLength - width).coerceAtLeast(cursor))
+                val requestedWidth = opening.width.takeIf { it.isFinite() } ?: 0.9f
+                val requestedOffset = opening.offset.takeIf { it.isFinite() } ?: cursor
+                val width = requestedWidth.coerceIn(0.5f, minOf(available, wallLength))
+                val offset = requestedOffset.coerceIn(cursor, (wallLength - width).coerceAtLeast(cursor))
+                val requestedHeight = opening.height.takeIf { it.isFinite() } ?: if (opening.type == "Porta") 2.05f else 1.2f
                 val height = if (opening.type == "Porta") {
-                    opening.height.coerceIn(1.8f, 2.4f)
+                    requestedHeight.coerceIn(1.8f, 2.4f)
                 } else {
-                    opening.height.coerceIn(0.6f, 2.0f)
+                    requestedHeight.coerceIn(0.6f, 2.0f)
                 }
                 normalized += opening.copy(offset = offset, width = width, height = height)
                 cursor = offset + width + 0.1f
@@ -120,9 +125,10 @@ private object HouseProjectRepository {
         val roomFile = File(dir, projectFileName(roomName))
         // Read the pre-room-specific project as a one-time compatibility fallback for the default room.
         val source = if (roomFile.exists()) roomFile else if (normalizedRoomName(roomName) == "Stanza") File(dir, "sentinel_house_project.json") else roomFile
+        if (!source.isFile) return@runCatching HouseGeometry()
         val j = JSONObject(source.readText())
         val a = j.optJSONArray("openings") ?: JSONArray()
-        HouseGeometry(j.optDouble("width", 5.0).toFloat().coerceIn(2f, 8f), j.optDouble("depth", 4.0).toFloat().coerceIn(2f, 8f), j.optDouble("height", 2.7).toFloat().coerceIn(2.2f, 4f), (0 until a.length()).mapNotNull { i ->
+        HouseGeometry(j.optDouble("width", 5.0).toFloat().takeIf { it.isFinite() }?.coerceIn(2f, 8f) ?: 5f, j.optDouble("depth", 4.0).toFloat().takeIf { it.isFinite() }?.coerceIn(2f, 8f) ?: 4f, j.optDouble("height", 2.7).toFloat().takeIf { it.isFinite() }?.coerceIn(2.2f, 4f) ?: 2.7f, (0 until a.length()).mapNotNull { i ->
             val o = a.optJSONObject(i) ?: return@mapNotNull null
             HouseOpening(o.optString("id", UUID.randomUUID().toString()), o.optString("wall", "Nord"), o.optString("type", "Porta"), o.optDouble("offset", .5).toFloat(), o.optDouble("width", .9).toFloat(), o.optDouble("height", 2.05).toFloat())
         }, j.optBoolean("scaleConfirmed", false))
@@ -191,9 +197,11 @@ private fun HouseEditor(initial: HouseGeometry, roomName: String, scanAssets: Li
     Column(Modifier.fillMaxSize().background(HouseBg).statusBarsPadding().navigationBarsPadding().verticalScroll(rememberScrollState()).padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
         Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) { OutlinedButton(onClick = back) { Text("INDIETRO") }; Column { Text("SENTINEL ONE", color = HouseCyan); Text("Ricostruzione 2D/3D", color = Color.White, fontSize = 21.sp) } }
         Text("STANZA · $roomName", color = HouseMuted, fontSize = 12.sp)
+        Text("Segui i 3 passaggi: acquisisci, misura, poi correggi la piantina. Puoi modificare tutto anche senza AR.", color = HouseMuted, fontSize = 12.sp)
         Card(colors = CardDefaults.cardColors(containerColor = HousePanel)) {
             Column(Modifier.fillMaxWidth().padding(12.dp), verticalArrangement = Arrangement.spacedBy(7.dp)) {
-                Text("ACQUISIZIONI DI QUESTA STANZA", color = HouseCyan)
+                Text("1 · FOTO E VIDEO", color = HouseCyan)
+                Text("Inquadra la stanza da più angoli. Questi file aiutano a consultare la stanza, ma non generano da soli il modello 3D.", color = HouseMuted, fontSize = 11.sp)
                 Text("${scanAssets.count { it.kind == "FOTO" }} foto · ${scanAssets.count { it.kind == "VIDEO" }} video", color = Color.White, fontSize = 13.sp)
                 if (scanAssets.isEmpty()) {
                     Text("Non ci sono ancora foto o video salvati per questa stanza.", color = HouseMuted, fontSize = 12.sp)
@@ -215,7 +223,8 @@ private fun HouseEditor(initial: HouseGeometry, roomName: String, scanAssets: Li
         }
         Card(colors = CardDefaults.cardColors(containerColor = HousePanel)) {
             Column(Modifier.fillMaxWidth().padding(12.dp), verticalArrangement = Arrangement.spacedBy(7.dp)) {
-                Text("PIANTINA 2D · METRI", color = HouseCyan)
+                Text("2 · PIANTINA 2D · METRI", color = HouseCyan)
+                Text("Regola larghezza e profondità finché il disegno corrisponde alla stanza reale.", color = HouseMuted, fontSize = 11.sp)
                 FloorPlan(g, Modifier.fillMaxWidth().height(220.dp))
                 Text("Larghezza: %.1f m".format(g.width), color = Color.White)
                 Slider(g.width, { value -> g = g.copy(width = value, openings = normalizeOpenings(g.openings, value, g.depth), scaleConfirmed = false) }, valueRange = 2f..8f)
@@ -231,7 +240,8 @@ private fun HouseEditor(initial: HouseGeometry, roomName: String, scanAssets: Li
         }
         Card(colors = CardDefaults.cardColors(containerColor = HousePanel)) {
             Column(Modifier.fillMaxWidth().padding(12.dp), verticalArrangement = Arrangement.spacedBy(7.dp)) {
-                Text("PORTE E FINESTRE", color = HouseCyan)
+                Text("3 · PORTE E FINESTRE", color = HouseCyan)
+                Text("Scegli la parete, aggiungi l’apertura e regola posizione e dimensioni.", color = HouseMuted, fontSize = 11.sp)
                 Row(horizontalArrangement = Arrangement.spacedBy(3.dp)) { listOf("Nord", "Est", "Sud", "Ovest").forEach { s -> FilterChip(wall == s, { wall = s }, label = { Text(s) }) } }
                 Row(horizontalArrangement = Arrangement.spacedBy(3.dp)) {
                     FilterChip(type == "Porta", { type = "Porta" }, label = { Text("Porta") })
@@ -294,9 +304,10 @@ private fun HouseEditor(initial: HouseGeometry, roomName: String, scanAssets: Li
         }
         Card(colors = CardDefaults.cardColors(containerColor = HousePanel)) {
             Column(Modifier.fillMaxWidth().padding(10.dp)) {
-                Text("MODELLO 3D · FILAMENT", color = HouseCyan)
+                Text("ANTEPRIMA 3D", color = HouseCyan)
+                Text("È lo stesso progetto della piantina 2D. Ruota il modello per controllare le pareti e le aperture.", color = HouseMuted, fontSize = 11.sp)
                 House3D(g, Modifier.fillMaxWidth().height(270.dp))
-                Text("Trascina per ruotare il modello.", color = HouseMuted, fontSize = 10.sp)
+                Text("Trascina per ruotare il modello. Le foto non sono una ricostruzione automatica.", color = HouseMuted, fontSize = 10.sp)
             }
         }
         Text(message, color = HouseMuted)
@@ -416,7 +427,7 @@ class HouseArScanActivity : ComponentActivity() {
     }
 
     private fun saveEstimateAndOpenEditor(measurements: List<ArPlaneMeasurement>): String {
-        val floor = measurements.filter { it.kind == "PAVIMENTO" }
+        val floor = measurements.filter { it.kind == "PAVIMENTO" && it.extentX.isFinite() && it.extentZ.isFinite() }
             .maxByOrNull { it.extentX * it.extentZ }
             ?: return "Pavimento non rilevato: muovi lentamente il telefono e inquadra il pavimento."
 
@@ -437,8 +448,6 @@ class HouseArScanActivity : ComponentActivity() {
                 openings = normalizeOpenings(previous.openings, estimatedWidth, estimatedDepth),
                 scaleConfirmed = false
             )
-            HouseProjectRepository.save(filesDir, roomName, draft)
-
             val planeJson = JSONArray()
             measurements.forEach { p ->
                 planeJson.put(
@@ -460,7 +469,9 @@ class HouseArScanActivity : ComponentActivity() {
                 .put("scaleConfirmed", false)
                 .put("trackedPlaneCount", measurements.size)
                 .put("planes", planeJson)
+            // Save evidence first: if writing the evidence fails, the existing room geometry is untouched.
             writeJsonAtomically(arEvidenceFile(filesDir, roomName), evidence.toString(2))
+            HouseProjectRepository.save(filesDir, roomName, draft)
 
             startActivity(
                 Intent(this, HouseReconstructionActivity::class.java)
