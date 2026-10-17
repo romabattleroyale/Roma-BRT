@@ -513,6 +513,52 @@ private fun ModeChoiceCard(
     }
 }
 
+
+@Composable
+private fun ModeHeroCard(title: String, subtitle: String, accent: Color, symbol: String, connected: Boolean) {
+    Card(
+        modifier = Modifier.fillMaxWidth().heightIn(min = 150.dp),
+        shape = RoundedCornerShape(25.dp),
+        colors = CardDefaults.cardColors(containerColor = Color(0xFF111C2D)),
+        border = androidx.compose.foundation.BorderStroke(1.dp, accent.copy(alpha = 0.55f))
+    ) {
+        Box(Modifier.fillMaxWidth().background(Brush.horizontalGradient(listOf(accent.copy(alpha = 0.16f), Color(0xFF111C2D)))) {
+            Row(Modifier.fillMaxWidth().padding(19.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(15.dp)) {
+                Box(Modifier.size(82.dp).background(Brush.linearGradient(listOf(accent.copy(alpha = 0.3f), Color(0xFF0A1220))), RoundedCornerShape(24.dp)), contentAlignment = Alignment.Center) {
+                    Text(symbol, color = accent, fontSize = 50.sp, fontWeight = FontWeight.Light)
+                }
+                Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(7.dp)) {
+                    Text(title, color = accent, fontSize = 11.sp, fontWeight = FontWeight.ExtraBold, letterSpacing = 1.3.sp)
+                    Text(subtitle, color = Color(0xFFF4F7FF), fontSize = 16.sp, fontWeight = FontWeight.Bold, lineHeight = 21.sp)
+                    Text(if (connected) "● CONNESSO" else "● CONNESSIONE SICURA", color = if (connected) Color(0xFF55E6B1) else Color(0xFF9BAAC0), fontSize = 9.sp, fontWeight = FontWeight.Bold, letterSpacing = 0.7.sp)
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun ModeMiniCard(title: String, subtitle: String, selected: Boolean, accent: Color, modifier: Modifier = Modifier, onClick: () -> Unit) {
+    val scale by androidx.compose.animation.core.animateFloatAsState(
+        targetValue = if (selected) 1f else 0.985f,
+        animationSpec = androidx.compose.animation.core.spring(dampingRatio = 0.7f, stiffness = 450f),
+        label = "mode-mini-scale"
+    )
+    Card(
+        onClick = onClick,
+        modifier = modifier.height(88.dp).graphicsLayer { scaleX = scale; scaleY = scale },
+        shape = RoundedCornerShape(18.dp),
+        colors = CardDefaults.cardColors(containerColor = if (selected) accent.copy(alpha = 0.13f) else Color(0xFF111827)),
+        border = androidx.compose.foundation.BorderStroke(1.dp, if (selected) accent else Color(0xFF283348))
+    ) {
+        Column(Modifier.fillMaxSize().padding(12.dp), verticalArrangement = Arrangement.Center) {
+            Text(title, color = if (selected) accent else Color(0xFFF4F7FF), fontSize = 10.sp, fontWeight = FontWeight.ExtraBold)
+            Spacer(Modifier.height(5.dp))
+            Text(subtitle, color = Color(0xFF9BAAC0), fontSize = 10.sp)
+        }
+    }
+}
+
 @Composable
 private fun Dashboard(
     role: String,
@@ -647,33 +693,74 @@ private fun Dashboard(
                             }
                         }
                         "Dispositivi" -> {
-                            Column(Modifier.fillMaxSize().padding(horizontal = 20.dp), verticalArrangement = Arrangement.spacedBy(13.dp)) {
-                                Text("Dispositivi", fontSize = 27.sp, fontWeight = FontWeight.ExtraBold, color = primaryText)
-                                Text("Aggiungi una telecamera o un monitor Android", fontSize = 13.sp, color = secondaryText)
-                                Row(horizontalArrangement = Arrangement.spacedBy(9.dp)) {
-                                    RoleCard("TELECAMERA", "Invia il video", role == "camera", Modifier.weight(1f).height(90.dp)) { onRole("camera") }
-                                    RoleCard("MONITOR", "Riceve il video", role == "monitor", Modifier.weight(1f).height(90.dp)) { onRole("monitor") }
+                            Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(horizontal = 20.dp, vertical = 4.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
+                                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(13.dp)) {
+                                    SentinelLogo(Modifier.size(56.dp))
+                                    Column(Modifier.weight(1f)) {
+                                        Text(if (role == "camera") "Modalità telecamera" else "Centro di controllo", fontSize = 23.sp, fontWeight = FontWeight.ExtraBold, color = primaryText)
+                                        Text(if (role == "camera") "Collega questo telefono al monitor" else "Aggiungi e gestisci i dispositivi", fontSize = 12.sp, color = secondaryText)
+                                    }
                                 }
-                                Button(onClick = onStart, modifier = Modifier.fillMaxWidth().height(52.dp), shape = RoundedCornerShape(15.dp), colors = ButtonDefaults.buttonColors(containerColor = accent, contentColor = Color(0xFF07101A))) {
-                                    Text(if (working) "RICERCA IN CORSO…" else if (role == "monitor") "RENDi VISIBILE IL MONITOR" else "CERCA DISPOSITIVI", fontWeight = FontWeight.Bold)
+                                ModeHeroCard(
+                                    title = if (role == "camera") "TELECAMERA" else "MONITOR DI SICUREZZA",
+                                    subtitle = if (role == "camera") "Il tuo telefono diventa una telecamera live" else "Il tuo centro per controllare la casa",
+                                    accent = if (role == "camera") accent else Violet,
+                                    symbol = if (role == "camera") "◉" else "⌂",
+                                    connected = connectedName != null
+                                )
+                                Text("1  ·  MODALITÀ", fontSize = 10.sp, fontWeight = FontWeight.Bold, letterSpacing = 1.5.sp, color = secondaryText)
+                                Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                                    ModeMiniCard("TELECAMERA", "Invia video", role == "camera", accent, Modifier.weight(1f)) { onRole("camera") }
+                                    ModeMiniCard("CENTRO CONTROLLO", "Riceve video", role == "monitor", Violet, Modifier.weight(1f)) { onRole("monitor") }
                                 }
-                                if (working || connectedName != null) OutlinedButton(onClick = onStop, modifier = Modifier.fillMaxWidth()) { Text("Interrompi / scollega") }
-                                Text("STATO", fontSize = 10.sp, color = secondaryText, letterSpacing = 1.4.sp)
-                                Text(status, fontSize = 12.sp, color = secondaryText)
+                                Text("2  ·  ACCOPPIAMENTO", fontSize = 10.sp, fontWeight = FontWeight.Bold, letterSpacing = 1.5.sp, color = secondaryText)
+                                Button(
+                                    onClick = onStart,
+                                    modifier = Modifier.fillMaxWidth().height(58.dp),
+                                    shape = RoundedCornerShape(18.dp),
+                                    colors = ButtonDefaults.buttonColors(containerColor = if (role == "camera") accent else Violet, contentColor = Color(0xFF07101A))
+                                ) {
+                                    Text(
+                                        if (working) "RICERCA IN CORSO…" else if (role == "monitor") "RENDi VISIBILE IL CENTRO DI CONTROLLO" else "CERCA IL CENTRO DI CONTROLLO",
+                                        fontWeight = FontWeight.ExtraBold, fontSize = 11.sp
+                                    )
+                                }
+                                if (working || connectedName != null) {
+                                    OutlinedButton(onClick = onStop, modifier = Modifier.fillMaxWidth().height(48.dp), shape = RoundedCornerShape(15.dp)) {
+                                        Text(if (connectedName != null) "SCOLLEGA DISPOSITIVO" else "INTERROMPI RICERCA")
+                                    }
+                                }
+                                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(9.dp)) {
+                                    Box(Modifier.size(9.dp).background(if (connectedName != null) Color(0xFF55E6B1) else if (working) Color(0xFFFFC36B) else Color(0xFF718096), RoundedCornerShape(50)))
+                                    Column(Modifier.weight(1f)) {
+                                        Text(if (connectedName != null) "DISPOSITIVO COLLEGATO" else if (working) "IN ATTESA DI UN DISPOSITIVO" else "PRONTO PER L'ACCOPPIAMENTO", fontSize = 10.sp, fontWeight = FontWeight.Bold, letterSpacing = 0.7.sp, color = primaryText)
+                                        Text(status, fontSize = 12.sp, color = secondaryText)
+                                    }
+                                }
                                 if (discovered.isNotEmpty()) {
+                                    Text("DISPOSITIVI TROVATI", fontSize = 10.sp, fontWeight = FontWeight.Bold, letterSpacing = 1.5.sp, color = secondaryText)
                                     discovered.forEach { item ->
-                                        Card(colors = CardDefaults.cardColors(containerColor = panel), shape = RoundedCornerShape(16.dp)) {
-                                            Row(Modifier.fillMaxWidth().padding(13.dp), verticalAlignment = Alignment.CenterVertically) {
-                                                Column(Modifier.weight(1f)) {
-                                                    Text(item.second, color = primaryText, fontWeight = FontWeight.Bold)
-                                                    Text("Dispositivo nelle vicinanze", color = secondaryText, fontSize = 11.sp)
+                                        Card(
+                                            colors = CardDefaults.cardColors(containerColor = panel),
+                                            shape = RoundedCornerShape(18.dp),
+                                            border = androidx.compose.foundation.BorderStroke(1.dp, accent.copy(alpha = 0.35f))
+                                        ) {
+                                            Row(Modifier.fillMaxWidth().padding(15.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                                                Box(Modifier.size(46.dp).background(Color(0xFF17283B), RoundedCornerShape(15.dp)), contentAlignment = Alignment.Center) {
+                                                    Text("◉", fontSize = 25.sp, color = accent)
                                                 }
-                                                Button(onClick = { onConnect(item.first) }) { Text("Collega") }
+                                                Column(Modifier.weight(1f)) {
+                                                    Text(item.second, color = primaryText, fontWeight = FontWeight.Bold, fontSize = 14.sp)
+                                                    Text("Dispositivo SENTINEL ONE nelle vicinanze", color = secondaryText, fontSize = 10.sp)
+                                                }
+                                                Button(onClick = { onConnect(item.first) }, shape = RoundedCornerShape(13.dp), colors = ButtonDefaults.buttonColors(containerColor = accent, contentColor = Color(0xFF07101A))) {
+                                                    Text("COLLEGA", fontWeight = FontWeight.Bold, fontSize = 10.sp)
+                                                }
                                             }
                                         }
                                     }
                                 }
-                                if (connectedName != null) EmptyStateCard("Collegato", connectedName, panel, primaryText, secondaryText, Color(0xFF55E6B1))
+                                if (connectedName != null) EmptyStateCard("Collegamento attivo", connectedName, panel, primaryText, secondaryText, Color(0xFF55E6B1))
                             }
                         }
                         else -> {
