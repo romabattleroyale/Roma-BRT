@@ -1,6 +1,7 @@
 package com.sentinelone.nativeapp
 
 import android.os.Bundle
+import android.os.Environment
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.compose.foundation.Canvas
@@ -15,6 +16,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.StrokeCap
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import io.github.sceneview.SceneView
@@ -37,42 +39,95 @@ private val HouseMuted = Color(0xFF9BA8BC)
 
 data class HouseOpening(val id: String = UUID.randomUUID().toString(), val wall: String, val type: String, val offset: Float, val width: Float, val height: Float)
 data class HouseGeometry(val width: Float = 5f, val depth: Float = 4f, val height: Float = 2.7f, val openings: List<HouseOpening> = emptyList(), val scaleConfirmed: Boolean = false)
+private data class ScanAsset(val name: String, val kind: String, val sizeBytes: Long)
+
+private fun normalizedRoomName(raw: String): String =
+    raw.trim().replace(Regex("[^A-Za-z0-9À-ÿ_-]+"), "_").trim('_').ifBlank { "Stanza" }
 
 private object HouseProjectRepository {
-    private const val FILE = "sentinel_house_project.json"
-    fun load(dir: File): HouseGeometry = runCatching {
-        val j = JSONObject(File(dir, FILE).readText())
+    private fun projectFileName(roomName: String) = "sentinel_house_project_" + normalizedRoomName(roomName) + ".json"
+
+    fun load(dir: File, roomName: String): HouseGeometry = runCatching {
+        val roomFile = File(dir, projectFileName(roomName))
+        // Read the pre-room-specific project as a one-time compatibility fallback for the default room.
+        val source = if (roomFile.exists()) roomFile else if (normalizedRoomName(roomName) == "Stanza") File(dir, "sentinel_house_project.json") else roomFile
+        val j = JSONObject(source.readText())
         val a = j.optJSONArray("openings") ?: JSONArray()
         HouseGeometry(j.optDouble("width", 5.0).toFloat().coerceIn(2f, 8f), j.optDouble("depth", 4.0).toFloat().coerceIn(2f, 8f), j.optDouble("height", 2.7).toFloat().coerceIn(2.2f, 4f), (0 until a.length()).mapNotNull { i ->
             val o = a.optJSONObject(i) ?: return@mapNotNull null
             HouseOpening(o.optString("id", UUID.randomUUID().toString()), o.optString("wall", "Nord"), o.optString("type", "Porta"), o.optDouble("offset", .5).toFloat(), o.optDouble("width", .9).toFloat(), o.optDouble("height", 2.05).toFloat())
         }, j.optBoolean("scaleConfirmed", false))
     }.getOrDefault(HouseGeometry())
-    fun save(dir: File, g: HouseGeometry) {
+
+    fun save(dir: File, roomName: String, g: HouseGeometry) {
         val a = JSONArray()
         g.openings.forEach { o -> a.put(JSONObject().put("id", o.id).put("wall", o.wall).put("type", o.type).put("offset", o.offset).put("width", o.width).put("height", o.height)) }
-        File(dir, FILE).writeText(JSONObject().put("version", 1).put("width", g.width).put("depth", g.depth).put("height", g.height).put("scaleConfirmed", g.scaleConfirmed).put("openings", a).toString(2))
+        File(dir, projectFileName(roomName)).writeText(JSONObject().put("version", 2).put("roomName", roomName).put("width", g.width).put("depth", g.depth).put("height", g.height).put("scaleConfirmed", g.scaleConfirmed).put("openings", a).toString(2))
     }
 }
 
 class HouseReconstructionActivity : ComponentActivity() {
+    companion object {
+        const val EXTRA_ROOM_NAME = "com.sentinelone.nativeapp.EXTRA_ROOM_NAME"
+    }
+
+    private var currentRoomName: String = "Stanza"
+    private var scanAssets by mutableStateOf<List<ScanAsset>>(emptyList())
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        val initial = HouseProjectRepository.load(filesDir)
+        currentRoomName = intent.getStringExtra(EXTRA_ROOM_NAME)?.takeIf { it.isNotBlank() } ?: "Stanza"
+        val initial = HouseProjectRepository.load(filesDir, currentRoomName)
+        refreshScanAssets()
         setContent { MaterialTheme(colorScheme = darkColorScheme(primary = HouseCyan, secondary = Color(0xFF9A7BFF), background = HouseBg, surface = HousePanel, onSurface = Color.White)) {
-            HouseEditor(initial, { HouseProjectRepository.save(filesDir, it) }, { finish() })
+            HouseEditor(initial, currentRoomName, scanAssets, { HouseProjectRepository.save(filesDir, currentRoomName, it) }, { finish() })
         } }
+    }
+
+    override fun onResume() {
+        super.onResume()
+        refreshScanAssets()
+    }
+
+    private fun refreshScanAssets() {
+        val base = getExternalFilesDir(Environment.DIRECTORY_PICTURES) ?: filesDir
+        val roomDir = File(File(base, "SENTINEL_ONE_SCAN"), normalizedRoomName(currentRoomName))
+        scanAssets = roomDir.listFiles()
+            ?.filter { it.isFile && it.extension.lowercase() in setOf("jpg", "jpeg", "mp4") }
+            ?.sortedByDescending { it.lastModified() }
+            ?.map { file -> ScanAsset(file.name, if (file.extension.lowercase() == "mp4") "VIDEO" else "FOTO", file.length()) }
+            ?: emptyList()
     }
 }
 
 @Composable
-private fun HouseEditor(initial: HouseGeometry, save: (HouseGeometry) -> Unit, back: () -> Unit) {
+private fun HouseEditor(initial: HouseGeometry, roomName: String, scanAssets: List<ScanAsset>, save: (HouseGeometry) -> Unit, back: () -> Unit) {
     var g by remember { mutableStateOf(initial) }
     var wall by remember { mutableStateOf("Nord") }
     var type by remember { mutableStateOf("Porta") }
     var message by remember { mutableStateOf("Progetto pronto") }
     Column(Modifier.fillMaxSize().background(HouseBg).statusBarsPadding().navigationBarsPadding().verticalScroll(rememberScrollState()).padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
         Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) { OutlinedButton(onClick = back) { Text("INDIETRO") }; Column { Text("SENTINEL ONE", color = HouseCyan); Text("Ricostruzione 2D/3D", color = Color.White, fontSize = 21.sp) } }
+        Text("STANZA · $roomName", color = HouseMuted, fontSize = 12.sp)
+        Card(colors = CardDefaults.cardColors(containerColor = HousePanel)) {
+            Column(Modifier.fillMaxWidth().padding(12.dp), verticalArrangement = Arrangement.spacedBy(7.dp)) {
+                Text("ACQUISIZIONI DI QUESTA STANZA", color = HouseCyan)
+                Text("${scanAssets.count { it.kind == "FOTO" }} foto · ${scanAssets.count { it.kind == "VIDEO" }} video", color = Color.White, fontSize = 13.sp)
+                if (scanAssets.isEmpty()) {
+                    Text("Non ci sono ancora foto o video salvati per questa stanza.", color = HouseMuted, fontSize = 12.sp)
+                } else {
+                    scanAssets.take(12).forEach { asset ->
+                        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = androidx.compose.ui.Alignment.CenterVertically) {
+                            Text(asset.kind, color = if (asset.kind == "VIDEO") Color(0xFF9A7BFF) else HouseCyan, fontSize = 10.sp)
+                            Text(asset.name, Modifier.weight(1f), color = Color.White, fontSize = 11.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                            Text(if (asset.sizeBytes < 1024L * 1024L) "${asset.sizeBytes / 1024L} KB" else "%.1f MB".format(asset.sizeBytes / (1024f * 1024f)), color = HouseMuted, fontSize = 10.sp)
+                        }
+                    }
+                    if (scanAssets.size > 12) Text("Mostrati gli ultimi 12 file su ${scanAssets.size}.", color = HouseMuted, fontSize = 10.sp)
+                }
+                Text("I file sono collegati alla stanza; la ricostruzione automatica delle misure da foto/video non è ancora implementata.", color = HouseMuted, fontSize = 11.sp)
+            }
+        }
         Card(colors = CardDefaults.cardColors(containerColor = HousePanel)) {
             Column(Modifier.fillMaxWidth().padding(12.dp), verticalArrangement = Arrangement.spacedBy(7.dp)) {
                 Text("PIANTINA 2D · METRI", color = HouseCyan)
