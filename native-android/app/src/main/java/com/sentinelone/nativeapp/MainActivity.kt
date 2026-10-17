@@ -647,6 +647,14 @@ private fun Dashboard(
                                 ) {
                                     Text("⌖  RICOSTRUISCI LA PIANTINA · SCANSIONE STANZE", fontSize = 10.sp, fontWeight = FontWeight.ExtraBold)
                                 }
+                                Button(
+                                    onClick = { context.startActivity(Intent(context, HouseReconstructionActivity::class.java)) },
+                                    modifier = Modifier.fillMaxWidth().height(54.dp),
+                                    shape = RoundedCornerShape(16.dp),
+                                    colors = ButtonDefaults.buttonColors(containerColor = Violet, contentColor = Color(0xFF07101A))
+                                ) {
+                                    Text("APRI EDITOR PIANTINA 2D / MODELLO 3D", fontSize = 10.sp, fontWeight = FontWeight.ExtraBold)
+                                }
                                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                                     listOf("Soggiorno", "Cucina", "Camera").forEach { room ->
                                         val chosen = selectedRoom == room
