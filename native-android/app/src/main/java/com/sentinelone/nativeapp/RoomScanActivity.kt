@@ -97,23 +97,43 @@ class RoomScanActivity : ComponentActivity() {
     }
 
     private fun checkArCoreDepth() {
+        // checkAvailability() may initially return UNKNOWN_CHECKING on a cold start.
+        // Do not treat every non-supported enum value as a definite incompatibility.
         try {
             val availability = com.google.ar.core.ArCoreApk.getInstance().checkAvailability(this)
-            if (!availability.isSupported) {
-                depthSupported = false
-                arStatus = "ARCore non supportato in questa configurazione; disponibile acquisizione foto/video"
-                return
+            when {
+                availability.isSupported -> inspectArCoreDepth()
+                availability.isTransientFailure -> {
+                    depthSupported = false
+                    arStatus = "Verifica ARCore in corso o rete non disponibile. Riprova tra qualche secondo; foto e video sono già utilizzabili."
+                }
+                else -> {
+                    depthSupported = false
+                    arStatus = "ARCore non risulta disponibile (" + availability.name + "). Aggiorna Google Play Services for AR e riprova; foto/video sono salvati ma non generano ancora la piantina."
+                }
             }
+        } catch (e: Exception) {
+            depthSupported = false
+            arStatus = "Verifica ARCore non riuscita (" + e.javaClass.simpleName + "). Foto/video vengono salvati, ma non ricostruiscono da soli la stanza."
+        }
+    }
+
+    private fun inspectArCoreDepth() {
+        try {
             val session = Session(this)
             try {
                 depthSupported = session.isDepthModeSupported(Config.DepthMode.AUTOMATIC)
-                arStatus = if (depthSupported) "ARCore e Depth API disponibili" else "ARCore disponibile, Depth API non supportata: percorso alternativo"
+                arStatus = if (depthSupported) {
+                    "ARCore e Depth API disponibili. Avvia la scansione AR per stimare i piani; foto/video restano riferimenti."
+                } else {
+                    "ARCore disponibile, Depth API non supportata. La scansione dei piani può essere disponibile senza profondità; foto/video non generano da soli la piantina."
+                }
             } finally {
                 session.close()
             }
         } catch (e: Exception) {
             depthSupported = false
-            arStatus = "ARCore non inizializzabile (" + e.javaClass.simpleName + "); percorso alternativo disponibile"
+            arStatus = "ARCore rilevato ma sessione non inizializzabile (" + e.javaClass.simpleName + "). Aggiorna Google Play Services for AR e riprova."
         }
     }
 
@@ -263,7 +283,7 @@ private fun RoomScanScreen(
             Column(Modifier.fillMaxWidth().padding(14.dp), verticalArrangement = Arrangement.spacedBy(7.dp)) {
                 Text("4 · SUPPORTO ARCORE", color = ScanCyan, fontSize = 10.sp, fontWeight = FontWeight.ExtraBold)
                 Text(arStatus, color = if (depthSupported) Color(0xFF55E6B1) else Color(0xFFFFC36B), fontSize = 12.sp)
-                Text("La scansione AR separata rileva i piani di pavimento e parete quando il tracking è disponibile e propone una stima iniziale. Le misure restano da verificare; foto e video continuano a funzionare come acquisizione guidata.", color = Color(0xFF9BA8BC), fontSize = 11.sp, lineHeight = 17.sp)
+                Text("Importante: in questa versione foto e video vengono soltanto salvati come riferimenti; non vengono analizzati per ricavare la piantina. Per ottenere una stima automatica devi usare la scansione AR quando il dispositivo la supporta. Se ARCore non parte, l'editor 2D/3D resta manuale.", color = Color(0xFFFFC36B), fontSize = 11.sp, lineHeight = 17.sp)
             }
         }
         Button(onClick = onOpenArScan, modifier = Modifier.fillMaxWidth().height(52.dp), colors = ButtonDefaults.buttonColors(containerColor = ScanCyan, contentColor = Color(0xFF07101A))) { Text("AVVIA SCANSIONE AR · PAVIMENTO E PARETI", fontWeight = FontWeight.ExtraBold, fontSize = 10.sp) }
