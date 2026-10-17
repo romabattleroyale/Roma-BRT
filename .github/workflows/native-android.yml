@@ -1,7 +1,7 @@
-name: Native Android Kotlin checks
+name: Native Android source checks
 on:
   push:
-    branches: [main]
+    branches: [main, "feature/sentinel-house-reconstruction"]
     paths:
       - "native-android/**"
       - ".github/workflows/native-android.yml"
@@ -16,7 +16,7 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  compile:
+  source-checks:
     runs-on: ubuntu-latest
     timeout-minutes: 30
     steps:
@@ -28,14 +28,7 @@ jobs:
       - uses: gradle/actions/setup-gradle@v4
         with:
           gradle-version: "8.14.4"
-      - name: Check Kotlin compilation
+      - name: Compile Kotlin source
         run: gradle -p native-android compileDebugKotlin
-      - name: Build installable debug APK
-        run: gradle -p native-android assembleDebug
-      - name: Upload debug APK
-        uses: actions/upload-artifact@v4
-        with:
-          name: sentinel-one-debug-apk
-          path: native-android/app/build/outputs/apk/debug/*.apk
-          if-no-files-found: error
-          retention-days: 14
+      - name: Run unit tests
+        run: gradle -p native-android testDebugUnitTest
