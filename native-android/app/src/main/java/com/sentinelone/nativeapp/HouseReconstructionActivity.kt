@@ -66,15 +66,25 @@ internal fun roomStorageKey(raw: String): String {
     return "${normalizedRoomName(original)}_${digest}"
 }
 internal fun roomCaptureDirectory(scanRoot: File, roomName: String): File {
-    val keyDirectory = File(scanRoot, roomStorageKey(roomName))
-    if (keyDirectory.isDirectory) return keyDirectory
-    val legacyDirectory = File(scanRoot, normalizedRoomName(roomName))
+    val displayName = roomName.trim().ifBlank { "Stanza" }
+    val keyDirectory = File(scanRoot, roomStorageKey(displayName))
+    if (keyDirectory.isDirectory) {
+        runCatching {
+            val marker = File(keyDirectory, ".sentinel-room-name")
+            if (!marker.isFile) marker.writeText(displayName)
+        }
+        return keyDirectory
+    }
+    val legacyDirectory = File(scanRoot, normalizedRoomName(displayName))
     if (legacyDirectory.isDirectory) {
         val metadata = File(legacyDirectory, ".sentinel-room-name")
         val recordedName = runCatching { metadata.takeIf { it.isFile }?.readText()?.trim().orEmpty() }.getOrDefault("")
-        if (recordedName.isBlank() || recordedName == roomName.trim()) {
+        if (recordedName.isBlank() || recordedName == displayName) {
             if (!scanRoot.exists()) scanRoot.mkdirs()
-            if (legacyDirectory.renameTo(keyDirectory)) return keyDirectory
+            if (legacyDirectory.renameTo(keyDirectory)) {
+                runCatching { File(keyDirectory, ".sentinel-room-name").writeText(displayName) }
+                return keyDirectory
+            }
             return legacyDirectory
         }
     }
@@ -158,7 +168,10 @@ private object HouseProjectRepository {
         val legacyRoomFile = File(dir, legacyProjectFileName(roomName))
         val source = when {
             roomFile.isFile -> roomFile
-            legacyRoomFile.isFile -> legacyRoomFile
+            legacyRoomFile.isFile && runCatching {
+                val storedName = JSONObject(legacyRoomFile.readText()).optString("roomName")
+                storedName.isBlank() && normalizedRoomName(roomName) == "Stanza" || storedName == roomName
+            }.getOrDefault(false) -> legacyRoomFile
             normalizedRoomName(roomName) == "Stanza" && File(dir, "sentinel_house_project.json").isFile -> File(dir, "sentinel_house_project.json")
             else -> roomFile
         }
@@ -233,7 +246,13 @@ class HouseReconstructionActivity : ComponentActivity() {
             ?.sortedByDescending { it.lastModified() }
             ?.map { file -> ScanAsset(file.name, if (file.extension.lowercase() == "mp4") "VIDEO" else "FOTO", file.length()) }
             ?: emptyList()
-        val arFile = listOf(arEvidenceFile(filesDir, currentRoomName), legacyArEvidenceFile(filesDir, currentRoomName)).firstOrNull { it.isFile }
+        val arFile = listOf(arEvidenceFile(filesDir, currentRoomName)).firstOrNull { it.isFile }
+            ?: legacyArEvidenceFile(filesDir, currentRoomName).takeIf { file ->
+                file.isFile && runCatching {
+                    val storedName = JSONObject(file.readText()).optString("roomName")
+                    storedName == currentRoomName || storedName.isBlank() && normalizedRoomName(currentRoomName) == "Stanza"
+                }.getOrDefault(false)
+            }
         scanAssets = captures + if (arFile != null) listOf(ScanAsset("Scansione AR salvata", "AR", arFile.length())) else emptyList()
     }
 }
@@ -746,7 +765,12 @@ class HouseProjectsActivity : ComponentActivity() {
                     roomName = room,
                     geometry = HouseProjectRepository.load(filesDir, room),
                     captureCount = captures,
-                    hasArEvidence = arEvidenceFile(filesDir, room).isFile || legacyArEvidenceFile(filesDir, room).isFile
+                    hasArEvidence = arEvidenceFile(filesDir, room).isFile || legacyArEvidenceFile(filesDir, room).let { file ->
+                        file.isFile && runCatching {
+                            val storedName = JSONObject(file.readText()).optString("roomName")
+                            storedName == room || storedName.isBlank() && normalizedRoomName(room) == "Stanza"
+                        }.getOrDefault(false)
+                    }
                 )
             }
             .sortedBy { it.roomName.lowercase() }
