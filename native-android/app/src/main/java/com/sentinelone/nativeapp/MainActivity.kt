@@ -594,7 +594,7 @@ private fun Dashboard(
     onSwitchCamera: () -> Unit
 ) {
     val context = androidx.compose.ui.platform.LocalContext.current
-    var selectedTab by remember { mutableStateOf(if (role == "camera") "Dispositivi" else "Casa") }
+    var selectedTab by remember { mutableStateOf("Dispositivi") }
     var selectedRoom by remember { mutableStateOf("Soggiorno") }
     var isDark by remember { mutableStateOf(true) }
     val background = if (isDark) Color(0xFF070B13) else Color(0xFFF2F5FA)
@@ -867,7 +867,7 @@ private fun Dashboard(
                 }
 
                 NavigationBar(containerColor = panel, contentColor = primaryText, tonalElevation = 0.dp) {
-                    listOf("Casa" to "⌂", "Live" to "◉", "Eventi" to "◷", "Dispositivi" to "▣", "Impostazioni" to "⚙").forEach { item ->
+                    listOf("Live" to "◉", "Dispositivi" to "▣", "Impostazioni" to "⚙").forEach { item ->
                         NavigationBarItem(
                             selected = selectedTab == item.first,
                             onClick = { selectedTab = item.first },
