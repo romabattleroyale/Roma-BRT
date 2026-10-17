@@ -44,6 +44,19 @@ private data class ScanAsset(val name: String, val kind: String, val sizeBytes: 
 private fun normalizedRoomName(raw: String): String =
     raw.trim().replace(Regex("[^A-Za-z0-9À-ÿ_-]+"), "_").trim('_').ifBlank { "Stanza" }
 
+private fun findFreeOpeningOffset(length: Float, width: Float, existing: List<HouseOpening>): Float? {
+    val minimumGap = 0.1f
+    var cursor = 0f
+    existing.sortedBy { it.offset }.forEach { opening ->
+        val start = opening.offset.coerceIn(0f, length)
+        val end = (opening.offset + opening.width).coerceIn(start, length)
+        val freeEnd = (start - minimumGap).coerceAtLeast(cursor)
+        if (freeEnd - cursor >= width) return cursor + (freeEnd - cursor - width) / 2f
+        cursor = maxOf(cursor, end + minimumGap)
+    }
+    return if (length - cursor >= width) cursor + (length - cursor - width) / 2f else null
+}
+
 private object HouseProjectRepository {
     private fun projectFileName(roomName: String) = "sentinel_house_project_" + normalizedRoomName(roomName) + ".json"
 
@@ -155,10 +168,12 @@ private fun HouseEditor(initial: HouseGeometry, roomName: String, scanAssets: Li
                     Button(onClick = {
                         val len = if (wall == "Nord" || wall == "Sud") g.width else g.depth
                         val w = if (type == "Porta") .9f else 1.2f
-                        if (len > w + .3f) {
-                            g = g.copy(openings = g.openings + HouseOpening(wall = wall, type = type, offset = (len - w) / 2f, width = w, height = if (type == "Porta") 2.05f else 1.2f))
+                        val existing = g.openings.filter { it.wall == wall }
+                        val freeOffset = findFreeOpeningOffset(len, w, existing)
+                        if (freeOffset != null) {
+                            g = g.copy(openings = g.openings + HouseOpening(wall = wall, type = type, offset = freeOffset, width = w, height = if (type == "Porta") 2.05f else 1.2f))
                             message = type + " aggiunta"
-                        } else message = "Parete troppo corta"
+                        } else message = "Spazio insufficiente sulla parete selezionata"
                     }) { Text("AGGIUNGI") }
                 }
                 g.openings.forEach { o ->
@@ -166,23 +181,32 @@ private fun HouseEditor(initial: HouseGeometry, roomName: String, scanAssets: Li
                     val maxWidth = (wallLength - 0.2f).coerceAtLeast(0.5f)
                     val safeWidth = o.width.coerceIn(0.5f, maxWidth)
                     val safeOffset = o.offset.coerceIn(0f, (wallLength - safeWidth).coerceAtLeast(0f))
+                    val peers = g.openings.filter { it.wall == o.wall && it.id != o.id }
+                    val leftLimit = peers.filter { it.offset + it.width <= safeOffset + 0.001f }
+                        .maxOfOrNull { it.offset + it.width }?.coerceIn(0f, wallLength) ?: 0f
+                    val rightLimit = peers.filter { it.offset >= safeOffset + safeWidth - 0.001f }
+                        .minOfOrNull { it.offset }?.coerceIn(0f, wallLength) ?: wallLength
+                    val minOffset = leftLimit.coerceIn(0f, (wallLength - safeWidth).coerceAtLeast(0f))
+                    val maxOffset = (rightLimit - safeWidth).coerceIn(minOffset, (wallLength - safeWidth).coerceAtLeast(minOffset))
+                    val editableOffset = safeOffset.coerceIn(minOffset, maxOffset)
+                    val editableMaxWidth = (rightLimit - editableOffset).coerceAtLeast(0.5f).coerceAtMost(maxWidth)
                     Column(Modifier.fillMaxWidth().padding(vertical = 4.dp), verticalArrangement = Arrangement.spacedBy(2.dp)) {
                         Row(verticalAlignment = androidx.compose.ui.Alignment.CenterVertically) {
                             Text(o.type + " · " + o.wall + " · %.1f m".format(safeWidth), Modifier.weight(1f), color = Color.White, fontSize = 12.sp)
                             TextButton(onClick = { g = g.copy(openings = g.openings.filterNot { it.id == o.id }) }) { Text("RIMUOVI") }
                         }
-                        Text("Posizione sulla parete: %.1f m".format(safeOffset), color = HouseMuted, fontSize = 10.sp)
-                        Slider(value = safeOffset, onValueChange = { value ->
+                        Text("Posizione sulla parete: %.1f m".format(editableOffset), color = HouseMuted, fontSize = 10.sp)
+                        Slider(value = editableOffset, onValueChange = { value ->
                             g = g.copy(openings = g.openings.map { item ->
-                                if (item.id == o.id) item.copy(offset = value.coerceIn(0f, (wallLength - safeWidth).coerceAtLeast(0f))) else item
+                                if (item.id == o.id) item.copy(offset = value.coerceIn(minOffset, maxOffset)) else item
                             })
-                        }, valueRange = 0f..(wallLength - safeWidth).coerceAtLeast(0.01f))
+                        }, valueRange = minOffset..maxOffset)
                         Text("Larghezza: %.1f m".format(safeWidth), color = HouseMuted, fontSize = 10.sp)
-                        Slider(value = safeWidth, onValueChange = { value ->
+                        Slider(value = safeWidth.coerceAtMost(editableMaxWidth), onValueChange = { value ->
                             g = g.copy(openings = g.openings.map { item ->
-                                if (item.id == o.id) item.copy(width = value, offset = item.offset.coerceIn(0f, (wallLength - value).coerceAtLeast(0f))) else item
+                                if (item.id == o.id) item.copy(width = value, offset = item.offset.coerceIn(minOffset, (rightLimit - value).coerceAtLeast(minOffset))) else item
                             })
-                        }, valueRange = 0.5f..maxWidth)
+                        }, valueRange = 0.5f..editableMaxWidth)
                         val minOpeningHeight = if (o.type == "Porta") 1.8f else 0.6f
                         val maxOpeningHeight = if (o.type == "Porta") minOf(2.4f, g.height) else minOf(2.0f, (g.height - 0.9f).coerceAtLeast(0.6f))
                         val safeOpeningHeight = o.height.coerceIn(minOpeningHeight.coerceAtMost(maxOpeningHeight), maxOpeningHeight.coerceAtLeast(minOpeningHeight))
