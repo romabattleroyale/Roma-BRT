@@ -1,6 +1,9 @@
 package com.sentinelone.nativeapp
 
+import android.content.Intent
 import android.os.Bundle
+import android.os.Handler
+import android.os.Looper
 import android.os.Environment
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
@@ -19,6 +22,10 @@ import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.google.ar.core.Config
+import com.google.ar.core.Plane
+import com.google.ar.core.TrackingState
+import io.github.sceneview.ar.ARSceneView
 import io.github.sceneview.SceneView
 import io.github.sceneview.math.Position
 import io.github.sceneview.math.Size as SceneSize
@@ -32,6 +39,7 @@ import java.io.File
 import java.util.UUID
 import kotlinx.coroutines.delay
 import kotlin.math.min
+import java.util.concurrent.atomic.AtomicInteger
 
 private val HouseBg = Color(0xFF080B13)
 private val HousePanel = Color(0xFF111827)
@@ -57,6 +65,9 @@ private fun findFreeOpeningOffset(length: Float, width: Float, existing: List<Ho
     }
     return if (length - cursor >= width) cursor + (length - cursor - width) / 2f else null
 }
+
+private fun arEvidenceFile(filesDir: File, roomName: String) =
+    File(filesDir, "sentinel_ar_scan_" + normalizedRoomName(roomName) + ".json")
 
 private object HouseProjectRepository {
     private fun projectFileName(roomName: String) = "sentinel_house_project_" + normalizedRoomName(roomName) + ".json"
@@ -106,11 +117,13 @@ class HouseReconstructionActivity : ComponentActivity() {
     private fun refreshScanAssets() {
         val base = getExternalFilesDir(Environment.DIRECTORY_PICTURES) ?: filesDir
         val roomDir = File(File(base, "SENTINEL_ONE_SCAN"), normalizedRoomName(currentRoomName))
-        scanAssets = roomDir.listFiles()
+        val captures = roomDir.listFiles()
             ?.filter { it.isFile && it.extension.lowercase() in setOf("jpg", "jpeg", "mp4") }
             ?.sortedByDescending { it.lastModified() }
             ?.map { file -> ScanAsset(file.name, if (file.extension.lowercase() == "mp4") "VIDEO" else "FOTO", file.length()) }
             ?: emptyList()
+        val arFile = arEvidenceFile(filesDir, currentRoomName)
+        scanAssets = captures + if (arFile.isFile) listOf(ScanAsset("Scansione AR salvata", "AR", arFile.length())) else emptyList()
     }
 }
 
@@ -143,14 +156,17 @@ private fun HouseEditor(initial: HouseGeometry, roomName: String, scanAssets: Li
                 } else {
                     scanAssets.take(12).forEach { asset ->
                         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = androidx.compose.ui.Alignment.CenterVertically) {
-                            Text(asset.kind, color = if (asset.kind == "VIDEO") Color(0xFF9A7BFF) else HouseCyan, fontSize = 10.sp)
+                            Text(asset.kind, color = when (asset.kind) { "VIDEO" -> Color(0xFF9A7BFF); "AR" -> Color(0xFFFFC36B); else -> HouseCyan }, fontSize = 10.sp)
                             Text(asset.name, Modifier.weight(1f), color = Color.White, fontSize = 11.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
                             Text(if (asset.sizeBytes < 1024L * 1024L) "${asset.sizeBytes / 1024L} KB" else "%.1f MB".format(asset.sizeBytes / (1024f * 1024f)), color = HouseMuted, fontSize = 10.sp)
                         }
                     }
                     if (scanAssets.size > 12) Text("Mostrati gli ultimi 12 file su ${scanAssets.size}.", color = HouseMuted, fontSize = 10.sp)
                 }
-                Text("I file sono collegati alla stanza; la ricostruzione automatica delle misure da foto/video non è ancora implementata.", color = HouseMuted, fontSize = 11.sp)
+                if (scanAssets.any { it.kind == "AR" }) {
+                    Text("È disponibile una stima AR provvisoria. Verifica larghezza e profondità e conferma la scala con misure reali.", color = Color(0xFFFFC36B), fontSize = 11.sp)
+                }
+                Text("Le foto e i video restano associati alla stanza. Le aperture non vengono dedotte automaticamente dalle immagini in questa versione.", color = HouseMuted, fontSize = 11.sp)
             }
         }
         Card(colors = CardDefaults.cardColors(containerColor = HousePanel)) {
@@ -317,4 +333,202 @@ private fun wallSegments(length: Float, openings: List<HouseOpening>): List<Pair
     openings.sortedBy { it.offset }.forEach { o -> val start=o.offset.coerceIn(cursor,length); val end=(start+o.width).coerceIn(start,length); if(start-cursor>.05f) out += cursor to start; cursor=maxOf(cursor,end) }
     if(length-cursor>.05f) out += cursor to length
     return out
+}
+
+
+private data class ArPlaneMeasurement(
+    val kind: String,
+    val centerX: Float,
+    val centerY: Float,
+    val centerZ: Float,
+    val extentX: Float,
+    val extentZ: Float
+)
+
+class HouseArScanActivity : ComponentActivity() {
+    private var roomName: String = "Stanza"
+
+    override fun onCreate(savedInstanceState: Bundle?) {
+        super.onCreate(savedInstanceState)
+        roomName = intent.getStringExtra(HouseReconstructionActivity.EXTRA_ROOM_NAME)
+            ?.takeIf { it.isNotBlank() } ?: "Stanza"
+        setContent {
+            MaterialTheme(
+                colorScheme = darkColorScheme(
+                    primary = HouseCyan,
+                    secondary = Color(0xFF9A7BFF),
+                    background = HouseBg,
+                    surface = HousePanel,
+                    onSurface = Color.White
+                )
+            ) {
+                HouseArScanScreen(
+                    roomName = roomName,
+                    onBack = { finish() },
+                    onSaveEstimate = { measurements -> saveEstimateAndOpenEditor(measurements) }
+                )
+            }
+        }
+    }
+
+    private fun saveEstimateAndOpenEditor(measurements: List<ArPlaneMeasurement>): String {
+        val floor = measurements.filter { it.kind == "PAVIMENTO" }
+            .maxByOrNull { it.extentX * it.extentZ }
+            ?: return "Pavimento non rilevato: muovi lentamente il telefono e inquadra il pavimento."
+
+        if (floor.extentX < 2f || floor.extentZ < 2f) {
+            return "Il piano è ancora troppo piccolo per stimare la stanza. Continua la scansione."
+        }
+        if (floor.extentX > 8f || floor.extentZ > 8f) {
+            return "La stima supera l'intervallo attuale 2–8 m. Usa l'editor per impostare le dimensioni manualmente."
+        }
+
+        return try {
+            val previous = HouseProjectRepository.load(filesDir, roomName)
+            val draft = previous.copy(
+                width = floor.extentX.coerceIn(2f, 8f),
+                depth = floor.extentZ.coerceIn(2f, 8f),
+                scaleConfirmed = false
+            )
+            HouseProjectRepository.save(filesDir, roomName, draft)
+
+            val planeJson = JSONArray()
+            measurements.forEach { p ->
+                planeJson.put(
+                    JSONObject()
+                        .put("kind", p.kind)
+                        .put("centerX", p.centerX)
+                        .put("centerY", p.centerY)
+                        .put("centerZ", p.centerZ)
+                        .put("extentX", p.extentX)
+                        .put("extentZ", p.extentZ)
+                )
+            }
+            val evidence = JSONObject()
+                .put("version", 1)
+                .put("roomName", roomName)
+                .put("capturedAtEpochMs", System.currentTimeMillis())
+                .put("floorWidthMeters", floor.extentX)
+                .put("floorDepthMeters", floor.extentZ)
+                .put("scaleConfirmed", false)
+                .put("trackedPlaneCount", measurements.size)
+                .put("planes", planeJson)
+            arEvidenceFile(filesDir, roomName).writeText(evidence.toString(2))
+
+            startActivity(
+                Intent(this, HouseReconstructionActivity::class.java)
+                    .putExtra(HouseReconstructionActivity.EXTRA_ROOM_NAME, roomName)
+            )
+            finish()
+            "Stima AR salvata: verifica le dimensioni nell'editor."
+        } catch (e: Exception) {
+            "Salvataggio della stima non riuscito: ${e.localizedMessage ?: e.javaClass.simpleName}"
+        }
+    }
+}
+
+@Composable
+private fun HouseArScanScreen(
+    roomName: String,
+    onBack: () -> Unit,
+    onSaveEstimate: (List<ArPlaneMeasurement>) -> String
+) {
+    var trackedPlanes by remember { mutableStateOf<List<ArPlaneMeasurement>>(emptyList()) }
+    var sessionReady by remember { mutableStateOf(false) }
+    var status by remember { mutableStateOf("Avvio ARCore: inquadra il pavimento e muovi lentamente il telefono.") }
+    val updateCounter = remember { AtomicInteger(0) }
+    val mainHandler = remember { Handler(Looper.getMainLooper()) }
+    val floor = trackedPlanes.filter { it.kind == "PAVIMENTO" }.maxByOrNull { it.extentX * it.extentZ }
+    val wallCount = trackedPlanes.count { it.kind == "PARETE" }
+    val floorSize = floor?.let { "${"%.1f".format(it.extentX)} × ${"%.1f".format(it.extentZ)} m" } ?: "in rilevamento"
+    val usableFloor = floor != null && floor.extentX >= 2f && floor.extentZ >= 2f &&
+        floor.extentX <= 8f && floor.extentZ <= 8f
+
+    Box(Modifier.fillMaxSize().background(Color.Black)) {
+        ARSceneView(
+            modifier = Modifier.fillMaxSize(),
+            planeRenderer = true,
+            planeFindingMode = Config.PlaneFindingMode.HORIZONTAL_AND_VERTICAL,
+            depthMode = Config.DepthMode.AUTOMATIC,
+            sessionConfiguration = { session, config ->
+                config.planeFindingMode = Config.PlaneFindingMode.HORIZONTAL_AND_VERTICAL
+                config.depthMode = if (runCatching { session.isDepthModeSupported(Config.DepthMode.AUTOMATIC) }.getOrDefault(false)) {
+                    Config.DepthMode.AUTOMATIC
+                } else {
+                    Config.DepthMode.DISABLED
+                }
+            },
+            onSessionCreated = {
+                sessionReady = true
+                status = "ARCore attivo · cerca il pavimento e le pareti."
+            },
+            onSessionFailed = { exception ->
+                sessionReady = false
+                status = "ARCore non avviabile: ${exception.localizedMessage ?: exception.javaClass.simpleName}"
+            },
+            onSessionUpdated = { session, frame ->
+                if (updateCounter.incrementAndGet() % 12 == 0) {
+                    val snapshot = runCatching {
+                        session.getAllTrackables(Plane::class.java)
+                            .filter { it.trackingState == TrackingState.TRACKING }
+                            .mapNotNull { plane ->
+                                val kind = when (plane.type) {
+                                    Plane.Type.HORIZONTAL_UPWARD_FACING -> "PAVIMENTO"
+                                    Plane.Type.VERTICAL -> "PARETE"
+                                    else -> null
+                                } ?: return@mapNotNull null
+                                if (plane.extentX <= 0.05f || plane.extentZ <= 0.05f) return@mapNotNull null
+                                ArPlaneMeasurement(
+                                    kind = kind,
+                                    centerX = plane.centerPose.tx(),
+                                    centerY = plane.centerPose.ty(),
+                                    centerZ = plane.centerPose.tz(),
+                                    extentX = plane.extentX,
+                                    extentZ = plane.extentZ
+                                )
+                            }
+                            .distinctBy { "${it.kind}:${(it.centerX * 2).toInt()}:${(it.centerZ * 2).toInt()}" }
+                    }.getOrElse { emptyList() }
+                    val tracking = frame.camera.trackingState == TrackingState.TRACKING
+                    mainHandler.post {
+                        trackedPlanes = snapshot
+                        status = if (!tracking) {
+                            "Tracking in acquisizione: muovi lentamente il telefono e guarda superfici ben illuminate."
+                        } else {
+                            "Tracking attivo · ${snapshot.count { it.kind == "PAVIMENTO" }} piani pavimento · $wallCount pareti candidate."
+                        }
+                    }
+                }
+            }
+        ) { }
+
+        Column(
+            Modifier.fillMaxSize().statusBarsPadding().navigationBarsPadding().padding(12.dp),
+            verticalArrangement = Arrangement.SpaceBetween
+        ) {
+            Card(colors = CardDefaults.cardColors(containerColor = HousePanel.copy(alpha = 0.94f))) {
+                Column(Modifier.fillMaxWidth().padding(14.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                    Text("SENTINEL ONE · SCANSIONE AR", color = HouseCyan, fontSize = 11.sp)
+                    Text(roomName, color = Color.White, fontSize = 21.sp)
+                    Text(status, color = Color.White, fontSize = 12.sp)
+                    Text("Piani tracciati: ${trackedPlanes.size} · pareti: $wallCount", color = HouseMuted, fontSize = 11.sp)
+                    Text("Estensione pavimento rilevata: $floorSize", color = if (usableFloor) Color(0xFF55E6B1) else Color(0xFFFFC36B), fontSize = 12.sp)
+                }
+            }
+            Card(colors = CardDefaults.cardColors(containerColor = HousePanel.copy(alpha = 0.96f))) {
+                Column(Modifier.fillMaxWidth().padding(12.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Text("Cammina lentamente attorno alla stanza; ruota il telefono per includere pavimento e tutte le pareti. Mantieni gli angoli nell'inquadratura. La misura è una stima del piano osservato, non una certificazione del perimetro.", color = HouseMuted, fontSize = 11.sp)
+                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        OutlinedButton(onClick = onBack, modifier = Modifier.weight(1f)) { Text("INDIETRO") }
+                        Button(
+                            onClick = { status = onSaveEstimate(trackedPlanes) },
+                            enabled = sessionReady && usableFloor,
+                            modifier = Modifier.weight(1.25f),
+                            colors = ButtonDefaults.buttonColors(containerColor = HouseCyan, contentColor = Color(0xFF07101A))
+                        ) { Text("USA STIMA AR", fontSize = 11.sp) }
+                    }
+                }
+            }
+        }
+    }
 }
