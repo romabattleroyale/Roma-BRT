@@ -103,7 +103,9 @@ class RoomScanActivity : ComponentActivity() {
             val availability = com.google.ar.core.ArCoreApk.getInstance().checkAvailability(this)
             when {
                 availability.isSupported -> inspectArCoreDepth()
-                availability.isTransientFailure -> {
+                availability == com.google.ar.core.ArCoreApk.Availability.UNKNOWN_CHECKING ||
+                    availability == com.google.ar.core.ArCoreApk.Availability.UNKNOWN_TIMED_OUT ||
+                    availability == com.google.ar.core.ArCoreApk.Availability.UNKNOWN_ERROR -> {
                     depthSupported = false
                     arStatus = "Verifica ARCore in corso o rete non disponibile. Riprova tra qualche secondo; foto e video sono già utilizzabili."
                 }
