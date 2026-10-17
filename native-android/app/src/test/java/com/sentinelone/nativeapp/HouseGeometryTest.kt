@@ -1,10 +1,18 @@
 package com.sentinelone.nativeapp
 
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertNotEquals
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class HouseGeometryTest {
+    @Test
+    fun roomStorageKeysSeparateNamesThatSanitizeToTheSameSlug() {
+        assertEquals(normalizedRoomName("Sala!"), normalizedRoomName("Sala?"))
+        assertNotEquals(roomStorageKey("Sala!"), roomStorageKey("Sala?"))
+        assertEquals(roomStorageKey("Soggiorno"), roomStorageKey("Soggiorno"))
+    }
+
     @Test
     fun openingsStayInsideWallsAndDoNotOverlap() {
         val result = normalizeOpenings(
