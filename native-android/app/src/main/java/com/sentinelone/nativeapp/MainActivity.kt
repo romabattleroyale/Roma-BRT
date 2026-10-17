@@ -40,6 +40,7 @@ import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.asImageBitmap
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -641,6 +642,7 @@ private fun Dashboard(
                             SecurityHeroVisual(
                                 isDark = isDark,
                                 online = online,
+                                frame = remoteFrame,
                                 subtitle = if (online) "Connessione attiva con $connectedName" else "Collega un secondo telefono per iniziare",
                                 onClick = { selectedTab = if (online) "Live" else "Dispositivi" }
                             )
@@ -832,7 +834,7 @@ private fun Dashboard(
 }
 
 @Composable
-private fun SecurityHeroVisual(isDark: Boolean, online: Boolean, subtitle: String, onClick: () -> Unit) {
+private fun SecurityHeroVisual(isDark: Boolean, online: Boolean, frame: Bitmap?, subtitle: String, onClick: () -> Unit) {
     val infinite = androidx.compose.animation.core.rememberInfiniteTransition(label = "security-hero")
     val pulse by infinite.animateFloat(
         initialValue = 0.72f,
@@ -852,7 +854,16 @@ private fun SecurityHeroVisual(isDark: Boolean, online: Boolean, subtitle: Strin
         border = androidx.compose.foundation.BorderStroke(1.dp, accent.copy(alpha = 0.28f))
     ) {
         Box(Modifier.fillMaxWidth().height(230.dp).background(Brush.linearGradient(listOf(Color(0xFF152B43), Color(0xFF0B1220), Color(0xFF201D3B))))) {
-            androidx.compose.foundation.Canvas(Modifier.fillMaxSize()) {
+            if (frame != null) {
+                Image(
+                    bitmap = frame.asImageBitmap(),
+                    contentDescription = "Immagine reale ricevuta dalla telecamera",
+                    modifier = Modifier.fillMaxSize(),
+                    contentScale = ContentScale.Crop
+                )
+                Box(Modifier.fillMaxSize().background(Brush.horizontalGradient(listOf(Color(0xE6101C2D), Color(0x66101C2D), Color.Transparent))))
+            } else {
+                androidx.compose.foundation.Canvas(Modifier.fillMaxSize()) {
                 val center = androidx.compose.ui.geometry.Offset(size.width * 0.73f, size.height * 0.46f)
                 val base = size.minDimension * 0.20f
                 for (i in 0..2) {
@@ -874,6 +885,7 @@ private fun SecurityHeroVisual(isDark: Boolean, online: Boolean, subtitle: Strin
                     val yy = size.height * 0.17f + i * 13.dp.toPx()
                     drawLine(Color.White.copy(alpha = 0.035f), androidx.compose.ui.geometry.Offset(size.width * 0.48f, yy), androidx.compose.ui.geometry.Offset(size.width * 0.94f, yy), 1.dp.toPx())
                 }
+            }
             }
             Column(Modifier.align(Alignment.CenterStart).fillMaxWidth(0.60f).padding(start = 18.dp, top = 18.dp, bottom = 18.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
                 Surface(color = accent.copy(alpha = 0.12f), shape = RoundedCornerShape(50)) {
