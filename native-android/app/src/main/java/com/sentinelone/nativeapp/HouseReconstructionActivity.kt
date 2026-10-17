@@ -34,7 +34,6 @@ import io.github.sceneview.node.CubeNode
 import io.github.sceneview.rememberCameraManipulator
 import io.github.sceneview.rememberEngine
 import io.github.sceneview.rememberModelLoader
-import io.github.sceneview.rememberMaterialLoader
 import org.json.JSONArray
 import org.json.JSONObject
 import java.io.File
@@ -465,102 +464,46 @@ private fun FloorPlan(g: HouseGeometry, modifier: Modifier = Modifier) {
 
 @Composable
 private fun House3D(g: HouseGeometry, modifier: Modifier = Modifier) {
-    val engine = rememberEngine()
-    val loader = rememberModelLoader(engine)
-    val materialLoader = rememberMaterialLoader(engine)
-    val floorMaterial = remember(materialLoader) {
-        materialLoader.createColorInstance(Color(0.10f, 0.16f, 0.24f, 1f), unlit = true)
-    }
-    val wallMaterial = remember(materialLoader) {
-        materialLoader.createColorInstance(Color(0.30f, 0.46f, 0.61f, 1f), unlit = true)
-    }
-    val doorMaterial = remember(materialLoader) {
-        materialLoader.createColorInstance(Color(0.98f, 0.68f, 0.30f, 1f), unlit = true)
-    }
-    val windowMaterial = remember(materialLoader) {
-        materialLoader.createColorInstance(Color(0.25f, 0.78f, 0.96f, 1f), unlit = true)
-    }
-    val hw = g.width / 2
-    val hd = g.depth / 2
-    val thickness = 0.10f
-    Box(modifier.background(Color(0xFF0B1321), RoundedCornerShape(16.dp))) {
-        SceneView(
-            Modifier.fillMaxSize(),
-            engine = engine,
-            modelLoader = loader,
-            cameraManipulator = rememberCameraManipulator()
-        ) {
-            // Explicit unlit materials prevent the dark Filament scene from rendering
-            // the entire house as black/white placeholder geometry.
-            CubeNode(
-                size = SceneSize(x = g.width, y = 0.08f, z = g.depth),
-                position = Position(y = -0.05f),
-                materialInstance = floorMaterial
-            )
-            listOf("Nord", "Sud").forEach { side ->
-                val z = if (side == "Nord") -hd else hd
-                val openings = g.openings.filter { it.wall == side }
-                wallSegments(g.width, openings).forEach { segment ->
-                    CubeNode(
-                        size = SceneSize(x = segment.second - segment.first, y = g.height, z = thickness),
-                        position = Position(x = -hw + (segment.first + segment.second) / 2, y = g.height / 2, z = z),
-                        materialInstance = wallMaterial
-                    )
-                }
-                openings.forEach { opening ->
-                    val start = opening.offset.coerceIn(0f, g.width)
-                    val end = (start + opening.width).coerceIn(start, g.width)
-                    val sill = if (opening.type == "Porta") 0f else 0.9f.coerceAtMost(g.height)
-                    val top = (sill + opening.height).coerceAtMost(g.height)
-                    val below = sill.coerceAtLeast(0f)
-                    val above = (g.height - top).coerceAtLeast(0f)
-                    val openingMaterial = if (opening.type == "Porta") doorMaterial else windowMaterial
-                    if (below > 0.05f) CubeNode(
-                        size = SceneSize(x = end - start, y = below, z = thickness),
-                        position = Position(x = -hw + (start + end) / 2, y = below / 2, z = z),
-                        materialInstance = openingMaterial
-                    )
-                    if (above > 0.05f) CubeNode(
-                        size = SceneSize(x = end - start, y = above, z = thickness),
-                        position = Position(x = -hw + (start + end) / 2, y = top + above / 2, z = z),
-                        materialInstance = wallMaterial
-                    )
+    val engine = rememberEngine(); val loader = rememberModelLoader(engine)
+    val t = .12f; val hw = g.width/2; val hd = g.depth/2
+    Box(modifier.background(Color(0xFF090F19), RoundedCornerShape(12.dp))) {
+        SceneView(Modifier.fillMaxSize(), engine = engine, modelLoader = loader, cameraManipulator = rememberCameraManipulator()) {
+            CubeNode(size = SceneSize(x=g.width,y=.08f,z=g.depth), position=Position(y=-.05f))
+            listOf("Nord","Sud").forEach { side ->
+                val z = if (side=="Nord") -hd else hd
+                val opens = g.openings.filter { it.wall==side }
+                wallSegments(g.width, opens).forEach { seg -> CubeNode(size=SceneSize(x=seg.second-seg.first,y=g.height,z=t), position=Position(x=-hw+(seg.first+seg.second)/2,y=g.height/2,z=z)) }
+                opens.forEach { o ->
+                    val start=o.offset.coerceIn(0f,g.width)
+                    val end=(start+o.width).coerceIn(start,g.width)
+                    val openingHeight = o.height
+                    val sill = if (o.type=="Porta") 0f else 0.9f.coerceAtMost(g.height)
+                    val openingTop=(sill+openingHeight).coerceAtMost(g.height)
+                    val below=sill.coerceAtLeast(0f)
+                    val above=(g.height-openingTop).coerceAtLeast(0f)
+                    if (below > 0.05f) CubeNode(size=SceneSize(x=end-start,y=below,z=t),position=Position(x=-hw+(start+end)/2,y=below/2,z=z))
+                    if (above > 0.05f) CubeNode(size=SceneSize(x=end-start,y=above,z=t),position=Position(x=-hw+(start+end)/2,y=openingTop+above/2,z=z))
                 }
             }
-            listOf("Ovest", "Est").forEach { side ->
-                val x = if (side == "Ovest") -hw else hw
-                val openings = g.openings.filter { it.wall == side }
-                wallSegments(g.depth, openings).forEach { segment ->
-                    CubeNode(
-                        size = SceneSize(x = thickness, y = g.height, z = segment.second - segment.first),
-                        position = Position(x = x, y = g.height / 2, z = -hd + (segment.first + segment.second) / 2),
-                        materialInstance = wallMaterial
-                    )
-                }
-                openings.forEach { opening ->
-                    val start = opening.offset.coerceIn(0f, g.depth)
-                    val end = (start + opening.width).coerceIn(start, g.depth)
-                    val sill = if (opening.type == "Porta") 0f else 0.9f.coerceAtMost(g.height)
-                    val top = (sill + opening.height).coerceAtMost(g.height)
-                    val below = sill.coerceAtLeast(0f)
-                    val above = (g.height - top).coerceAtLeast(0f)
-                    val openingMaterial = if (opening.type == "Porta") doorMaterial else windowMaterial
-                    if (below > 0.05f) CubeNode(
-                        size = SceneSize(x = thickness, y = below, z = end - start),
-                        position = Position(x = x, y = below / 2, z = -hd + (start + end) / 2),
-                        materialInstance = openingMaterial
-                    )
-                    if (above > 0.05f) CubeNode(
-                        size = SceneSize(x = thickness, y = above, z = end - start),
-                        position = Position(x = x, y = top + above / 2, z = -hd + (start + end) / 2),
-                        materialInstance = wallMaterial
-                    )
+            listOf("Ovest","Est").forEach { side ->
+                val x = if (side=="Ovest") -hw else hw
+                val opens = g.openings.filter { it.wall==side }
+                wallSegments(g.depth, opens).forEach { seg -> CubeNode(size=SceneSize(x=t,y=g.height,z=seg.second-seg.first), position=Position(x=x,y=g.height/2,z=-hd+(seg.first+seg.second)/2)) }
+                opens.forEach { o ->
+                    val start=o.offset.coerceIn(0f,g.depth)
+                    val end=(start+o.width).coerceIn(start,g.depth)
+                    val openingHeight = o.height
+                    val sill = if (o.type=="Porta") 0f else 0.9f.coerceAtMost(g.height)
+                    val openingTop=(sill+openingHeight).coerceAtMost(g.height)
+                    val below=sill.coerceAtLeast(0f)
+                    val above=(g.height-openingTop).coerceAtLeast(0f)
+                    if (below > 0.05f) CubeNode(size=SceneSize(x=t,y=below,z=end-start),position=Position(x=x,y=below/2,z=-hd+(start+end)/2))
+                    if (above > 0.05f) CubeNode(size=SceneSize(x=t,y=above,z=end-start),position=Position(x=x,y=openingTop+above/2,z=-hd+(start+end)/2))
                 }
             }
         }
     }
 }
-
 private fun wallSegments(length: Float, openings: List<HouseOpening>): List<Pair<Float,Float>> {
     val out=mutableListOf<Pair<Float,Float>>(); var cursor=0f
     openings.sortedBy { it.offset }.forEach { o -> val start=o.offset.coerceIn(cursor,length); val end=(start+o.width).coerceIn(start,length); if(start-cursor>.05f) out += cursor to start; cursor=maxOf(cursor,end) }
