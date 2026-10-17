@@ -238,8 +238,10 @@ private fun HouseEditor(initial: HouseGeometry, roomName: String, scanAssets: Li
                     }
                     if (scanAssets.size > 12) Text("Mostrati gli ultimi 12 file su ${scanAssets.size}.", color = HouseMuted, fontSize = 10.sp)
                 }
-                if (scanAssets.any { it.kind == "AR" }) {
-                    Text("È disponibile una stima AR provvisoria. Verifica larghezza e profondità e conferma la scala con misure reali.", color = Color(0xFFFFC36B), fontSize = 11.sp)
+                if (scanAssets.any { it.kind == "AR" } && !g.scaleConfirmed) {
+                    Text("Stima AR provvisoria: verifica larghezza e profondità con un metro, poi seleziona “Scala confermata”.", color = Color(0xFFFFC36B), fontSize = 11.sp)
+                } else if (scanAssets.any { it.kind == "AR" } && g.scaleConfirmed) {
+                    Text("Scala contrassegnata come confermata da misura reale.", color = Color(0xFF55E6B1), fontSize = 11.sp)
                 }
                 Text("Le foto e i video restano associati alla stanza. Le aperture non vengono dedotte automaticamente dalle immagini in questa versione.", color = HouseMuted, fontSize = 11.sp)
             }
@@ -558,12 +560,18 @@ private fun HouseArScanScreen(
                                     Plane.Type.VERTICAL -> "PARETE"
                                     else -> null
                                 } ?: return@mapNotNull null
-                                if (plane.extentX <= 0.05f || plane.extentZ <= 0.05f) return@mapNotNull null
+                                val centerX = plane.centerPose.tx()
+                                val centerY = plane.centerPose.ty()
+                                val centerZ = plane.centerPose.tz()
+                                if (!plane.extentX.isFinite() || !plane.extentZ.isFinite() ||
+                                    !centerX.isFinite() || !centerY.isFinite() || !centerZ.isFinite() ||
+                                    plane.extentX <= 0.05f || plane.extentZ <= 0.05f
+                                ) return@mapNotNull null
                                 ArPlaneMeasurement(
                                     kind = kind,
-                                    centerX = plane.centerPose.tx(),
-                                    centerY = plane.centerPose.ty(),
-                                    centerZ = plane.centerPose.tz(),
+                                    centerX = centerX,
+                                    centerY = centerY,
+                                    centerZ = centerZ,
                                     extentX = plane.extentX,
                                     extentZ = plane.extentZ
                                 )
