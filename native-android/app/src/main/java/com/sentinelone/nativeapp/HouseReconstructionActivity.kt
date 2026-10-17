@@ -300,7 +300,7 @@ private fun House3D(g: HouseGeometry, modifier: Modifier = Modifier) {
                 opens.forEach { o ->
                     val start=o.offset.coerceIn(0f,g.width)
                     val end=(start+o.width).coerceIn(start,g.width)
-                    val openingHeight = if (o.type=="Porta") 2.05f else o.height
+                    val openingHeight = o.height
                     val sill = if (o.type=="Porta") 0f else 0.9f.coerceAtMost(g.height)
                     val openingTop=(sill+openingHeight).coerceAtMost(g.height)
                     val below=sill.coerceAtLeast(0f)
@@ -316,7 +316,7 @@ private fun House3D(g: HouseGeometry, modifier: Modifier = Modifier) {
                 opens.forEach { o ->
                     val start=o.offset.coerceIn(0f,g.depth)
                     val end=(start+o.width).coerceIn(start,g.depth)
-                    val openingHeight = if (o.type=="Porta") 2.05f else o.height
+                    val openingHeight = o.height
                     val sill = if (o.type=="Porta") 0f else 0.9f.coerceAtMost(g.height)
                     val openingTop=(sill+openingHeight).coerceAtMost(g.height)
                     val below=sill.coerceAtLeast(0f)
