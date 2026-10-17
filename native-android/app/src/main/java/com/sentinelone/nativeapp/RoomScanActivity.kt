@@ -147,11 +147,16 @@ class RoomScanActivity : ComponentActivity() {
         }, ContextCompat.getMainExecutor(this))
     }
 
-    private fun safeRoomName(): String = roomName.trim().replace(Regex("[^A-Za-z0-9À-ÿ_-]+"), "_").trim('_').ifBlank { "Stanza" }
-
     private fun outputDirectory(): File {
         val base = getExternalFilesDir(Environment.DIRECTORY_PICTURES) ?: filesDir
-        return File(File(base, "SENTINEL_ONE_SCAN"), safeRoomName()).apply { mkdirs() }
+        val scanRoot = File(base, "SENTINEL_ONE_SCAN")
+        val directory = roomCaptureDirectory(scanRoot, roomName)
+        if (!directory.exists()) directory.mkdirs()
+        runCatching {
+            val marker = File(directory, ".sentinel-room-name")
+            if (!marker.isFile) marker.writeText(roomName.trim().ifBlank { "Stanza" })
+        }
+        return directory
     }
 
     private fun newOutput(prefix: String, extension: String): File {
