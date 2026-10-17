@@ -661,6 +661,32 @@ private fun Dashboard(
                                     shape = RoundedCornerShape(14.dp),
                                     colors = ButtonDefaults.outlinedButtonColors(contentColor = accent)
                                 ) { Text("GESTISCI STANZE SALVATE", fontSize = 10.sp, fontWeight = FontWeight.ExtraBold) }
+                                var showHouseGuide by remember { mutableStateOf(false) }
+                                OutlinedButton(
+                                    onClick = { showHouseGuide = !showHouseGuide },
+                                    modifier = Modifier.fillMaxWidth().height(44.dp),
+                                    shape = RoundedCornerShape(14.dp),
+                                    colors = ButtonDefaults.outlinedButtonColors(contentColor = accent)
+                                ) {
+                                    Text(if (showHouseGuide) "NASCONDI GUIDA" else "COME SI USA · GUIDA RAPIDA", fontSize = 10.sp, fontWeight = FontWeight.ExtraBold)
+                                }
+                                if (showHouseGuide) {
+                                    Card(
+                                        colors = CardDefaults.cardColors(containerColor = panel),
+                                        shape = RoundedCornerShape(18.dp),
+                                        border = androidx.compose.foundation.BorderStroke(1.dp, accent.copy(alpha = 0.35f))
+                                    ) {
+                                        Column(Modifier.fillMaxWidth().padding(14.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                                            Text("GUIDA RAPIDA · CASA", color = accent, fontSize = 12.sp, fontWeight = FontWeight.ExtraBold)
+                                            Text("1 · Scegli una stanza qui sotto, per esempio Soggiorno.", color = primaryText, fontSize = 12.sp)
+                                            Text("2 · Tocca SCANSIONE STANZE per aprire la fotocamera. Concedi il permesso se Android lo chiede e scatta foto o registra brevi video muovendoti lentamente attorno alla stanza.", color = primaryText, fontSize = 12.sp)
+                                            Text("3 · Apri l'editor 2D / 3D. Imposta larghezza, profondità e altezza reali; aggiungi porte e finestre sulla parete corretta. Le modifiche vengono salvate come bozza.", color = primaryText, fontSize = 12.sp)
+                                            Text("4 · Per riprendere il lavoro, usa GESTISCI STANZE SALVATE e seleziona la stanza.", color = primaryText, fontSize = 12.sp)
+                                            Text("5 · La scansione AR è una stima iniziale: controlla e correggi sempre le misure. Foto e video non vengono ancora trasformati automaticamente in una planimetria completa.", color = Color(0xFFFFC978), fontSize = 12.sp, fontWeight = FontWeight.SemiBold)
+                                            Text("La modalità Telecamera / Centro di controllo è separata: questa guida riguarda solo la sezione Casa.", color = secondaryText, fontSize = 11.sp)
+                                        }
+                                    }
+                                }
                                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                                     listOf("Soggiorno", "Cucina", "Camera").forEach { room ->
                                         val chosen = selectedRoom == room
