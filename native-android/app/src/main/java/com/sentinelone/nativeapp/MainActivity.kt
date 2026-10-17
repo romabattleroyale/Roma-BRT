@@ -4,6 +4,9 @@ import android.Manifest
 import android.content.pm.PackageManager
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
+import android.graphics.ImageFormat
+import android.graphics.Rect
+import android.graphics.YuvImage
 import android.os.Build
 import android.os.Bundle
 import android.util.Size
@@ -12,6 +15,7 @@ import androidx.activity.compose.setContent
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
 import androidx.camera.core.CameraSelector
+import androidx.camera.core.ImageAnalysis
 import androidx.camera.core.ImageCapture
 import androidx.camera.core.ImageCaptureException
 import androidx.camera.core.ImageProxy
@@ -66,6 +70,8 @@ class MainActivity : ComponentActivity() {
     private val cameraExecutor: ExecutorService = Executors.newSingleThreadExecutor()
     private val captureActive = AtomicBoolean(false)
     private var imageCapture: ImageCapture? = null
+    private var imageAnalysis: ImageAnalysis? = null
+    private val frameInFlight = AtomicBoolean(false)
     private var cameraProvider: ProcessCameraProvider? = null
     private var lensFacing by mutableIntStateOf(CameraSelector.LENS_FACING_BACK)
     private var role by mutableStateOf("monitor")
@@ -229,17 +235,34 @@ class MainActivity : ComponentActivity() {
             try {
                 val provider = providerFuture.get()
                 cameraProvider = provider
-                val capture = ImageCapture.Builder()
-                    .setCaptureMode(ImageCapture.CAPTURE_MODE_MINIMIZE_LATENCY)
-                    .setTargetResolution(Size(480, 360))
+                val analysis = ImageAnalysis.Builder()
+                    .setTargetResolution(Size(640, 480))
+                    .setBackpressureStrategy(ImageAnalysis.STRATEGY_KEEP_ONLY_LATEST)
                     .build()
+                analysis.setAnalyzer(cameraExecutor) { proxy ->
+                    try {
+                        if (captureActive.get() && !frameInFlight.get()) {
+                            val jpeg = imageProxyToJpeg(proxy)
+                            val endpoint = activeEndpoint
+                            if (jpeg != null && endpoint != null && frameInFlight.compareAndSet(false, true)) {
+                                connections.sendPayload(endpoint, Payload.fromBytes(jpeg))
+                                    .addOnFailureListener { fail("Invio frame fallito: ${it.localizedMessage}") }
+                                    .addOnCompleteListener { frameInFlight.set(false) }
+                                runOnUiThread { sentFrames += 1 }
+                            }
+                        }
+                    } catch (e: Exception) {
+                        fail("Errore elaborazione video: ${e.localizedMessage}")
+                    } finally {
+                        proxy.close()
+                    }
+                }
                 provider.unbindAll()
                 val selector = CameraSelector.Builder().requireLensFacing(lensFacing).build()
-                provider.bindToLifecycle(this, selector, capture)
-                imageCapture = capture
+                provider.bindToLifecycle(this, selector, analysis)
+                imageAnalysis = analysis
                 captureActive.set(true)
-                status = "Fotocamera attiva · invio video"
-                captureNextFrame()
+                status = "Fotocamera attiva · streaming live"
             } catch (e: Exception) {
                 fail("Fotocamera non avviata: ${e.localizedMessage}")
             }
@@ -276,6 +299,37 @@ class MainActivity : ComponentActivity() {
                 if (captureActive.get()) android.os.Handler(mainLooper).postDelayed({ captureNextFrame() }, 1000L)
             }
         })
+    }
+
+    private fun imageProxyToJpeg(proxy: ImageProxy): ByteArray? {
+        if (proxy.format != ImageFormat.YUV_420_888) return null
+        val y = proxy.planes[0].buffer
+        val u = proxy.planes[1].buffer
+        val v = proxy.planes[2].buffer
+        val width = proxy.width
+        val height = proxy.height
+        val nv21 = ByteArray(width * height * 3 / 2)
+        var offset = 0
+        val yRowStride = proxy.planes[0].rowStride
+        val yPixelStride = proxy.planes[0].pixelStride
+        for (row in 0 until height) {
+            for (col in 0 until width) nv21[offset++] = y.get(row * yRowStride + col * yPixelStride)
+        }
+        val uRowStride = proxy.planes[1].rowStride
+        val uPixelStride = proxy.planes[1].pixelStride
+        val vRowStride = proxy.planes[2].rowStride
+        val vPixelStride = proxy.planes[2].pixelStride
+        for (row in 0 until height / 2) {
+            for (col in 0 until width / 2) {
+                nv21[offset++] = v.get(row * vRowStride + col * vPixelStride)
+                nv21[offset++] = u.get(row * uRowStride + col * uPixelStride)
+            }
+        }
+        val output = ByteArrayOutputStream()
+        val image = YuvImage(nv21, ImageFormat.NV21, width, height, null)
+        if (!image.compressToJpeg(Rect(0, 0, width, height), 68, output)) return null
+        val bytes = output.toByteArray()
+        return bytes.takeIf { it.size <= 120 * 1024 }
     }
 
     private fun compressForNearby(source: ByteArray): ByteArray? {
@@ -317,6 +371,9 @@ class MainActivity : ComponentActivity() {
             try { cameraProvider?.unbind(capture) } catch (_: Exception) { }
         }
         imageCapture = null
+        imageAnalysis?.clearAnalyzer()
+        imageAnalysis = null
+        frameInFlight.set(false)
     }
 
     private fun requestPair(endpointId: String) {
