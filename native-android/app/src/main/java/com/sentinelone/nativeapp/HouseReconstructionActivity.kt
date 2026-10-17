@@ -128,16 +128,39 @@ private object HouseProjectRepository {
         if (!source.isFile) return@runCatching HouseGeometry()
         val j = JSONObject(source.readText())
         val a = j.optJSONArray("openings") ?: JSONArray()
-        HouseGeometry(j.optDouble("width", 5.0).toFloat().takeIf { it.isFinite() }?.coerceIn(2f, 8f) ?: 5f, j.optDouble("depth", 4.0).toFloat().takeIf { it.isFinite() }?.coerceIn(2f, 8f) ?: 4f, j.optDouble("height", 2.7).toFloat().takeIf { it.isFinite() }?.coerceIn(2.2f, 4f) ?: 2.7f, (0 until a.length()).mapNotNull { i ->
-            val o = a.optJSONObject(i) ?: return@mapNotNull null
-            HouseOpening(o.optString("id", UUID.randomUUID().toString()), o.optString("wall", "Nord"), o.optString("type", "Porta"), o.optDouble("offset", .5).toFloat(), o.optDouble("width", .9).toFloat(), o.optDouble("height", 2.05).toFloat())
-        }, j.optBoolean("scaleConfirmed", false))
+        val geometry = HouseGeometry(
+            width = j.optDouble("width", 5.0).toFloat().takeIf { it.isFinite() }?.coerceIn(2f, 8f) ?: 5f,
+            depth = j.optDouble("depth", 4.0).toFloat().takeIf { it.isFinite() }?.coerceIn(2f, 8f) ?: 4f,
+            height = j.optDouble("height", 2.7).toFloat().takeIf { it.isFinite() }?.coerceIn(2.2f, 4f) ?: 2.7f,
+            openings = (0 until a.length()).mapNotNull { i ->
+                val o = a.optJSONObject(i) ?: return@mapNotNull null
+                HouseOpening(
+                    o.optString("id", UUID.randomUUID().toString()),
+                    o.optString("wall", "Nord"),
+                    o.optString("type", "Porta"),
+                    o.optDouble("offset", .5).toFloat(),
+                    o.optDouble("width", .9).toFloat(),
+                    o.optDouble("height", 2.05).toFloat()
+                )
+            },
+            scaleConfirmed = j.optBoolean("scaleConfirmed", false)
+        )
+        geometry.copy(openings = normalizeOpenings(geometry.openings, geometry.width, geometry.depth))
     }.getOrDefault(HouseGeometry())
 
     fun save(dir: File, roomName: String, g: HouseGeometry) {
+        val safeWidth = g.width.takeIf { it.isFinite() }?.coerceIn(2f, 8f) ?: 5f
+        val safeDepth = g.depth.takeIf { it.isFinite() }?.coerceIn(2f, 8f) ?: 4f
+        val safeHeight = g.height.takeIf { it.isFinite() }?.coerceIn(2.2f, 4f) ?: 2.7f
+        val safeOpenings = normalizeOpenings(g.openings, safeWidth, safeDepth)
         val a = JSONArray()
-        g.openings.forEach { o -> a.put(JSONObject().put("id", o.id).put("wall", o.wall).put("type", o.type).put("offset", o.offset).put("width", o.width).put("height", o.height)) }
-        writeJsonAtomically(File(dir, projectFileName(roomName)), JSONObject().put("version", 2).put("roomName", roomName).put("width", g.width).put("depth", g.depth).put("height", g.height).put("scaleConfirmed", g.scaleConfirmed).put("openings", a).toString(2))
+        safeOpenings.forEach { o -> a.put(JSONObject().put("id", o.id).put("wall", o.wall).put("type", o.type).put("offset", o.offset).put("width", o.width).put("height", o.height)) }
+        writeJsonAtomically(
+            File(dir, projectFileName(roomName)),
+            JSONObject().put("version", 2).put("roomName", roomName)
+                .put("width", safeWidth).put("depth", safeDepth).put("height", safeHeight)
+                .put("scaleConfirmed", g.scaleConfirmed).put("openings", a).toString(2)
+        )
     }
 }
 
