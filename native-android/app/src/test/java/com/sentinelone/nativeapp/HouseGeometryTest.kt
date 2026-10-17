@@ -18,7 +18,8 @@ class HouseGeometryTest {
             roomDepth = 3f
         )
 
-        assertEquals(3, result.size)
+        assertEquals(4, result.size)
+        assertEquals(3, result.count { it.wall == "Nord" })
         result.filter { it.wall == "Nord" }.forEach { opening ->
             assertTrue(opening.offset >= 0f)
             assertTrue(opening.offset + opening.width <= 4.001f)
